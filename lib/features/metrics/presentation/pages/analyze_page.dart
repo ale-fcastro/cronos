@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/navigation/profile_avatar.dart';
 import '../../../../shared/shared.dart';
 import '../../domain/entities/metrics_entities.dart';
 import '../bloc/analyze_cubit.dart';
@@ -32,10 +33,16 @@ class AnalyzePage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Headline('Analizar'),
-                AppSegmentedButton(
-                  segments: _periodOptions[state.tabIndex],
-                  selectedIndex: state.periodIndex,
-                  onChanged: cubit.setPeriod,
+                Row(
+                  children: [
+                    AppSegmentedButton(
+                      segments: _periodOptions[state.tabIndex],
+                      selectedIndex: state.periodIndex,
+                      onChanged: cubit.setPeriod,
+                    ),
+                    Gaps.hSm,
+                    const ProfileAvatar(),
+                  ],
                 ),
               ],
             ),

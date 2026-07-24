@@ -12,6 +12,7 @@ import '../../../security/presentation/widgets/app_lock_tile.dart';
 import '../../domain/entities/app_settings.dart';
 import '../bloc/settings_cubit.dart';
 import '../bloc/settings_state.dart';
+import '../widgets/profile_photo_tile.dart';
 
 /// Pantalla Configuración: accesible desde el avatar del dashboard.
 class SettingsPage extends StatelessWidget {
@@ -49,6 +50,9 @@ class SettingsPage extends StatelessWidget {
                       child: ListView(
                         padding: const EdgeInsets.only(bottom: 32),
                         children: [
+                          const SectionHeader(title: 'Perfil'),
+                          const ProfilePhotoTile(),
+                          Gaps.vLg,
                           const SectionHeader(title: 'Horarios'),
                           AppCard(
                             padding: EdgeInsets.zero,

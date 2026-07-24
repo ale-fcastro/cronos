@@ -21,9 +21,11 @@ void main() {
       path: inMemoryDatabasePath,
     );
     // Este test verifica el arranque hasta el dashboard: se marca la guía
-    // de bienvenida como ya vista para no quedar frenado en ese paso.
+    // de bienvenida y el tour guiado como ya vistos para no quedar
+    // frenado en esos pasos.
     final db = await database.database;
     await db.insert('settings', {'key': 'onboarding_seen', 'value': '1'});
+    await db.insert('settings', {'key': 'tour_seen', 'value': '1'});
     configureDependencies(database: database);
   });
 

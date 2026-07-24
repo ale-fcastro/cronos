@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../shared/shared.dart';
+import '../di/service_locator.dart';
+import '../services/notifications_service.dart';
 
 class _OnboardingSlide {
   const _OnboardingSlide({required this.title, required this.body, this.wave = false});
@@ -58,8 +60,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
     super.dispose();
   }
 
-  void _next() {
+  Future<void> _next() async {
     if (_index == _slides.length - 1) {
+      await _requestNotificationsIfNeeded();
       widget.onDone();
       return;
     }
@@ -67,6 +70,18 @@ class _OnboardingPageState extends State<OnboardingPage> {
       duration: const Duration(milliseconds: 280),
       curve: Curves.easeOutCubic,
     );
+  }
+
+  /// Pregunta con un modal si activar avisos, y de aceptar, pide el
+  /// permiso con el diálogo normal del sistema (nunca saca de la app).
+  Future<void> _requestNotificationsIfNeeded() async {
+    final service = sl<NotificationsService>();
+    if (await service.hasPermission()) return;
+    if (!mounted) return;
+    final wantsIt = await showNotificationsPermissionDialog(context);
+    if (!wantsIt || !mounted) return;
+    final granted = await service.requestPermission();
+    if (granted) await service.setEnabled(true);
   }
 
   @override

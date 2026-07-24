@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:showcaseview/showcaseview.dart';
 
 import '../../../../core/models/event_category.dart';
-import '../../../../core/navigation/app_routes.dart';
+import '../../../../core/navigation/profile_avatar.dart';
 import '../../../../shared/shared.dart';
 import '../../domain/entities/dashboard_summary.dart';
 import '../bloc/dashboard_cubit.dart';
@@ -10,7 +11,10 @@ import '../bloc/dashboard_state.dart';
 
 /// Pantalla "Hoy": responde como va el dia en 3 segundos.
 class DashboardPage extends StatelessWidget {
-  const DashboardPage({super.key});
+  const DashboardPage({super.key, this.avatarKey});
+
+  /// Para el tour guiado del primer arranque (ver core/navigation).
+  final GlobalKey? avatarKey;
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +38,16 @@ class DashboardPage extends StatelessWidget {
                     Subtitle(s.dateLabel),
                   ],
                 ),
-                _Avatar(onTap: () => Navigator.of(context).pushNamed(AppRoutes.settings)),
+                avatarKey == null
+                    ? const ProfileAvatar()
+                    : Showcase(
+                        key: avatarKey!,
+                        title: 'Tu perfil',
+                        description:
+                            'Acá configurás huella, notificaciones, horarios y más.',
+                        targetShapeBorder: const CircleBorder(),
+                        child: const ProfileAvatar(),
+                      ),
               ],
             ),
             Gaps.vLg,
@@ -85,37 +98,6 @@ class DashboardPage extends StatelessWidget {
           ],
         );
       },
-    );
-  }
-}
-
-class _Avatar extends StatelessWidget {
-  const _Avatar({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.surfaceContainer,
-      shape: const CircleBorder(side: AppBorders.side),
-      child: InkWell(
-        onTap: onTap,
-        customBorder: const CircleBorder(),
-        child: const SizedBox(
-          width: 36,
-          height: 36,
-          child: Center(
-            child: Text('D',
-                style: TextStyle(
-                  fontFamily: AppTextStyles.sans,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.accent,
-                )),
-          ),
-        ),
-      ),
     );
   }
 }

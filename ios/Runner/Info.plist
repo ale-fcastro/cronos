@@ -28,6 +28,10 @@
 	<true/>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Cronos usa Face ID para desbloquear la app cuando activás el bloqueo en Configuración.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Cronos necesita acceso a tus fotos para elegir una imagen de perfil.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Cronos necesita la cámara para tomarte una foto de perfil.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

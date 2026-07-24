@@ -173,6 +173,32 @@ class NotificationsService {
     }
   }
 
+  /// Notificación inmediata (no agendada), p.ej. un hito como la primera
+  /// tarea creada. Respeta el mismo apagado/permiso que los recordatorios.
+  Future<void> showNow(String title, String body) async {
+    if (!await isEnabled() || !await hasPermission()) return;
+    await initialize();
+    try {
+      await _plugin.show(
+        id: DateTime.now().millisecondsSinceEpoch & 0x7fffffff,
+        title: title,
+        body: body,
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            _channelId,
+            _channelName,
+            importance: Importance.high,
+            priority: Priority.high,
+          ),
+          iOS: DarwinNotificationDetails(),
+          macOS: DarwinNotificationDetails(),
+        ),
+      );
+    } catch (_) {
+      // Un aviso perdido no debe romper el flujo que lo dispara.
+    }
+  }
+
   Future<void> cancelTaskReminder(String taskId) async {
     try {
       await _plugin.cancel(id: _notificationId(taskId));

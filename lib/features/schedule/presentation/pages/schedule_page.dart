@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/models/event_category.dart';
+import '../../../../core/navigation/app_routes.dart';
+import '../../../../core/navigation/profile_avatar.dart';
 import '../../../../shared/shared.dart';
 import '../../domain/entities/month_overview.dart';
 import '../../domain/entities/timeline_entry.dart';
@@ -35,11 +36,17 @@ class SchedulePage extends StatelessWidget {
                         : 'Score medio del mes · ${state.month!.averageScore}'),
                   ],
                 ),
-                AppSegmentedButton(
-                  segments: const ['Día', 'Mes'],
-                  selectedIndex: state.viewMode == ScheduleViewMode.day ? 0 : 1,
-                  onChanged: (i) => context.read<ScheduleCubit>().setViewMode(
-                      i == 0 ? ScheduleViewMode.day : ScheduleViewMode.month),
+                Row(
+                  children: [
+                    AppSegmentedButton(
+                      segments: const ['Día', 'Mes'],
+                      selectedIndex: state.viewMode == ScheduleViewMode.day ? 0 : 1,
+                      onChanged: (i) => context.read<ScheduleCubit>().setViewMode(
+                          i == 0 ? ScheduleViewMode.day : ScheduleViewMode.month),
+                    ),
+                    Gaps.hSm,
+                    const ProfileAvatar(),
+                  ],
                 ),
               ],
             ),

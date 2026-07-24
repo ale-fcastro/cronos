@@ -210,6 +210,21 @@ void main() {
     expect(detail.sessionsCount, 1);
   });
 
+  test('crear la primera tarea marca el hito una sola vez', () async {
+    await datasource.createTask(input(title: 'Primera'));
+    var db = await database.database;
+    var rows =
+        await db.query('settings', where: 'key = ?', whereArgs: ['first_task_celebrated']);
+    expect(rows, hasLength(1));
+
+    // Crear una segunda tarea no debe intentar re-insertar la marca (violaría
+    // la clave primaria de settings) ni lanzar.
+    await datasource.createTask(input(title: 'Segunda'));
+    db = await database.database;
+    rows = await db.query('settings', where: 'key = ?', whereArgs: ['first_task_celebrated']);
+    expect(rows, hasLength(1));
+  });
+
   test('borrar una tarea la quita de la lista junto con sus sesiones', () async {
     await datasource.createTask(input());
     final tasks = await datasource.fetchTasks(scope: 'today');

@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:sqflite/sqflite.dart' show Database;
+
 import '../../../../core/database/app_database.dart';
 import '../../../../core/services/app_usage_service.dart';
 import '../../../../core/services/notifications_service.dart';
@@ -272,6 +274,19 @@ class TasksLocalDatasource {
         at: input.plannedAt!,
       );
     }
+    await _celebrateFirstTaskIfNeeded(db);
+  }
+
+  /// Festeja la primera tarea que el usuario crea en la app (una sola vez).
+  Future<void> _celebrateFirstTaskIfNeeded(Database db) async {
+    const key = 'first_task_celebrated';
+    final rows = await db.query('settings', where: 'key = ?', whereArgs: [key]);
+    if (rows.isNotEmpty) return;
+    await db.insert('settings', {'key': key, 'value': '1'});
+    await _notifications.showNow(
+      'Creaste tu primera tarea',
+      '¡Vas bien! Ese es el primer paso para medir tu tiempo de verdad.',
+    );
   }
 
   Future<List<TaskSuggestion>> searchSuggestions(String query) async {

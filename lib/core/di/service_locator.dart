@@ -6,6 +6,7 @@ import '../services/app_usage_service.dart';
 import '../services/life_areas_service.dart';
 import '../services/notifications_service.dart';
 import '../services/onboarding_service.dart';
+import '../services/profile_service.dart';
 import '../services/projects_service.dart';
 import '../services/timer_service.dart';
 
@@ -99,6 +100,7 @@ void configureDependencies({AppDatabase? database}) {
   sl.registerLazySingleton(() => AppUsageService());
   sl.registerLazySingleton(() => NotificationsService(sl()));
   sl.registerLazySingleton(() => OnboardingService(sl()));
+  sl.registerLazySingleton(() => ProfileService(sl()));
 
   // Dashboard
   sl.registerLazySingleton(() => DashboardLocalDatasource(sl(), sl()));

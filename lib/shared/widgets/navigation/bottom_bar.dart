@@ -22,6 +22,8 @@ class BottomBar extends StatelessWidget {
     required this.currentIndex,
     this.onTap,
     this.onFabPressed,
+    this.wrapFab,
+    this.wrapItem,
   });
 
   final List<BottomBarItem> items;
@@ -31,9 +33,15 @@ class BottomBar extends StatelessWidget {
   /// Si es null no se muestra el FAB central.
   final VoidCallback? onFabPressed;
 
+  /// Permite envolver el FAB o un destino (p.ej. con un Showcase para un
+  /// tour guiado) sin acoplar este widget genérico a esa dependencia.
+  final Widget Function(Widget child)? wrapFab;
+  final Widget Function(int index, Widget child)? wrapItem;
+
   @override
   Widget build(BuildContext context) {
     final half = (items.length / 2).ceil();
+    final fab = AppFab(onPressed: onFabPressed);
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.navBackground,
@@ -54,11 +62,15 @@ class BottomBar extends StatelessWidget {
                       heightFactor: 1,
                       child: Transform.translate(
                         offset: const Offset(0, -8),
-                        child: AppFab(onPressed: onFabPressed),
+                        child: wrapFab == null ? fab : wrapFab!(fab),
                       ),
                     ),
                   ),
-                Expanded(child: _destination(i)),
+                Expanded(
+                  child: wrapItem == null
+                      ? _destination(i)
+                      : wrapItem!(i, _destination(i)),
+                ),
               ],
             ],
           ),

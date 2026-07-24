@@ -38,6 +38,7 @@ export 'widgets/charts/mini_bar_chart.dart';
 // Dialogs
 export 'widgets/dialogs/confirmation_dialog.dart';
 export 'widgets/dialogs/delete_dialog.dart';
+export 'widgets/dialogs/notifications_permission_dialog.dart';
 export 'widgets/dialogs/pause_reason_dialog.dart';
 export 'widgets/dialogs/usage_permission_dialog.dart';
 
@@ -78,6 +79,7 @@ export 'widgets/layout/page_header.dart';
 export 'widgets/layout/section_header.dart';
 
 // Navigation
+export 'widgets/navigation/app_avatar.dart';
 export 'widgets/navigation/app_drawer.dart';
 export 'widgets/navigation/app_navigation_rail.dart';
 export 'widgets/navigation/bottom_bar.dart';

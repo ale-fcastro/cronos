@@ -12,6 +12,10 @@
          POST_NOTIFICATIONS ya lo declara el propio plugin; esto habilita
          que los avisos agendados sobrevivan a un reinicio del teléfono. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <!-- Foto de perfil opcional (image_picker): la cámara se declara pero
+         no es requerida, para no excluir dispositivos sin una. -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <application
         android:label="Cronos"
         android:name="${applicationName}"

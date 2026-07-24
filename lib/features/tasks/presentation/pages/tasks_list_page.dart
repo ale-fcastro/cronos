@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/navigation/app_routes.dart';
+import '../../../../core/navigation/profile_avatar.dart';
 import '../../../../shared/shared.dart';
 import '../../../../shared/shared.dart' as ds show TaskPriority;
 import '../../domain/entities/task_priority.dart' as domain;
@@ -27,7 +28,14 @@ class TasksListPage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Headline('Tareas'),
-                AppText.mono('${state.tasks!.length} hoy · ${state.lateCount} retrasada${state.lateCount == 1 ? '' : 's'}'),
+                Row(
+                  children: [
+                    AppText.mono(
+                        '${state.tasks!.length} hoy · ${state.lateCount} retrasada${state.lateCount == 1 ? '' : 's'}'),
+                    Gaps.hSm,
+                    const ProfileAvatar(),
+                  ],
+                ),
               ],
             ),
             Gaps.vMd,

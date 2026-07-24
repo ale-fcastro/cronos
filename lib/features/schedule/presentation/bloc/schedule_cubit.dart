@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/diagnostics/error_reporting.dart';
 import '../../../../core/services/timer_service.dart';
+import '../../domain/entities/timeline_entry.dart';
 import '../../domain/usecases/get_day_agenda.dart';
 import '../../domain/usecases/get_month_overview.dart';
 import 'schedule_state.dart';
@@ -9,11 +12,21 @@ class ScheduleCubit extends Cubit<ScheduleState> {
   ScheduleCubit(this._getDayAgenda, this._getMonthOverview, this._timer)
       : super(const ScheduleState()) {
     _load();
+    // Igual que el detalle de tarea: mientras haya un bloque en curso en la
+    // vista Día, se refresca cada segundo para que el cronómetro inline se
+    // vea correr en vivo en vez de quedar estático hasta la próxima recarga.
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      final running = state.day?.entries
+              .any((e) => e.kind == TimelineEntryKind.runningBlock) ??
+          false;
+      if (running) _load();
+    });
   }
 
   final GetDayAgenda _getDayAgenda;
   final GetMonthOverview _getMonthOverview;
   final TimerService _timer;
+  Timer? _ticker;
 
   Future<void> _load() async {
     try {
@@ -28,6 +41,12 @@ class ScheduleCubit extends Cubit<ScheduleState> {
   }
 
   Future<void> reload() => _load();
+
+  @override
+  Future<void> close() {
+    _ticker?.cancel();
+    return super.close();
+  }
 
   void setViewMode(ScheduleViewMode mode) => emit(state.copyWith(viewMode: mode));
 

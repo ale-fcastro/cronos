@@ -10,6 +10,33 @@ class WorkingDay extends Equatable {
   List<Object?> get props => [label, active];
 }
 
+/// Horario adicional definido por el usuario (más allá de laboral/estudio/
+/// sueño): "Gimnasio", "Salir de fiesta", lo que necesite medir contra un
+/// horario propio.
+class CustomSchedule extends Equatable {
+  const CustomSchedule({
+    required this.id,
+    required this.name,
+    required this.startMinute,
+    required this.endMinute,
+  });
+
+  final String id;
+  final String name;
+
+  /// Minuto del día (0..1439).
+  final int startMinute;
+  final int endMinute;
+
+  String _hhmm(int m) =>
+      '${(m ~/ 60).toString().padLeft(2, '0')}:${(m % 60).toString().padLeft(2, '0')}';
+
+  String get label => '${_hhmm(startMinute)} – ${_hhmm(endMinute)}';
+
+  @override
+  List<Object?> get props => [id, name, startMinute, endMinute];
+}
+
 /// Configuracion del usuario tal como aparece en la pantalla Configuración.
 class AppSettings extends Equatable {
   const AppSettings({
@@ -30,6 +57,7 @@ class AppSettings extends Equatable {
     required this.scoreWeightEfficiency,
     required this.scoreWeightSleep,
     required this.scoreWeightPunctuality,
+    this.customSchedules = const [],
   });
 
   /// Valores crudos "HH:mm" para precargar los pickers de edición.
@@ -54,6 +82,8 @@ class AppSettings extends Equatable {
   final int scoreWeightSleep;
   final int scoreWeightPunctuality;
 
+  final List<CustomSchedule> customSchedules;
+
   @override
   List<Object?> get props => [
         workStart,
@@ -73,5 +103,6 @@ class AppSettings extends Equatable {
         scoreWeightEfficiency,
         scoreWeightSleep,
         scoreWeightPunctuality,
+        customSchedules,
       ];
 }
