@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart' show Color;
 
@@ -107,6 +109,7 @@ class AppUsageRow extends Equatable {
     required this.dotColor,
     this.subtitleColor,
     this.durationColor,
+    this.icon,
   });
 
   final String name;
@@ -116,8 +119,13 @@ class AppUsageRow extends Equatable {
   final Color? subtitleColor;
   final Color? durationColor;
 
+  /// Icono real de la app (PNG); null si no se pudo resolver, en cuyo caso
+  /// la UI cae a un avatar de color con la inicial del nombre.
+  final Uint8List? icon;
+
   @override
-  List<Object?> get props => [name, subtitle, duration, dotColor, subtitleColor, durationColor];
+  List<Object?> get props =>
+      [name, subtitle, duration, dotColor, subtitleColor, durationColor, icon];
 }
 
 /// Pestaña "Teléfono": uso automatico clasificado por el usuario.

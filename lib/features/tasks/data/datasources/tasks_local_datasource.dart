@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../../../../core/database/app_database.dart';
 import '../../../../core/services/app_usage_service.dart';
+import '../../../../core/services/notifications_service.dart';
 import '../../../../core/services/timer_service.dart';
 import '../../../../core/utils/time_format.dart';
 import '../../domain/entities/new_task_input.dart';
@@ -13,13 +14,19 @@ import '../../domain/entities/task_summary.dart';
 
 /// Datasource real de tareas sobre SQLite.
 class TasksLocalDatasource {
-  TasksLocalDatasource(this._database, [TimerService? timerService, AppUsageService? appUsage])
-      : _timer = timerService ?? TimerService(_database),
-        _appUsage = appUsage ?? AppUsageService();
+  TasksLocalDatasource(
+    this._database, [
+    TimerService? timerService,
+    AppUsageService? appUsage,
+    NotificationsService? notifications,
+  ])  : _timer = timerService ?? TimerService(_database),
+        _appUsage = appUsage ?? AppUsageService(),
+        _notifications = notifications ?? NotificationsService(_database);
 
   final AppDatabase _database;
   final TimerService _timer;
   final AppUsageService _appUsage;
+  final NotificationsService _notifications;
 
   Future<List<TaskSummary>> fetchTasks({required String scope}) async {
     final db = await _database.database;
@@ -128,6 +135,11 @@ class TasksLocalDatasource {
     final plannedAt = t.plannedAt;
     final linkedPackage = row['linked_package'] as String?;
     final linkedAppName = row['linked_app_name'] as String?;
+    final pauseReason = row['pause_reason'] as String?;
+    final pausedAtMs = row['paused_at'] as int?;
+    final pausedElapsedLabel = (pauseReason != null && pausedAtMs != null)
+        ? fmtClock(now.difference(DateTime.fromMillisecondsSinceEpoch(pausedAtMs)))
+        : null;
 
     // Verificación: ¿la app vinculada estuvo en primer plano al menos la
     // mitad del tiempo real trabajado en esta tarea? Señal informativa, no
@@ -157,14 +169,73 @@ class TasksLocalDatasource {
       notes: row['notes'] as String?,
       linkedAppName: linkedAppName,
       appVerified: appVerified,
+      pauseReason: pauseReason,
+      pausedElapsedLabel: pausedElapsedLabel,
     );
   }
 
   Future<void> startTimer(String id) => _timer.startTask(id);
 
-  Future<void> pauseTimer(String id) => _timer.pauseTask(id);
+  Future<void> pauseTimer(String id, {String? reason}) =>
+      _timer.pauseTask(id, reason: reason);
 
-  Future<void> completeTask(String id) => _timer.completeTask(id);
+  Future<void> completeTask(String id) async {
+    await _timer.completeTask(id);
+    await _notifications.cancelTaskReminder(id);
+  }
+
+  /// Datos crudos de [id] para precargar el formulario de edición.
+  Future<NewTaskInput> fetchTaskEditData(String id) async {
+    final db = await _database.database;
+    final rows = await db.query('tasks', where: 'id = ?', whereArgs: [id]);
+    final row = rows.first;
+    final plannedMs = row['planned_at'] as int?;
+    final p = ((row['priority'] as int?) ?? 2).clamp(1, 3);
+    return NewTaskInput(
+      title: row['title'] as String,
+      project: (row['project'] as String?) ?? 'Personal',
+      priority: TaskPriority.values[p - 1],
+      areaId: row['area_id'] as String?,
+      plannedAt: plannedMs == null ? null : DateTime.fromMillisecondsSinceEpoch(plannedMs),
+      estimateMinutes: (row['estimate_min'] as int?) ?? 30,
+      notes: row['notes'] as String?,
+      linkedPackage: row['linked_package'] as String?,
+      linkedAppName: row['linked_app_name'] as String?,
+    );
+  }
+
+  /// Actualiza los campos editables de [id]. No toca estado, cronómetro,
+  /// pausas ni recurrencia: eso se gestiona desde sus propios flujos.
+  Future<void> updateTask(String id, NewTaskInput input) async {
+    final db = await _database.database;
+    await db.update(
+      'tasks',
+      {
+        'title': input.title,
+        'project': input.project,
+        'area_id': input.areaId,
+        'priority': input.priority.index + 1,
+        'estimate_min': input.estimateMinutes,
+        'planned_at': input.plannedAt?.millisecondsSinceEpoch,
+        'notes': input.notes,
+        'linked_package': input.linkedPackage,
+        'linked_app_name': input.linkedAppName,
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    // El horario y/o el título pudieron cambiar: se cancela y reagenda
+    // en vez de intentar actualizar el aviso existente.
+    await _notifications.cancelTaskReminder(id);
+    if (input.plannedAt != null) {
+      await _notifications.scheduleTaskReminder(
+        taskId: id,
+        title: input.title,
+        project: input.project,
+        at: input.plannedAt!,
+      );
+    }
+  }
 
   Future<void> deleteTask(String id) async {
     final db = await _database.database;
@@ -172,13 +243,15 @@ class TasksLocalDatasource {
       await txn.delete('task_sessions', where: 'task_id = ?', whereArgs: [id]);
       await txn.delete('tasks', where: 'id = ?', whereArgs: [id]);
     });
+    await _notifications.cancelTaskReminder(id);
   }
 
   Future<void> createTask(NewTaskInput input) async {
     final db = await _database.database;
     final now = DateTime.now();
+    final id = 't${now.microsecondsSinceEpoch}';
     await db.insert('tasks', {
-      'id': 't${now.microsecondsSinceEpoch}',
+      'id': id,
       'title': input.title,
       'project': input.project,
       'area_id': input.areaId,
@@ -191,6 +264,14 @@ class TasksLocalDatasource {
       'linked_package': input.linkedPackage,
       'linked_app_name': input.linkedAppName,
     });
+    if (input.plannedAt != null) {
+      await _notifications.scheduleTaskReminder(
+        taskId: id,
+        title: input.title,
+        project: input.project,
+        at: input.plannedAt!,
+      );
+    }
   }
 
   Future<List<TaskSuggestion>> searchSuggestions(String query) async {
@@ -293,8 +374,9 @@ class TasksLocalDatasource {
 
         final plannedAt = DateTime(
             date.year, date.month, date.day, minuteOfDay ~/ 60, minuteOfDay % 60);
+        final id = 't${DateTime.now().microsecondsSinceEpoch}_$i';
         await db.insert('tasks', {
-          'id': 't${DateTime.now().microsecondsSinceEpoch}_$i',
+          'id': id,
           'title': recurrence.title,
           'project': recurrence.project,
           'area_id': recurrence.areaId,
@@ -307,6 +389,12 @@ class TasksLocalDatasource {
           'recurrence_id': recurrence.id,
           'recurrence_date': dateKey,
         });
+        await _notifications.scheduleTaskReminder(
+          taskId: id,
+          title: recurrence.title,
+          project: recurrence.project,
+          at: plannedAt,
+        );
       }
     }
   }

@@ -108,7 +108,12 @@ class EventsRegisterView extends StatelessWidget {
               ],
             ),
             Gaps.vLg,
-            PrimaryButton(label: 'Registrar evento', expanded: true, onPressed: cubit.submit),
+            PrimaryButton(
+              label: 'Registrar evento',
+              expanded: true,
+              loading: state.submitting,
+              onPressed: cubit.submit,
+            ),
           ],
         );
       },

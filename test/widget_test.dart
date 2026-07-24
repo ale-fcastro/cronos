@@ -20,6 +20,10 @@ void main() {
       factory: databaseFactoryFfiNoIsolate,
       path: inMemoryDatabasePath,
     );
+    // Este test verifica el arranque hasta el dashboard: se marca la guía
+    // de bienvenida como ya vista para no quedar frenado en ese paso.
+    final db = await database.database;
+    await db.insert('settings', {'key': 'onboarding_seen', 'value': '1'});
     configureDependencies(database: database);
   });
 

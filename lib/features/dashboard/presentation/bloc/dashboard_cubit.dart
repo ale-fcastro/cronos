@@ -28,13 +28,14 @@ class DashboardCubit extends Cubit<DashboardState> {
     }
   }
 
-  /// Pausa la tarea o detiene la actividad que esté corriendo ahora mismo.
-  Future<void> pauseCurrent(CurrentTaskInfo current) async {
+  /// Pausa la tarea (opcionalmente con motivo, ver [TimerService.pauseTask])
+  /// o detiene la actividad que esté corriendo ahora mismo.
+  Future<void> pauseCurrent(CurrentTaskInfo current, {String? reason}) async {
     try {
       if (current.kind == CurrentTrackKind.task) {
-        await _timer.pauseTask(current.id);
+        await _timer.pauseTask(current.id, reason: reason);
       } else {
-        await _timer.stopRunningActivity();
+        await _timer.stopRunningActivity(reason: reason);
       }
       await load();
     } catch (e, st) {

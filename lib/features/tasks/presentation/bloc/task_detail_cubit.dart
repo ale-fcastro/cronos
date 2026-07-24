@@ -18,9 +18,14 @@ class TaskDetailCubit extends Cubit<TaskDetailState> {
     this.taskId,
   ) : super(const TaskDetailState()) {
     load();
-    // Refresca el cronómetro cada segundo mientras la tarea corre.
+    // Refresca el cronómetro cada segundo mientras la tarea corre, y
+    // también mientras tenga una pausa justificada pendiente (para que su
+    // duración se vea avanzar en vivo).
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (state.detail?.status == TaskStatus.running) load();
+      if (state.detail?.status == TaskStatus.running ||
+          state.detail?.pauseReason != null) {
+        load();
+      }
     });
   }
 
@@ -42,8 +47,8 @@ class TaskDetailCubit extends Cubit<TaskDetailState> {
     }
   }
 
-  Future<void> pause() async {
-    await _pauseTimer(taskId);
+  Future<void> pause({String? reason}) async {
+    await _pauseTimer(taskId, reason: reason);
     await load();
   }
 

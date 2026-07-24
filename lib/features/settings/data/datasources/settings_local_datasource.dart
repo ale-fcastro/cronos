@@ -1,5 +1,6 @@
 import 'package:sqflite/sqflite.dart' show ConflictAlgorithm;
 
+import '../../../../core/analytics/stats_engine.dart';
 import '../../../../core/database/app_database.dart';
 import '../../domain/entities/app_settings.dart';
 
@@ -42,6 +43,13 @@ class SettingsLocalDatasource {
     final daysMask = map['working_days'] ?? '1111100';
     const dayLabels = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
+    int weight(String key, int fallback) =>
+        int.tryParse(map[key] ?? '') ?? fallback;
+    final wCompliance = weight(ScoreWeightKeys.compliance, scoreWeightDefaults.compliance);
+    final wEfficiency = weight(ScoreWeightKeys.efficiency, scoreWeightDefaults.efficiency);
+    final wSleep = weight(ScoreWeightKeys.sleep, scoreWeightDefaults.sleep);
+    final wPunctuality = weight(ScoreWeightKeys.punctuality, scoreWeightDefaults.punctuality);
+
     return AppSettings(
       workStart: workStart,
       workEnd: workEnd,
@@ -61,8 +69,12 @@ class SettingsLocalDatasource {
       categoriesCount: categories,
       projectsCount: projects,
       prioritiesLabel: 'P1–P3',
-      scoreWeightsLabel:
-          'Cumplimiento 40 · Eficiencia 30 · Sueño 20 · Puntualidad 10',
+      scoreWeightsLabel: 'Cumplimiento $wCompliance · Eficiencia $wEfficiency · '
+          'Sueño $wSleep · Puntualidad $wPunctuality',
+      scoreWeightCompliance: wCompliance,
+      scoreWeightEfficiency: wEfficiency,
+      scoreWeightSleep: wSleep,
+      scoreWeightPunctuality: wPunctuality,
     );
   }
 }

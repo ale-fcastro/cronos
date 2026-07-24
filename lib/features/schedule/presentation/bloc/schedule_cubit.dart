@@ -40,9 +40,9 @@ class ScheduleCubit extends Cubit<ScheduleState> {
     }
   }
 
-  Future<void> pauseTask(String taskId) async {
+  Future<void> pauseTask(String taskId, {String? reason}) async {
     try {
-      await _timer.pauseTask(taskId);
+      await _timer.pauseTask(taskId, reason: reason);
       await _load();
     } catch (e, st) {
       reportError('ScheduleCubit.pauseTask', e, st);

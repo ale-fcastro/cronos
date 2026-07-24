@@ -69,6 +69,7 @@ class CurrentTaskInfo extends Equatable {
     required this.title,
     required this.subtitle,
     required this.elapsedLabel,
+    this.isSleep = false,
   });
 
   /// Id de la tarea (si [kind] es task); irrelevante para actividades, que
@@ -79,8 +80,12 @@ class CurrentTaskInfo extends Equatable {
   final String subtitle;
   final String elapsedLabel;
 
+  /// true si [kind] es activity y es la actividad de dormir: al pausarla
+  /// se pregunta el motivo (pesadilla, ruido...).
+  final bool isSleep;
+
   @override
-  List<Object?> get props => [id, kind, title, subtitle, elapsedLabel];
+  List<Object?> get props => [id, kind, title, subtitle, elapsedLabel, isSleep];
 }
 
 /// Siguiente bloque planificado tras el actual.

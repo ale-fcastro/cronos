@@ -38,6 +38,7 @@ export 'widgets/charts/mini_bar_chart.dart';
 // Dialogs
 export 'widgets/dialogs/confirmation_dialog.dart';
 export 'widgets/dialogs/delete_dialog.dart';
+export 'widgets/dialogs/pause_reason_dialog.dart';
 export 'widgets/dialogs/usage_permission_dialog.dart';
 
 // Feedback
@@ -45,6 +46,7 @@ export 'widgets/feedback/app_snack_bar.dart';
 export 'widgets/feedback/loading_overlay.dart';
 
 // Indicators
+export 'widgets/indicators/app_icon_avatar.dart';
 export 'widgets/indicators/circular_score.dart';
 export 'widgets/indicators/kpi_tile.dart';
 export 'widgets/indicators/linear_progress_card.dart';
@@ -80,6 +82,9 @@ export 'widgets/navigation/app_drawer.dart';
 export 'widgets/navigation/app_navigation_rail.dart';
 export 'widgets/navigation/bottom_bar.dart';
 export 'widgets/navigation/breadcrumb.dart';
+
+// Mascot
+export 'widgets/mascot/cronos_mascot.dart';
 
 // Surfaces
 export 'widgets/surfaces/dashed_surface.dart';

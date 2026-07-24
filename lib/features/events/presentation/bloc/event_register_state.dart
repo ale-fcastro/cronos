@@ -3,7 +3,7 @@ import '../../../../core/models/life_area.dart';
 import '../../../../core/utils/time_format.dart';
 import '../../domain/entities/event_suggestion.dart';
 
-const eventCategories = ['Interrupción', 'Imprevisto', 'Administrativo', 'Social', 'Traslado', 'Espera'];
+export '../../../../core/models/event_category.dart';
 
 class EventRegisterState extends Equatable {
   const EventRegisterState({
@@ -14,6 +14,7 @@ class EventRegisterState extends Equatable {
     this.lifeAreas = const [],
     this.startMinuteOfDay,
     this.endMinuteOfDay,
+    this.submitting = false,
     this.submitted = false,
   });
 
@@ -30,6 +31,7 @@ class EventRegisterState extends Equatable {
 
   /// Minuto del día de fin; null = ahora.
   final int? endMinuteOfDay;
+  final bool submitting;
   final bool submitted;
 
   int get effectiveStartMinute {
@@ -70,6 +72,7 @@ class EventRegisterState extends Equatable {
     List<LifeArea>? lifeAreas,
     int? startMinuteOfDay,
     int? endMinuteOfDay,
+    bool? submitting,
     bool? submitted,
   }) {
     return EventRegisterState(
@@ -80,6 +83,7 @@ class EventRegisterState extends Equatable {
       lifeAreas: lifeAreas ?? this.lifeAreas,
       startMinuteOfDay: startMinuteOfDay ?? this.startMinuteOfDay,
       endMinuteOfDay: endMinuteOfDay ?? this.endMinuteOfDay,
+      submitting: submitting ?? this.submitting,
       submitted: submitted ?? this.submitted,
     );
   }
@@ -93,6 +97,7 @@ class EventRegisterState extends Equatable {
         lifeAreas,
         startMinuteOfDay,
         endMinuteOfDay,
+        submitting,
         submitted,
       ];
 }

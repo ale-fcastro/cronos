@@ -452,11 +452,12 @@ class MetricsLocalDatasource {
             name: top[i].appName,
             subtitle: linkedPackages.contains(top[i].packageName)
                 ? 'Vinculada a una tarea'
-                : top[i].packageName,
+                : 'Sin vincular',
             subtitleColor:
                 linkedPackages.contains(top[i].packageName) ? DataColors.success : null,
             duration: fmtDurationMin(top[i].recentUsage.inMinutes),
             dotColor: _appDotColors[i % _appDotColors.length],
+            icon: top[i].icon,
           ),
       ],
       insight: insight,

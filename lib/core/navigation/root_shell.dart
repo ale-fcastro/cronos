@@ -22,7 +22,7 @@ class RootShell extends StatefulWidget {
   State<RootShell> createState() => _RootShellState();
 }
 
-class _RootShellState extends State<RootShell> {
+class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
   int _index = 0;
 
   late final DashboardCubit _dashboard = sl<DashboardCubit>();
@@ -31,12 +31,28 @@ class _RootShellState extends State<RootShell> {
   late final AnalyzeCubit _analyze = sl<AnalyzeCubit>();
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _dashboard.close();
     _schedule.close();
     _tasks.close();
     _analyze.close();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Cubre, entre otras cosas, volver de Configuración del sistema tras
+    // conceder el permiso de "Acceso al uso": al reanudar, Analizar >
+    // Teléfono debe reflejar el permiso ya concedido sin que el usuario
+    // tenga que hacer nada más.
+    if (state == AppLifecycleState.resumed) _refreshAll();
   }
 
   void _refreshAll() {

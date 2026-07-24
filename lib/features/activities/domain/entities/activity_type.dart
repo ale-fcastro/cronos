@@ -41,11 +41,19 @@ class ActivityLogEntry extends Equatable {
 
 /// Actividad con el cronometro corriendo ahora mismo (o ninguna).
 class RunningActivity extends Equatable {
-  const RunningActivity({required this.name, required this.elapsedLabel});
+  const RunningActivity({
+    required this.name,
+    required this.elapsedLabel,
+    this.isSleep = false,
+  });
 
   final String name;
   final String elapsedLabel;
 
+  /// true si es la actividad de dormir: al detenerla se pregunta el motivo
+  /// (pesadilla, ruido...) para poder medir interrupciones del sueño.
+  final bool isSleep;
+
   @override
-  List<Object?> get props => [name, elapsedLabel];
+  List<Object?> get props => [name, elapsedLabel, isSleep];
 }

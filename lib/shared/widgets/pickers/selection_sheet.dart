@@ -14,6 +14,7 @@ Future<T?> showSelectionSheet<T>({
   required List<T> options,
   required String Function(T) labelBuilder,
   T? selected,
+  Widget Function(T)? leadingBuilder,
 }) {
   return showModalBottomSheet<T>(
     context: context,
@@ -23,6 +24,7 @@ Future<T?> showSelectionSheet<T>({
       options: options,
       labelBuilder: labelBuilder,
       selected: selected,
+      leadingBuilder: leadingBuilder,
     ),
   );
 }
@@ -33,12 +35,14 @@ class _SelectionSheet<T> extends StatelessWidget {
     required this.options,
     required this.labelBuilder,
     required this.selected,
+    this.leadingBuilder,
   });
 
   final String title;
   final List<T> options;
   final String Function(T) labelBuilder;
   final T? selected;
+  final Widget Function(T)? leadingBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -66,6 +70,10 @@ class _SelectionSheet<T> extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
                   child: Row(
                     children: [
+                      if (leadingBuilder != null) ...[
+                        leadingBuilder!(o),
+                        const SizedBox(width: 12),
+                      ],
                       Expanded(
                         child: Text(labelBuilder(o), style: AppTextStyles.body),
                       ),

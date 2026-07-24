@@ -6,7 +6,7 @@ abstract interface class ActivitiesRepository {
   Future<List<ActivityLogEntry>> getTodayLog();
   Future<RunningActivity?> getRunningActivity();
   Future<void> startActivity(String activityId);
-  Future<void> stopRunningActivity();
+  Future<void> stopRunningActivity({String? reason});
   Future<void> createActivityType(NewActivityTypeInput input);
   Future<void> deleteActivityType(String id);
 }

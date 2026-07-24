@@ -23,6 +23,7 @@ class CreateTaskState extends Equatable {
     this.repeatWeekdayMinuteOfDay = const {},
     this.linkedPackage,
     this.linkedAppName,
+    this.submitting = false,
     this.submitted = false,
   });
 
@@ -58,6 +59,9 @@ class CreateTaskState extends Equatable {
   final String? linkedPackage;
   final String? linkedAppName;
 
+  /// true mientras submit() está en curso: evita doble envío y muestra
+  /// el botón en estado de carga.
+  final bool submitting;
   final bool submitted;
 
   DateTime get effectiveDate => plannedDate ?? DateTime.now();
@@ -117,6 +121,7 @@ class CreateTaskState extends Equatable {
     String? linkedPackage,
     String? linkedAppName,
     bool clearLinkedApp = false,
+    bool? submitting,
     bool? submitted,
   }) {
     return CreateTaskState(
@@ -138,6 +143,7 @@ class CreateTaskState extends Equatable {
           repeatWeekdayMinuteOfDay ?? this.repeatWeekdayMinuteOfDay,
       linkedPackage: clearLinkedApp ? null : (linkedPackage ?? this.linkedPackage),
       linkedAppName: clearLinkedApp ? null : (linkedAppName ?? this.linkedAppName),
+      submitting: submitting ?? this.submitting,
       submitted: submitted ?? this.submitted,
     );
   }
@@ -160,6 +166,7 @@ class CreateTaskState extends Equatable {
         repeatWeekdayMinuteOfDay,
         linkedPackage,
         linkedAppName,
+        submitting,
         submitted,
       ];
 }

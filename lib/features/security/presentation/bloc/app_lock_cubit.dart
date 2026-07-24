@@ -5,15 +5,18 @@ import '../../../../core/diagnostics/error_reporting.dart';
 import '../../domain/usecases/security_usecases.dart';
 
 class AppLockState extends Equatable {
-  const AppLockState({this.enabled = false, this.supported = true});
+  const AppLockState({this.enabled = false, this.supported = true, this.authenticating = false});
 
   final bool enabled;
 
   /// false si el dispositivo no tiene biometría ni credencial de pantalla.
   final bool supported;
 
+  /// true mientras espera el resultado del prompt de huella/PIN.
+  final bool authenticating;
+
   @override
-  List<Object?> get props => [enabled, supported];
+  List<Object?> get props => [enabled, supported, authenticating];
 }
 
 /// Estado del toggle "Bloqueo con huella" en Configuración.
@@ -44,10 +47,11 @@ class AppLockCubit extends Cubit<AppLockState> {
   }
 
   Future<void> toggle(bool value) async {
-    if (!state.supported) return;
+    if (!state.supported || state.authenticating) return;
     if (value) {
       // Antes de activar el bloqueo, el usuario debe demostrar que su
       // huella/PIN funciona; si no, quedaría fuera de la app.
+      emit(AppLockState(enabled: state.enabled, supported: state.supported, authenticating: true));
       final ok = await _authenticate();
       if (isClosed) return;
       if (!ok) {

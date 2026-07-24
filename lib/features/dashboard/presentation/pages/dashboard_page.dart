@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/models/event_category.dart';
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../shared/shared.dart';
 import '../../domain/entities/dashboard_summary.dart';
@@ -195,7 +196,21 @@ class _CurrentTaskCard extends StatelessWidget {
           Gaps.hMd,
           AppIconButton(
             icon: Icons.pause_rounded,
-            onPressed: () => context.read<DashboardCubit>().pauseCurrent(task),
+            onPressed: () async {
+              final cubit = context.read<DashboardCubit>();
+              if (task.kind != CurrentTrackKind.task && !task.isSleep) {
+                cubit.pauseCurrent(task);
+                return;
+              }
+              final reason = await PauseReasonDialog.show(
+                context,
+                reasons: task.kind == CurrentTrackKind.task
+                    ? eventCategories
+                    : sleepInterruptionReasons,
+              );
+              if (reason == null) return;
+              cubit.pauseCurrent(task, reason: reason);
+            },
           ),
         ],
       ),

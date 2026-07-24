@@ -66,8 +66,8 @@ class ActivitiesCubit extends Cubit<ActivitiesState> {
     await _load();
   }
 
-  Future<void> stop() async {
-    await _stopRunning();
+  Future<void> stop({String? reason}) async {
+    await _stopRunning(reason: reason);
     final activities = await _getFrequent();
     final log = await _getTodayLog();
     if (isClosed) return;

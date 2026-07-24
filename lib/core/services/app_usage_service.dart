@@ -3,12 +3,18 @@ import 'dart:io';
 import 'package:usage_stats/usage_stats.dart' as native;
 
 import '../models/linked_app_option.dart';
+import '../utils/app_name_format.dart';
+import 'app_icon_service.dart';
 
 /// Envoltorio sobre el plugin `usage_stats` (solo Android). En cualquier
 /// otra plataforma, o si el permiso no está concedido, degrada a
 /// resultados vacíos en vez de fallar: el resto de la app (vincular tareas
 /// con apps, pestaña Teléfono) debe seguir funcionando sin esta capacidad.
 class AppUsageService {
+  AppUsageService({AppIconService? icons}) : _icons = icons ?? AppIconService();
+
+  final AppIconService _icons;
+
   bool get isSupported => Platform.isAndroid;
 
   Future<bool> hasPermission() async {
@@ -20,17 +26,17 @@ class AppUsageService {
     }
   }
 
-  /// Abre la pantalla del sistema donde el usuario concede el permiso.
+  /// Abre la pantalla del sistema donde el usuario concede el permiso,
+  /// intentando llevarlo directo a la fila de Cronos (ver [AppIconService]).
   Future<void> requestPermission() async {
     if (!isSupported) return;
-    try {
-      await native.UsageStats.grantUsagePermission();
-    } catch (_) {
-      // Sin acción posible si la plataforma no expone la pantalla.
-    }
+    await _icons.openUsageAccessSettings();
   }
 
   /// Uso por app entre [start] y [end], ordenado de mayor a menor tiempo.
+  /// Nombre e icono se resuelven contra PackageManager (más confiable que
+  /// el plugin de uso); si una app ya no puede resolverse (desinstalada),
+  /// [humanizeAppName] evita mostrar el package name crudo.
   /// Devuelve lista vacía sin permiso, en desktop, o ante cualquier error
   /// de la plataforma (nunca lanza).
   Future<List<LinkedAppOption>> queryUsage(DateTime start, DateTime end) async {
@@ -49,11 +55,12 @@ class AppUsageService {
 
       final options = <LinkedAppOption>[];
       for (final entry in sorted) {
-        final info = await _appInfo(entry.key);
+        final resolved = await _icons.resolve(entry.key);
         options.add(LinkedAppOption(
           packageName: entry.key,
-          appName: info?.appName ?? entry.key,
+          appName: resolved?.appName ?? humanizeAppName(entry.key),
           recentUsage: Duration(milliseconds: entry.value),
+          icon: resolved?.icon,
         ));
       }
       return options;
@@ -74,14 +81,6 @@ class AppUsageService {
       return Duration(milliseconds: totalMs);
     } catch (_) {
       return Duration.zero;
-    }
-  }
-
-  Future<native.AppInfo?> _appInfo(String packageName) async {
-    try {
-      return await native.UsageStats.getAppInfo(packageName);
-    } catch (_) {
-      return null;
     }
   }
 }

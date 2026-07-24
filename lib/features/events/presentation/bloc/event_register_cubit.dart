@@ -53,14 +53,21 @@ class EventRegisterCubit extends Cubit<EventRegisterState> {
       emit(state.copyWith(endMinuteOfDay: hour * 60 + minute));
 
   Future<void> submit() async {
-    if (state.query.trim().isEmpty) return;
-    await _register(NewEventInput(
-      description: state.query.trim(),
-      category: eventCategories[state.categoryIndex],
-      areaId: state.areaId,
-      start: state.start,
-      end: state.end,
-    ));
-    emit(state.copyWith(submitted: true));
+    if (state.query.trim().isEmpty || state.submitting) return;
+    emit(state.copyWith(submitting: true));
+    try {
+      await _register(NewEventInput(
+        description: state.query.trim(),
+        category: eventCategories[state.categoryIndex],
+        areaId: state.areaId,
+        start: state.start,
+        end: state.end,
+      ));
+      if (isClosed) return;
+      emit(state.copyWith(submitting: false, submitted: true));
+    } catch (e, st) {
+      reportError('EventRegisterCubit.submit', e, st);
+      if (!isClosed) emit(state.copyWith(submitting: false));
+    }
   }
 }

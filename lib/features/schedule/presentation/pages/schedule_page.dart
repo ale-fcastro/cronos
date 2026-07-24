@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/models/event_category.dart';
 import '../../../../shared/shared.dart';
 import '../../domain/entities/month_overview.dart';
 import '../../domain/entities/timeline_entry.dart';
@@ -61,6 +62,14 @@ class _DayTimeline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (entries.isEmpty) {
+      return const EmptyState(
+        icon: Icons.subject_rounded,
+        title: 'Sin plan para hoy',
+        message: 'Creá una tarea o registrá una actividad desde el botón + '
+            'y aparecerán acá en su línea de tiempo.',
+      );
+    }
     return ListView.separated(
       padding: const EdgeInsets.only(bottom: 96),
       itemCount: entries.length,
@@ -154,7 +163,15 @@ class _DayTimeline extends StatelessWidget {
                       label: 'Pausar',
                       onPressed: e.taskId == null
                           ? null
-                          : () => context.read<ScheduleCubit>().pauseTask(e.taskId!),
+                          : () async {
+                              final cubit = context.read<ScheduleCubit>();
+                              final reason = await PauseReasonDialog.show(
+                                context,
+                                reasons: eventCategories,
+                              );
+                              if (reason == null) return;
+                              cubit.pauseTask(e.taskId!, reason: reason);
+                            },
                     ),
                   ],
                 ),

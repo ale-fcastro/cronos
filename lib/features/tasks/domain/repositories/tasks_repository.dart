@@ -9,9 +9,13 @@ abstract interface class TasksRepository {
   Future<List<TaskSuggestion>> searchSuggestions(String query);
   Future<TaskDetail> getTaskDetail(String id);
   Future<void> startTimer(String id);
-  Future<void> pauseTimer(String id);
+  Future<void> pauseTimer(String id, {String? reason});
   Future<void> completeTask(String id);
   Future<void> createTask(NewTaskInput input);
+
+  /// Datos crudos de [id] para precargar el formulario de edición.
+  Future<NewTaskInput> getTaskEditData(String id);
+  Future<void> updateTask(String id, NewTaskInput input);
   Future<void> deleteTask(String id);
   Future<List<TaskRecurrence>> getRecurrences();
   Future<void> createRecurrence(NewTaskRecurrenceInput input);

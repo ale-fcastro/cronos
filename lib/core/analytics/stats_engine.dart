@@ -1,5 +1,17 @@
+import 'package:sqflite/sqflite.dart' show Database;
+
 import '../database/app_database.dart';
 import '../utils/time_format.dart';
+
+/// Claves en `settings` para los pesos del score diario (deben sumar 100).
+abstract final class ScoreWeightKeys {
+  static const compliance = 'score_weight_compliance';
+  static const efficiency = 'score_weight_efficiency';
+  static const sleep = 'score_weight_sleep';
+  static const punctuality = 'score_weight_punctuality';
+}
+
+const scoreWeightDefaults = (compliance: 40, efficiency: 30, sleep: 20, punctuality: 10);
 
 /// Agregados de un día calculados desde la base de datos.
 class DayStats {
@@ -135,18 +147,19 @@ class StatsEngine {
         : (productive * 100 ~/ (productive + lostMin));
 
     // --- Score ponderado sobre componentes disponibles ---
+    final weights = await _scoreWeights(db);
     var weight = 0.0;
     var acc = 0.0;
-    void add(double w, double? v) {
+    void add(int w, double? v) {
       if (v == null) return;
       weight += w;
       acc += w * v.clamp(0.0, 1.0);
     }
 
-    add(0.4, tasksTotal == 0 ? null : tasksDone / tasksTotal);
-    add(0.3, efficiencyPct < 0 ? null : efficiencyPct / 100);
-    add(0.2, sleepMin == 0 ? null : sleepMin / sleepTargetMin);
-    add(0.1, punctualityPct < 0 ? null : punctualityPct / 100);
+    add(weights.compliance, tasksTotal == 0 ? null : tasksDone / tasksTotal);
+    add(weights.efficiency, efficiencyPct < 0 ? null : efficiencyPct / 100);
+    add(weights.sleep, sleepMin == 0 ? null : sleepMin / sleepTargetMin);
+    add(weights.punctuality, punctualityPct < 0 ? null : punctualityPct / 100);
     final score = weight == 0 ? 0 : (acc / weight * 100).round();
 
     return DayStats(
@@ -172,5 +185,21 @@ class StatsEngine {
       d = DateTime(d.year, d.month, d.day + 1);
     }
     return list;
+  }
+
+  Future<({int compliance, int efficiency, int sleep, int punctuality})> _scoreWeights(
+      Database db) async {
+    Future<int> weight(String key, int fallback) async {
+      final rows = await db.query('settings', where: 'key = ?', whereArgs: [key]);
+      if (rows.isEmpty) return fallback;
+      return int.tryParse(rows.first['value'] as String) ?? fallback;
+    }
+
+    return (
+      compliance: await weight(ScoreWeightKeys.compliance, scoreWeightDefaults.compliance),
+      efficiency: await weight(ScoreWeightKeys.efficiency, scoreWeightDefaults.efficiency),
+      sleep: await weight(ScoreWeightKeys.sleep, scoreWeightDefaults.sleep),
+      punctuality: await weight(ScoreWeightKeys.punctuality, scoreWeightDefaults.punctuality),
+    );
   }
 }

@@ -14,7 +14,7 @@ class AppDatabase {
   final String? _pathOverride;
   Database? _db;
 
-  static const _version = 4;
+  static const _version = 6;
 
   Future<Database> get database async {
     final cached = _db;
@@ -56,7 +56,9 @@ class AppDatabase {
         recurrence_id TEXT,
         recurrence_date TEXT,
         linked_package TEXT,
-        linked_app_name TEXT
+        linked_app_name TEXT,
+        pause_reason TEXT,
+        paused_at INTEGER
       )
     ''');
     await db.execute('''
@@ -141,6 +143,15 @@ class AppDatabase {
     await db.execute('CREATE INDEX idx_events_start ON events(started_at)');
     await db.execute(
         'CREATE UNIQUE INDEX idx_tasks_recurrence_date ON tasks(recurrence_id, recurrence_date)');
+    await db.execute('''
+      CREATE TABLE pending_activity_interruption(
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        activity_id TEXT NOT NULL,
+        reason TEXT NOT NULL,
+        area_id TEXT,
+        stopped_at INTEGER NOT NULL
+      )
+    ''');
 
     await _seed(db);
   }
@@ -193,6 +204,21 @@ class AppDatabase {
     if (oldVersion < 4) {
       await db.execute('ALTER TABLE tasks ADD COLUMN linked_package TEXT');
       await db.execute('ALTER TABLE tasks ADD COLUMN linked_app_name TEXT');
+    }
+    if (oldVersion < 5) {
+      await db.execute('ALTER TABLE tasks ADD COLUMN pause_reason TEXT');
+      await db.execute('ALTER TABLE tasks ADD COLUMN paused_at INTEGER');
+    }
+    if (oldVersion < 6) {
+      await db.execute('''
+        CREATE TABLE pending_activity_interruption(
+          id INTEGER PRIMARY KEY CHECK (id = 1),
+          activity_id TEXT NOT NULL,
+          reason TEXT NOT NULL,
+          area_id TEXT,
+          stopped_at INTEGER NOT NULL
+        )
+      ''');
     }
   }
 
@@ -284,6 +310,10 @@ class AppDatabase {
       'study_end': '21:00',
       'sleep_time': '23:30',
       'sleep_target_min': '480',
+      'score_weight_compliance': '40',
+      'score_weight_efficiency': '30',
+      'score_weight_sleep': '20',
+      'score_weight_punctuality': '10',
     };
     defaults.forEach((k, v) => batch.insert('settings', {'key': k, 'value': v}));
     for (var i = 0; i < _defaultProjects.length; i++) {

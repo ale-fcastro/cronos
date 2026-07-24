@@ -263,14 +263,7 @@ class _PhoneTab extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      Container(
-                        width: 9,
-                        height: 9,
-                        decoration: BoxDecoration(
-                          color: app.dotColor,
-                          borderRadius: const BorderRadius.all(Radius.circular(3)),
-                        ),
-                      ),
+                      AppIconAvatar(name: app.name, icon: app.icon, color: app.dotColor),
                       Gaps.hMd,
                       Expanded(
                         child: Column(

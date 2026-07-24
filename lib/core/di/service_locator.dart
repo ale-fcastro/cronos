@@ -4,6 +4,8 @@ import '../analytics/stats_engine.dart';
 import '../database/app_database.dart';
 import '../services/app_usage_service.dart';
 import '../services/life_areas_service.dart';
+import '../services/notifications_service.dart';
+import '../services/onboarding_service.dart';
 import '../services/projects_service.dart';
 import '../services/timer_service.dart';
 
@@ -30,6 +32,12 @@ import '../../features/metrics/data/repositories/metrics_repository_impl.dart';
 import '../../features/metrics/domain/repositories/metrics_repository.dart';
 import '../../features/metrics/domain/usecases/metrics_usecases.dart';
 import '../../features/metrics/presentation/bloc/analyze_cubit.dart';
+
+import '../../features/notifications/data/datasources/notifications_local_datasource.dart';
+import '../../features/notifications/data/repositories/notifications_repository_impl.dart';
+import '../../features/notifications/domain/repositories/notifications_repository.dart';
+import '../../features/notifications/domain/usecases/notifications_usecases.dart';
+import '../../features/notifications/presentation/bloc/notifications_settings_cubit.dart';
 
 import '../../features/projects/data/datasources/projects_local_datasource.dart';
 import '../../features/projects/data/repositories/projects_repository_impl.dart';
@@ -63,6 +71,7 @@ import '../../features/tasks/data/repositories/tasks_repository_impl.dart';
 import '../../features/tasks/domain/repositories/tasks_repository.dart';
 import '../../features/tasks/domain/usecases/create_task.dart';
 import '../../features/tasks/domain/usecases/delete_task.dart';
+import '../../features/tasks/domain/usecases/edit_task.dart';
 import '../../features/tasks/domain/usecases/get_task_detail.dart';
 import '../../features/tasks/domain/usecases/get_tasks.dart';
 import '../../features/tasks/domain/usecases/search_task_suggestions.dart';
@@ -88,6 +97,8 @@ void configureDependencies({AppDatabase? database}) {
   sl.registerLazySingleton(() => ProjectsService(sl()));
   sl.registerLazySingleton(() => TimerService(sl()));
   sl.registerLazySingleton(() => AppUsageService());
+  sl.registerLazySingleton(() => NotificationsService(sl()));
+  sl.registerLazySingleton(() => OnboardingService(sl()));
 
   // Dashboard
   sl.registerLazySingleton(() => DashboardLocalDatasource(sl(), sl()));
@@ -103,7 +114,7 @@ void configureDependencies({AppDatabase? database}) {
   sl.registerFactory(() => ScheduleCubit(sl(), sl(), sl()));
 
   // Tasks
-  sl.registerLazySingleton(() => TasksLocalDatasource(sl(), sl(), sl()));
+  sl.registerLazySingleton(() => TasksLocalDatasource(sl(), sl(), sl(), sl()));
   sl.registerLazySingleton<TasksRepository>(() => TasksRepositoryImpl(sl()));
   sl.registerLazySingleton(() => GetTasks(sl()));
   sl.registerLazySingleton(() => GetTaskDetail(sl()));
@@ -111,6 +122,8 @@ void configureDependencies({AppDatabase? database}) {
   sl.registerLazySingleton(() => PauseTaskTimer(sl()));
   sl.registerLazySingleton(() => CompleteTask(sl()));
   sl.registerLazySingleton(() => CreateTask(sl()));
+  sl.registerLazySingleton(() => GetTaskEditData(sl()));
+  sl.registerLazySingleton(() => UpdateTask(sl()));
   sl.registerLazySingleton(() => DeleteTask(sl()));
   sl.registerLazySingleton(() => SearchTaskSuggestions(sl()));
   sl.registerLazySingleton(() => GetTaskRecurrences(sl()));
@@ -120,7 +133,9 @@ void configureDependencies({AppDatabase? database}) {
   sl.registerFactory(() => TasksListCubit(sl(), sl(), sl()));
   sl.registerFactoryParam<TaskDetailCubit, String, void>(
       (taskId, _) => TaskDetailCubit(sl(), sl(), sl(), sl(), sl(), taskId));
-  sl.registerFactory(() => CreateTaskCubit(sl(), sl(), sl(), sl(), sl(), sl(), sl()));
+  sl.registerFactoryParam<CreateTaskCubit, String?, void>(
+      (editingTaskId, _) => CreateTaskCubit(
+          sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), editingTaskId));
   sl.registerFactory(() => TaskRecurrencesCubit(sl(), sl(), sl()));
 
   // Activities
@@ -141,6 +156,15 @@ void configureDependencies({AppDatabase? database}) {
   sl.registerLazySingleton(() => SearchEventSuggestions(sl()));
   sl.registerLazySingleton(() => RegisterEvent(sl()));
   sl.registerFactory(() => EventRegisterCubit(sl(), sl(), sl()));
+
+  // Notifications
+  sl.registerLazySingleton(() => NotificationsLocalDatasource(sl()));
+  sl.registerLazySingleton<NotificationsRepository>(() => NotificationsRepositoryImpl(sl()));
+  sl.registerLazySingleton(() => GetNotificationsEnabled(sl()));
+  sl.registerLazySingleton(() => SetNotificationsEnabled(sl()));
+  sl.registerLazySingleton(() => HasNotificationsPermission(sl()));
+  sl.registerLazySingleton(() => RequestNotificationsPermission(sl()));
+  sl.registerFactory(() => NotificationsSettingsCubit(sl(), sl(), sl(), sl()));
 
   // Metrics (Analizar)
   sl.registerLazySingleton(() => MetricsLocalDatasource(sl(), sl(), sl()));

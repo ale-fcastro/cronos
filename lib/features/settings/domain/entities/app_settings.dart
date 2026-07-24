@@ -26,6 +26,10 @@ class AppSettings extends Equatable {
     required this.projectsCount,
     required this.prioritiesLabel,
     required this.scoreWeightsLabel,
+    required this.scoreWeightCompliance,
+    required this.scoreWeightEfficiency,
+    required this.scoreWeightSleep,
+    required this.scoreWeightPunctuality,
   });
 
   /// Valores crudos "HH:mm" para precargar los pickers de edición.
@@ -44,6 +48,12 @@ class AppSettings extends Equatable {
   final String prioritiesLabel;
   final String scoreWeightsLabel;
 
+  /// Pesos crudos (deben sumar 100), para precargar el editor.
+  final int scoreWeightCompliance;
+  final int scoreWeightEfficiency;
+  final int scoreWeightSleep;
+  final int scoreWeightPunctuality;
+
   @override
   List<Object?> get props => [
         workStart,
@@ -59,5 +69,9 @@ class AppSettings extends Equatable {
         projectsCount,
         prioritiesLabel,
         scoreWeightsLabel,
+        scoreWeightCompliance,
+        scoreWeightEfficiency,
+        scoreWeightSleep,
+        scoreWeightPunctuality,
       ];
 }

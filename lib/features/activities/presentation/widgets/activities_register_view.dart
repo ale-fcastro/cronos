@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/models/event_category.dart';
 import '../../../../shared/shared.dart';
 import '../bloc/activities_cubit.dart';
 import '../bloc/activities_state.dart';
@@ -41,7 +42,21 @@ class ActivitiesRegisterView extends StatelessWidget {
                     ),
                     MetricLabel(state.running!.elapsedLabel, color: AppColors.accent, size: 16),
                     Gaps.hMd,
-                    AppIconButton(icon: Icons.stop_rounded, onPressed: cubit.stop),
+                    AppIconButton(
+                      icon: Icons.stop_rounded,
+                      onPressed: () async {
+                        if (!state.running!.isSleep) {
+                          cubit.stop();
+                          return;
+                        }
+                        final reason = await PauseReasonDialog.show(
+                          context,
+                          reasons: sleepInterruptionReasons,
+                        );
+                        if (reason == null) return;
+                        cubit.stop(reason: reason);
+                      },
+                    ),
                   ],
                 ),
               ),

@@ -9,6 +9,7 @@ class PrimaryButton extends StatelessWidget {
     this.onPressed,
     this.icon,
     this.expanded = false,
+    this.loading = false,
   });
 
   final String label;
@@ -16,8 +17,23 @@ class PrimaryButton extends StatelessWidget {
   final IconData? icon;
   final bool expanded;
 
+  /// true mientras la acción está en curso: reemplaza el contenido por un
+  /// spinner y deshabilita el botón (evita doble envío).
+  final bool loading;
+
   @override
   Widget build(BuildContext context) {
+    if (loading) {
+      final button = FilledButton(
+        onPressed: null,
+        child: const SizedBox(
+          width: 18,
+          height: 18,
+          child: CircularProgressIndicator(strokeWidth: 2.2, color: AppColors.onAccent),
+        ),
+      );
+      return expanded ? SizedBox(width: double.infinity, child: button) : button;
+    }
     final button = icon == null
         ? FilledButton(onPressed: onPressed, child: Text(label))
         : FilledButton.icon(

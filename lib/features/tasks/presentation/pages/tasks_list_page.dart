@@ -41,15 +41,26 @@ class TasksListPage extends StatelessWidget {
             ),
             Gaps.vMd,
             Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.only(bottom: 96),
-                itemCount: state.tasks!.length,
-                separatorBuilder: (_, __) => Gaps.vSm,
-                itemBuilder: (context, i) {
-                  final t = state.tasks![i];
-                  return _taskRow(context, t);
-                },
-              ),
+              child: state.tasks!.isEmpty
+                  ? EmptyState(
+                      icon: Icons.check_box_outlined,
+                      title: 'Sin tareas',
+                      message: switch (state.scope) {
+                        'today' => 'No tenés tareas para hoy. Creá una desde '
+                            'el botón + para empezar a medir tu tiempo.',
+                        'week' => 'No tenés tareas planificadas esta semana.',
+                        _ => 'Todavía no creaste ninguna tarea.',
+                      },
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.only(bottom: 96),
+                      itemCount: state.tasks!.length,
+                      separatorBuilder: (_, __) => Gaps.vSm,
+                      itemBuilder: (context, i) {
+                        final t = state.tasks![i];
+                        return _taskRow(context, t);
+                      },
+                    ),
             ),
           ],
         );

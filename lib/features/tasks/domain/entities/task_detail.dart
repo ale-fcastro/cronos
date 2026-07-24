@@ -30,6 +30,8 @@ class TaskDetail extends Equatable {
     this.notes,
     this.linkedAppName,
     this.appVerified,
+    this.pauseReason,
+    this.pausedElapsedLabel,
   });
 
   final String id;
@@ -55,6 +57,13 @@ class TaskDetail extends Equatable {
   /// mediante el uso real de la app durante las sesiones de la tarea.
   final bool? appVerified;
 
+  /// Motivo de una pausa justificada pendiente de reanudar; null si la
+  /// tarea no está en pausa o se pausó sin motivo.
+  final String? pauseReason;
+
+  /// Tiempo transcurrido desde que se pausó, ya formateado ("00:04:12").
+  final String? pausedElapsedLabel;
+
   @override
   List<Object?> get props => [
         id,
@@ -72,5 +81,7 @@ class TaskDetail extends Equatable {
         notes,
         linkedAppName,
         appVerified,
+        pauseReason,
+        pausedElapsedLabel,
       ];
 }

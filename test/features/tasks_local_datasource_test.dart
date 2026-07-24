@@ -124,6 +124,92 @@ void main() {
     expect(detail.appVerified, isNull);
   });
 
+  test('pausa justificada registra un evento con el motivo al reanudar', () async {
+    await datasource.createTask(input());
+    var tasks = await datasource.fetchTasks(scope: 'today');
+    final id = tasks.first.id;
+
+    await datasource.startTimer(id);
+    await datasource.pauseTimer(id, reason: 'Interrupción');
+
+    var detail = await datasource.fetchDetail(id);
+    expect(detail.status, TaskStatus.normal);
+    expect(detail.pauseReason, 'Interrupción');
+    expect(detail.pausedElapsedLabel, isNotNull);
+
+    await Future.delayed(const Duration(milliseconds: 5));
+    await datasource.startTimer(id); // reanuda: debe cerrar la pausa pendiente
+
+    detail = await datasource.fetchDetail(id);
+    expect(detail.status, TaskStatus.running);
+    expect(detail.pauseReason, isNull);
+    expect(detail.pausedElapsedLabel, isNull);
+
+    final db = await database.database;
+    final events =
+        await db.query('events', where: 'category = ?', whereArgs: ['Interrupción']);
+    expect(events, hasLength(1));
+    expect(events.first['title'], 'Interrupción');
+  });
+
+  test('pausar sin motivo no registra ningún evento', () async {
+    await datasource.createTask(input());
+    final tasks = await datasource.fetchTasks(scope: 'today');
+    final id = tasks.first.id;
+
+    await datasource.startTimer(id);
+    await datasource.pauseTimer(id);
+    await datasource.startTimer(id);
+
+    final db = await database.database;
+    final events = await db.query('events');
+    expect(events, isEmpty);
+  });
+
+  test('fetchTaskEditData expone los campos crudos para precargar el formulario', () async {
+    await datasource.createTask(input(title: 'Preparar demo'));
+    final tasks = await datasource.fetchTasks(scope: 'all');
+    final id = tasks.first.id;
+
+    final edit = await datasource.fetchTaskEditData(id);
+    expect(edit.title, 'Preparar demo');
+    expect(edit.project, 'Trabajo');
+    expect(edit.priority, TaskPriority.p1);
+    expect(edit.estimateMinutes, 60);
+    expect(edit.notes, 'nota de prueba');
+  });
+
+  test('updateTask cambia los campos editables sin tocar estado ni sesiones', () async {
+    await datasource.createTask(input(title: 'Preparar demo'));
+    var tasks = await datasource.fetchTasks(scope: 'all');
+    final id = tasks.first.id;
+
+    await datasource.startTimer(id);
+    await datasource.updateTask(
+      id,
+      NewTaskInput(
+        title: 'Preparar demo (v2)',
+        project: 'Personal',
+        priority: TaskPriority.p3,
+        estimateMinutes: 90,
+        notes: 'notas actualizadas',
+      ),
+    );
+
+    tasks = await datasource.fetchTasks(scope: 'all');
+    final updated = tasks.firstWhere((t) => t.id == id);
+    expect(updated.title, 'Preparar demo (v2)');
+    expect(updated.project, 'Personal');
+    expect(updated.priority, TaskPriority.p3);
+    // El cronómetro en curso no se ve afectado por editar los datos.
+    expect(updated.status, TaskStatus.running);
+
+    final detail = await datasource.fetchDetail(id);
+    expect(detail.estimateLabel, '1h 30m');
+    expect(detail.notes, 'notas actualizadas');
+    expect(detail.sessionsCount, 1);
+  });
+
   test('borrar una tarea la quita de la lista junto con sus sesiones', () async {
     await datasource.createTask(input());
     final tasks = await datasource.fetchTasks(scope: 'today');

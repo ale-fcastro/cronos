@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/analytics/stats_engine.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/navigation/app_routes.dart';
+import '../../../../core/navigation/onboarding_page.dart';
 import '../../../../core/utils/time_format.dart';
 import '../../../../shared/shared.dart';
+import '../../../notifications/presentation/widgets/notifications_settings_tile.dart';
 import '../../../security/presentation/widgets/app_lock_tile.dart';
 import '../../domain/entities/app_settings.dart';
 import '../bloc/settings_cubit.dart';
@@ -135,26 +138,49 @@ class SettingsPage extends StatelessWidget {
                             ),
                           ),
                           Gaps.vLg,
+                          const SectionHeader(title: 'Notificaciones'),
+                          const NotificationsSettingsTile(),
+                          Gaps.vLg,
                           const SectionHeader(title: 'Seguridad'),
                           const AppLockTile(),
                           Gaps.vLg,
                           const SectionHeader(title: 'Score'),
                           AppCard(
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text('Pesos del score diario', style: AppTextStyles.body),
-                                      const SizedBox(height: 2),
-                                      Text(s.scoreWeightsLabel, style: AppTextStyles.caption),
-                                    ],
+                            padding: EdgeInsets.zero,
+                            onTap: () => _editScoreWeights(context, cubit, s),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text('Pesos del score diario', style: AppTextStyles.body),
+                                        const SizedBox(height: 2),
+                                        Text(s.scoreWeightsLabel, style: AppTextStyles.caption),
+                                      ],
+                                    ),
                                   ),
+                                  const Icon(Icons.chevron_right_rounded,
+                                      color: AppColors.textTertiary, size: 20),
+                                ],
+                              ),
+                            ),
+                          ),
+                          Gaps.vLg,
+                          const SectionHeader(title: 'Ayuda'),
+                          AppCard(
+                            padding: EdgeInsets.zero,
+                            child: _row(
+                              'Ver guía de bienvenida',
+                              '',
+                              chevron: true,
+                              onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                                builder: (_) => OnboardingPage(
+                                  onDone: () => Navigator.of(context).pop(),
                                 ),
-                                const Icon(Icons.chevron_right_rounded,
-                                    color: AppColors.textTertiary, size: 20),
-                              ],
+                              )),
                             ),
                           ),
                         ],
@@ -185,6 +211,25 @@ class SettingsPage extends StatelessWidget {
     final pickedEnd = await _pickTime(context, '$label · fin', end);
     await cubit.saveSetting(startKey, pickedStart);
     if (pickedEnd != null) await cubit.saveSetting(endKey, pickedEnd);
+  }
+
+  Future<void> _editScoreWeights(
+    BuildContext context,
+    SettingsCubit cubit,
+    AppSettings s,
+  ) async {
+    final result = await _ScoreWeightsDialog.show(
+      context,
+      compliance: s.scoreWeightCompliance,
+      efficiency: s.scoreWeightEfficiency,
+      sleep: s.scoreWeightSleep,
+      punctuality: s.scoreWeightPunctuality,
+    );
+    if (result == null) return;
+    await cubit.saveSetting(ScoreWeightKeys.compliance, '${result.compliance}');
+    await cubit.saveSetting(ScoreWeightKeys.efficiency, '${result.efficiency}');
+    await cubit.saveSetting(ScoreWeightKeys.sleep, '${result.sleep}');
+    await cubit.saveSetting(ScoreWeightKeys.punctuality, '${result.punctuality}');
   }
 
   /// Muestra un time picker precargado con "HH:mm" y devuelve "HH:mm".
@@ -262,6 +307,141 @@ class _DayChip extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+typedef ScoreWeights = ({int compliance, int efficiency, int sleep, int punctuality});
+
+/// Editor de los pesos del score diario. Los 4 deben sumar 100: Guardar
+/// queda deshabilitado hasta que cuadran.
+class _ScoreWeightsDialog extends StatefulWidget {
+  const _ScoreWeightsDialog({
+    required this.compliance,
+    required this.efficiency,
+    required this.sleep,
+    required this.punctuality,
+  });
+
+  final int compliance;
+  final int efficiency;
+  final int sleep;
+  final int punctuality;
+
+  static Future<ScoreWeights?> show(
+    BuildContext context, {
+    required int compliance,
+    required int efficiency,
+    required int sleep,
+    required int punctuality,
+  }) {
+    return showDialog<ScoreWeights>(
+      context: context,
+      builder: (_) => _ScoreWeightsDialog(
+        compliance: compliance,
+        efficiency: efficiency,
+        sleep: sleep,
+        punctuality: punctuality,
+      ),
+    );
+  }
+
+  @override
+  State<_ScoreWeightsDialog> createState() => _ScoreWeightsDialogState();
+}
+
+class _ScoreWeightsDialogState extends State<_ScoreWeightsDialog> {
+  late int _compliance = widget.compliance;
+  late int _efficiency = widget.efficiency;
+  late int _sleep = widget.sleep;
+  late int _punctuality = widget.punctuality;
+
+  int get _total => _compliance + _efficiency + _sleep + _punctuality;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Pesos del score diario',
+                style: AppTextStyles.headline.copyWith(fontSize: 18)),
+            Gaps.vSm,
+            const Text('Deben sumar 100.', style: AppTextStyles.bodySecondary),
+            Gaps.vLg,
+            _weightRow('Cumplimiento', _compliance, (v) => setState(() => _compliance = v)),
+            Gaps.vMd,
+            _weightRow('Eficiencia', _efficiency, (v) => setState(() => _efficiency = v)),
+            Gaps.vMd,
+            _weightRow('Sueño', _sleep, (v) => setState(() => _sleep = v)),
+            Gaps.vMd,
+            _weightRow('Puntualidad', _punctuality, (v) => setState(() => _punctuality = v)),
+            Gaps.vLg,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Total', style: AppTextStyles.label),
+                Text(
+                  '$_total / 100',
+                  style: AppTextStyles.metricMedium.copyWith(
+                      color: _total == 100 ? AppColors.success : AppColors.danger),
+                ),
+              ],
+            ),
+            Gaps.vXl,
+            Row(
+              children: [
+                Expanded(
+                  child: SecondaryButton(
+                    label: 'Cancelar',
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ),
+                Gaps.hSm,
+                Expanded(
+                  child: PrimaryButton(
+                    label: 'Guardar',
+                    onPressed: _total == 100
+                        ? () => Navigator.of(context).pop((
+                              compliance: _compliance,
+                              efficiency: _efficiency,
+                              sleep: _sleep,
+                              punctuality: _punctuality,
+                            ))
+                        : null,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _weightRow(String label, int value, ValueChanged<int> onChanged) {
+    return Row(
+      children: [
+        Expanded(child: Text(label, style: AppTextStyles.body)),
+        AppIconButton(
+          icon: Icons.remove_rounded,
+          size: 32,
+          onPressed: value <= 0 ? null : () => onChanged(value - 5),
+        ),
+        SizedBox(
+          width: 40,
+          child: Text('$value',
+              textAlign: TextAlign.center, style: AppTextStyles.metricMedium),
+        ),
+        AppIconButton(
+          icon: Icons.add_rounded,
+          size: 32,
+          onPressed: value >= 100 ? null : () => onChanged(value + 5),
+        ),
+      ],
     );
   }
 }

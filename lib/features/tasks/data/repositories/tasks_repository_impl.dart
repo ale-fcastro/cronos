@@ -26,13 +26,21 @@ class TasksRepositoryImpl implements TasksRepository {
   Future<void> startTimer(String id) => _datasource.startTimer(id);
 
   @override
-  Future<void> pauseTimer(String id) => _datasource.pauseTimer(id);
+  Future<void> pauseTimer(String id, {String? reason}) =>
+      _datasource.pauseTimer(id, reason: reason);
 
   @override
   Future<void> completeTask(String id) => _datasource.completeTask(id);
 
   @override
   Future<void> createTask(NewTaskInput input) => _datasource.createTask(input);
+
+  @override
+  Future<NewTaskInput> getTaskEditData(String id) => _datasource.fetchTaskEditData(id);
+
+  @override
+  Future<void> updateTask(String id, NewTaskInput input) =>
+      _datasource.updateTask(id, input);
 
   @override
   Future<void> deleteTask(String id) => _datasource.deleteTask(id);

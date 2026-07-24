@@ -51,7 +51,7 @@ class DashboardLocalDatasource {
       );
     } else {
       final runningAct = await db.rawQuery('''
-        SELECT a.id, a.name, s.started_at
+        SELECT a.id, a.name, a.category, s.started_at
         FROM activity_sessions s JOIN activity_types a ON a.id = s.activity_id
         WHERE s.ended_at IS NULL LIMIT 1
       ''');
@@ -65,6 +65,7 @@ class DashboardLocalDatasource {
           title: r['name'] as String,
           subtitle: 'Actividad en curso',
           elapsedLabel: fmtClock(now.difference(start)),
+          isSleep: r['category'] == 'sueno',
         );
       }
     }

@@ -9,6 +9,7 @@ import '../../domain/entities/task_priority.dart';
 import '../../domain/entities/task_recurrence.dart';
 import '../../domain/entities/task_suggestion.dart';
 import '../../domain/usecases/create_task.dart';
+import '../../domain/usecases/edit_task.dart';
 import '../../domain/usecases/search_task_suggestions.dart';
 import '../../domain/usecases/task_recurrence_usecases.dart';
 import 'create_task_state.dart';
@@ -16,26 +17,63 @@ import 'create_task_state.dart';
 class CreateTaskCubit extends Cubit<CreateTaskState> {
   CreateTaskCubit(
     this._createTask,
+    this._updateTask,
+    this._getTaskEditData,
     this._searchSuggestions,
     this._lifeAreasService,
     this._projectsService,
     this._createRecurrence,
     this._generateRecurringTasks,
-    this._appUsage,
-  ) : super(const CreateTaskState()) {
+    this._appUsage, [
+    this._editingTaskId,
+  ]) : super(const CreateTaskState()) {
     _loadOptions();
-    _runSearch();
+    if (_editingTaskId != null) {
+      _loadForEdit(_editingTaskId);
+    } else {
+      _runSearch();
+    }
   }
 
   final CreateTask _createTask;
+  final UpdateTask _updateTask;
+  final GetTaskEditData _getTaskEditData;
   final SearchTaskSuggestions _searchSuggestions;
   final LifeAreasService _lifeAreasService;
   final ProjectsService _projectsService;
   final CreateTaskRecurrence _createRecurrence;
   final GenerateRecurringTasks _generateRecurringTasks;
   final AppUsageService _appUsage;
+  final String? _editingTaskId;
 
   bool get appLinkSupported => _appUsage.isSupported;
+
+  /// true si el formulario edita una tarea existente en vez de crear una.
+  bool get isEditing => _editingTaskId != null;
+
+  Future<void> _loadForEdit(String id) async {
+    try {
+      final input = await _getTaskEditData(id);
+      if (isClosed) return;
+      final plannedAt = input.plannedAt;
+      emit(state.copyWith(
+        title: input.title,
+        project: input.project,
+        priority: input.priority,
+        areaId: input.areaId,
+        clearAreaId: input.areaId == null,
+        plannedDate: plannedAt,
+        plannedMinuteOfDay: plannedAt == null ? null : plannedAt.hour * 60 + plannedAt.minute,
+        estimateMinutes: input.estimateMinutes,
+        notes: input.notes ?? '',
+        linkedPackage: input.linkedPackage,
+        linkedAppName: input.linkedAppName,
+        clearLinkedApp: input.linkedPackage == null,
+      ));
+    } catch (e, st) {
+      reportError('CreateTaskCubit._loadForEdit', e, st);
+    }
+  }
 
   Future<void> _loadOptions() async {
     try {
@@ -129,36 +167,58 @@ class CreateTaskCubit extends Cubit<CreateTaskState> {
       : state.copyWith(linkedPackage: app.packageName, linkedAppName: app.appName));
 
   Future<void> submit() async {
-    if (!state.canSubmit) return;
-    final title = state.title.trim();
-    final notes = state.notes.trim().isEmpty ? null : state.notes.trim();
+    if (!state.canSubmit || state.submitting) return;
+    emit(state.copyWith(submitting: true));
+    try {
+      final title = state.title.trim();
+      final notes = state.notes.trim().isEmpty ? null : state.notes.trim();
 
-    if (state.repeatMode == null) {
-      await _createTask(NewTaskInput(
-        title: title,
-        project: state.project,
-        areaId: state.areaId,
-        priority: state.priority,
-        plannedAt: state.plannedAt,
-        estimateMinutes: state.estimateMinutes,
-        notes: notes,
-        linkedPackage: state.linkedPackage,
-        linkedAppName: state.linkedAppName,
-      ));
-    } else {
-      await _createRecurrence(NewTaskRecurrenceInput(
-        title: title,
-        project: state.project,
-        areaId: state.areaId,
-        priority: state.priority,
-        estimateMinutes: state.estimateMinutes,
-        notes: notes,
-        mode: state.repeatMode!,
-        sameTimeMinuteOfDay: state.repeatSameTimeMinuteOfDay,
-        weekdayMinuteOfDay: state.repeatWeekdayMinuteOfDay,
-      ));
-      await _generateRecurringTasks();
+      if (isEditing) {
+        await _updateTask(
+          _editingTaskId!,
+          NewTaskInput(
+            title: title,
+            project: state.project,
+            areaId: state.areaId,
+            priority: state.priority,
+            plannedAt: state.plannedAt,
+            estimateMinutes: state.estimateMinutes,
+            notes: notes,
+            linkedPackage: state.linkedPackage,
+            linkedAppName: state.linkedAppName,
+          ),
+        );
+      } else if (state.repeatMode == null) {
+        await _createTask(NewTaskInput(
+          title: title,
+          project: state.project,
+          areaId: state.areaId,
+          priority: state.priority,
+          plannedAt: state.plannedAt,
+          estimateMinutes: state.estimateMinutes,
+          notes: notes,
+          linkedPackage: state.linkedPackage,
+          linkedAppName: state.linkedAppName,
+        ));
+      } else {
+        await _createRecurrence(NewTaskRecurrenceInput(
+          title: title,
+          project: state.project,
+          areaId: state.areaId,
+          priority: state.priority,
+          estimateMinutes: state.estimateMinutes,
+          notes: notes,
+          mode: state.repeatMode!,
+          sameTimeMinuteOfDay: state.repeatSameTimeMinuteOfDay,
+          weekdayMinuteOfDay: state.repeatWeekdayMinuteOfDay,
+        ));
+        await _generateRecurringTasks();
+      }
+      if (isClosed) return;
+      emit(state.copyWith(submitting: false, submitted: true));
+    } catch (e, st) {
+      reportError('CreateTaskCubit.submit', e, st);
+      if (!isClosed) emit(state.copyWith(submitting: false));
     }
-    emit(state.copyWith(submitted: true));
   }
 }

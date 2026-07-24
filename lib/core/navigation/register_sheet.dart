@@ -74,7 +74,7 @@ class _RegisterSheetState extends State<_RegisterSheet> {
                     child: switch (_tab) {
                       0 => BlocProvider(
                           create: (_) => sl<CreateTaskCubit>(),
-                          child: CreateTaskForm(onCreated: () => Navigator.of(context).pop()),
+                          child: CreateTaskForm(onSubmitted: () => Navigator.of(context).pop()),
                         ),
                       1 => BlocProvider(
                           create: (_) => sl<ActivitiesCubit>(),

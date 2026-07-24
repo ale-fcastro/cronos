@@ -10,6 +10,7 @@ import 'core/diagnostics/error_banner.dart';
 import 'core/diagnostics/error_reporting.dart';
 import 'core/navigation/app_router.dart';
 import 'core/navigation/app_routes.dart';
+import 'core/services/notifications_service.dart';
 import 'features/tasks/domain/usecases/task_recurrence_usecases.dart';
 import 'shared/theme/app_theme.dart';
 
@@ -41,7 +42,28 @@ void main() {
       reportError('GenerateRecurringTasks', e, st);
     }
 
+    final notifications = sl<NotificationsService>();
+    try {
+      await notifications.initialize();
+      notifications.onTaskReminderTapped = (taskId) {
+        AppRouter.navigatorKey.currentState
+            ?.pushNamed(AppRoutes.taskDetail, arguments: taskId);
+      };
+    } catch (e, st) {
+      reportError('NotificationsService.initialize', e, st);
+    }
+
     runApp(const CronosApp());
+
+    // Si la app estaba cerrada y se abrió tocando un aviso, navega al
+    // detalle de esa tarea en cuanto el primer frame esté listo.
+    final launchTaskId = await notifications.consumeLaunchPayload();
+    if (launchTaskId != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        AppRouter.navigatorKey.currentState
+            ?.pushNamed(AppRoutes.taskDetail, arguments: launchTaskId);
+      });
+    }
   }, (error, stack) => reportError('Zona no capturada', error, stack));
 }
 
@@ -55,6 +77,7 @@ class CronosApp extends StatelessWidget {
       title: 'Cronos',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark(),
+      navigatorKey: AppRouter.navigatorKey,
       initialRoute: AppRoutes.root,
       onGenerateRoute: AppRouter.onGenerateRoute,
       builder: (context, child) => Stack(

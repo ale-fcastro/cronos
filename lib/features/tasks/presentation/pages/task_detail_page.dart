@@ -2,13 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/models/event_category.dart';
 import '../../../../shared/shared.dart';
 import '../../../../shared/shared.dart' as ds show TaskPriority;
 import '../../domain/entities/task_detail.dart';
 import '../../domain/entities/task_priority.dart' as domain;
 import '../../domain/entities/task_summary.dart';
+import '../bloc/create_task_cubit.dart';
 import '../bloc/task_detail_cubit.dart';
 import '../bloc/task_detail_state.dart';
+import '../widgets/create_task_form.dart';
 
 /// Pantalla empujada con el detalle de una tarea: estimado vs real e historial.
 class TaskDetailPage extends StatelessWidget {
@@ -42,19 +45,28 @@ class TaskDetailPage extends StatelessWidget {
                           parentLabel: 'Tareas',
                           onBack: () => Navigator.of(context).pop(),
                         ),
-                        AppIconButton(
-                          icon: Icons.delete_outline_rounded,
-                          color: AppColors.danger,
-                          onPressed: () async {
-                            final confirmed = await DeleteDialog.show(
-                              context,
-                              title: 'Eliminar "${d.title}"',
-                              message: 'Se borra la tarea y su historial de sesiones.',
-                            );
-                            if (confirmed && context.mounted) {
-                              context.read<TaskDetailCubit>().delete();
-                            }
-                          },
+                        Row(
+                          children: [
+                            AppIconButton(
+                              icon: Icons.edit_outlined,
+                              onPressed: () => _editTask(context, d),
+                            ),
+                            Gaps.hSm,
+                            AppIconButton(
+                              icon: Icons.delete_outline_rounded,
+                              color: AppColors.danger,
+                              onPressed: () async {
+                                final confirmed = await DeleteDialog.show(
+                                  context,
+                                  title: 'Eliminar "${d.title}"',
+                                  message: 'Se borra la tarea y su historial de sesiones.',
+                                );
+                                if (confirmed && context.mounted) {
+                                  context.read<TaskDetailCubit>().delete();
+                                }
+                              },
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -188,6 +200,62 @@ class TaskDetailPage extends StatelessWidget {
   }
 }
 
+/// Abre "Editar tarea" en una hoja modal (mismo formulario que "Nueva
+/// tarea", en modo edición) y refresca el detalle al cerrarla.
+Future<void> _editTask(BuildContext context, TaskDetail d) async {
+  final detailCubit = context.read<TaskDetailCubit>();
+  await showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (sheetContext) => FractionallySizedBox(
+      heightFactor: 0.9,
+      child: Container(
+        decoration: const BoxDecoration(
+          color: AppColors.background,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: AppSpacing.page,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Gaps.vMd,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Editar tarea', style: AppTextStyles.headline),
+                    AppIconButton(
+                      icon: AppIcons.close,
+                      onPressed: () => Navigator.of(sheetContext).pop(),
+                    ),
+                  ],
+                ),
+                Gaps.vLg,
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.only(bottom: 24),
+                    child: BlocProvider(
+                      create: (_) => sl<CreateTaskCubit>(param1: d.id),
+                      child: CreateTaskForm(
+                        initialTitle: d.title,
+                        onSubmitted: () => Navigator.of(sheetContext).pop(),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+  detailCubit.load();
+}
+
 class _TimerCard extends StatelessWidget {
   const _TimerCard({required this.detail});
 
@@ -206,6 +274,25 @@ class _TimerCard extends StatelessWidget {
               const AppCaption('tiempo real acumulado'),
             ],
           ),
+          if (detail.pauseReason != null) ...[
+            Gaps.vMd,
+            HighlightSurface(
+              padding: AppSpacing.cardDense,
+              child: Row(
+                children: [
+                  const Icon(Icons.pause_circle_outline_rounded,
+                      size: 18, color: AppColors.accent),
+                  Gaps.hSm,
+                  Expanded(
+                    child: Text('En pausa · ${detail.pauseReason}',
+                        style: AppTextStyles.title.copyWith(color: AppColors.accent)),
+                  ),
+                  if (detail.pausedElapsedLabel != null)
+                    MetricLabel(detail.pausedElapsedLabel!, color: AppColors.accent),
+                ],
+              ),
+            ),
+          ],
           Gaps.vMd,
           LinearProgressCard(
             label: 'Estimado ${detail.estimateLabel}',
@@ -219,9 +306,18 @@ class _TimerCard extends StatelessWidget {
                 child: SecondaryButton(
                   label: running ? 'Pausar' : 'Reanudar',
                   icon: running ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                  onPressed: () {
+                  onPressed: () async {
                     final cubit = context.read<TaskDetailCubit>();
-                    running ? cubit.pause() : cubit.resume();
+                    if (!running) {
+                      cubit.resume();
+                      return;
+                    }
+                    final reason = await PauseReasonDialog.show(
+                      context,
+                      reasons: eventCategories,
+                    );
+                    if (reason == null) return;
+                    cubit.pause(reason: reason);
                   },
                 ),
               ),

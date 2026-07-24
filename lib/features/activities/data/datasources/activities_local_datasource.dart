@@ -95,7 +95,7 @@ class ActivitiesLocalDatasource {
   Future<RunningActivity?> fetchRunning() async {
     final db = await _database.database;
     final rows = await db.rawQuery('''
-      SELECT s.started_at, t.name
+      SELECT s.started_at, t.name, t.category
       FROM activity_sessions s JOIN activity_types t ON t.id = s.activity_id
       WHERE s.ended_at IS NULL
       ORDER BY s.started_at DESC LIMIT 1
@@ -106,12 +106,13 @@ class ActivitiesLocalDatasource {
     return RunningActivity(
       name: rows.first['name'] as String,
       elapsedLabel: fmtClock(DateTime.now().difference(start)),
+      isSleep: rows.first['category'] == 'sueno',
     );
   }
 
   Future<void> start(String activityId) => _timer.startActivity(activityId);
 
-  Future<void> stop() => _timer.stopRunningActivity();
+  Future<void> stop({String? reason}) => _timer.stopRunningActivity(reason: reason);
 
   Future<void> createActivityType(NewActivityTypeInput input) async {
     final db = await _database.database;

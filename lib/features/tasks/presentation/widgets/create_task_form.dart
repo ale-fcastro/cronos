@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -12,18 +14,23 @@ import '../bloc/create_task_state.dart';
 
 const _weekdayShort = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
-/// Formulario "Nueva tarea": reutilizado por la hoja de registro del FAB.
+/// Formulario "Nueva tarea": reutilizado por la hoja de registro del FAB y,
+/// en modo edición, por el botón "Editar" del detalle de tarea.
 class CreateTaskForm extends StatefulWidget {
-  const CreateTaskForm({super.key, this.onCreated});
+  const CreateTaskForm({super.key, this.onSubmitted, this.initialTitle});
 
-  final VoidCallback? onCreated;
+  final VoidCallback? onSubmitted;
+
+  /// Precarga el campo de nombre antes de que cargue el estado de edición
+  /// (evita un parpadeo vacío mientras se resuelve _loadForEdit).
+  final String? initialTitle;
 
   @override
   State<CreateTaskForm> createState() => _CreateTaskFormState();
 }
 
 class _CreateTaskFormState extends State<CreateTaskForm> {
-  final _titleController = TextEditingController();
+  late final _titleController = TextEditingController(text: widget.initialTitle ?? '');
 
   @override
   void dispose() {
@@ -35,7 +42,7 @@ class _CreateTaskFormState extends State<CreateTaskForm> {
   Widget build(BuildContext context) {
     return BlocConsumer<CreateTaskCubit, CreateTaskState>(
       listener: (context, state) {
-        if (state.submitted) widget.onCreated?.call();
+        if (state.submitted) widget.onSubmitted?.call();
       },
       builder: (context, state) {
         final cubit = context.read<CreateTaskCubit>();
@@ -109,25 +116,27 @@ class _CreateTaskFormState extends State<CreateTaskForm> {
               selectedBackground: _priorityColor(state.priority).withValues(alpha: 0.14),
               onChanged: (i) => cubit.setPriority(domain.TaskPriority.values[i]),
             ),
-            Gaps.vMd,
-            Text('Repetir', style: AppTextStyles.label),
-            const SizedBox(height: 6),
-            AppSegmentedButton(
-              expanded: true,
-              segments: const ['No repetir', 'Todos los días', 'Por día'],
-              selectedIndex: switch (state.repeatMode) {
-                null => 0,
-                RecurrenceMode.dailySameTime => 1,
-                RecurrenceMode.dailyPerWeekday => 2,
-              },
-              selectedColor: AppColors.accent,
-              selectedBackground: AppColors.accentSoft,
-              onChanged: (i) => cubit.setRepeatMode(switch (i) {
-                1 => RecurrenceMode.dailySameTime,
-                2 => RecurrenceMode.dailyPerWeekday,
-                _ => null,
-              }),
-            ),
+            if (!cubit.isEditing) ...[
+              Gaps.vMd,
+              Text('Repetir', style: AppTextStyles.label),
+              const SizedBox(height: 6),
+              AppSegmentedButton(
+                expanded: true,
+                segments: const ['No repetir', 'Todos los días', 'Por día'],
+                selectedIndex: switch (state.repeatMode) {
+                  null => 0,
+                  RecurrenceMode.dailySameTime => 1,
+                  RecurrenceMode.dailyPerWeekday => 2,
+                },
+                selectedColor: AppColors.accent,
+                selectedBackground: AppColors.accentSoft,
+                onChanged: (i) => cubit.setRepeatMode(switch (i) {
+                  1 => RecurrenceMode.dailySameTime,
+                  2 => RecurrenceMode.dailyPerWeekday,
+                  _ => null,
+                }),
+              ),
+            ],
             Gaps.vMd,
             if (state.repeatMode == null)
               Row(
@@ -226,8 +235,11 @@ class _CreateTaskFormState extends State<CreateTaskForm> {
             ),
             Gaps.vLg,
             PrimaryButton(
-              label: state.repeatMode == null ? 'Crear tarea' : 'Crear tarea recurrente',
+              label: cubit.isEditing
+                  ? 'Guardar cambios'
+                  : (state.repeatMode == null ? 'Crear tarea' : 'Crear tarea recurrente'),
               expanded: true,
+              loading: state.submitting,
               onPressed: state.canSubmit ? cubit.submit : null,
             ),
           ],
@@ -353,8 +365,17 @@ Future<void> _pickLinkedApp(
     return;
   }
 
+  // Resolver nombre + icono real de cada app instalada toma un momento
+  // perceptible (una llamada nativa por app): mostramos carga en vez de
+  // dejar el picker sin responder.
+  unawaited(showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => const Dialog(backgroundColor: Colors.transparent, elevation: 0, child: LoadingView()),
+  ));
   final options = await cubit.loadAppOptions();
   if (!context.mounted) return;
+  Navigator.of(context).pop(); // cierra el diálogo de carga
   if (options.isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('No se encontró uso reciente de apps.')),
@@ -374,6 +395,7 @@ Future<void> _pickLinkedApp(
     title: 'Vincular con app',
     options: options,
     labelBuilder: (o) => '${o.appName} · ${fmtDurationMin(o.recentUsage.inMinutes)}',
+    leadingBuilder: (o) => AppIconAvatar(name: o.appName, icon: o.icon, size: 32),
     selected: selected,
   );
   if (picked != null) cubit.setLinkedApp(picked);

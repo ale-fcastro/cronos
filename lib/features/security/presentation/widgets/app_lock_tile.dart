@@ -33,13 +33,20 @@ class AppLockTile extends StatelessWidget {
                     ],
                   ),
                 ),
-                Switch(
-                  value: state.enabled,
-                  onChanged: state.supported
-                      ? (v) => context.read<AppLockCubit>().toggle(v)
-                      : null,
-                  activeTrackColor: AppColors.accent,
-                ),
+                if (state.authenticating)
+                  const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2.2, color: AppColors.accent),
+                  )
+                else
+                  Switch(
+                    value: state.enabled,
+                    onChanged: state.supported
+                        ? (v) => context.read<AppLockCubit>().toggle(v)
+                        : null,
+                    activeTrackColor: AppColors.accent,
+                  ),
               ],
             ),
           );
