@@ -9,4 +9,8 @@ class SettingsRepositoryImpl implements SettingsRepository {
 
   @override
   Future<AppSettings> getSettings() => _datasource.fetchSettings();
+
+  @override
+  Future<void> saveSetting(String key, String value) =>
+      _datasource.saveSetting(key, value);
 }

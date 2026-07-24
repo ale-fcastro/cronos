@@ -1,15 +1,25 @@
+import 'dart:convert';
+
 import '../../../../core/database/app_database.dart';
+import '../../../../core/services/app_usage_service.dart';
+import '../../../../core/services/timer_service.dart';
 import '../../../../core/utils/time_format.dart';
 import '../../domain/entities/new_task_input.dart';
 import '../../domain/entities/task_detail.dart';
 import '../../domain/entities/task_priority.dart';
+import '../../domain/entities/task_recurrence.dart';
+import '../../domain/entities/task_suggestion.dart';
 import '../../domain/entities/task_summary.dart';
 
 /// Datasource real de tareas sobre SQLite.
 class TasksLocalDatasource {
-  TasksLocalDatasource(this._database);
+  TasksLocalDatasource(this._database, [TimerService? timerService, AppUsageService? appUsage])
+      : _timer = timerService ?? TimerService(_database),
+        _appUsage = appUsage ?? AppUsageService();
 
   final AppDatabase _database;
+  final TimerService _timer;
+  final AppUsageService _appUsage;
 
   Future<List<TaskSummary>> fetchTasks({required String scope}) async {
     final db = await _database.database;
@@ -116,6 +126,19 @@ class TasksLocalDatasource {
     final t = _TaskRow.from(row, now, elapsed.inMinutes);
     final estimate = t.estimateMin;
     final plannedAt = t.plannedAt;
+    final linkedPackage = row['linked_package'] as String?;
+    final linkedAppName = row['linked_app_name'] as String?;
+
+    // Verificación: ¿la app vinculada estuvo en primer plano al menos la
+    // mitad del tiempo real trabajado en esta tarea? Señal informativa, no
+    // cambia el estado de la tarea — el usuario sigue decidiendo.
+    bool? appVerified;
+    if (linkedPackage != null && firstStart != null && elapsed.inSeconds > 0) {
+      final windowEnd = t.completedAt ?? now;
+      final usage = await _appUsage.usageOf(linkedPackage, firstStart, windowEnd);
+      appVerified = usage.inSeconds >= elapsed.inSeconds * 0.5;
+    }
+
     return TaskDetail(
       id: id,
       title: t.title,
@@ -132,48 +155,22 @@ class TasksLocalDatasource {
       sessionsCount: sessions.length,
       history: history,
       notes: row['notes'] as String?,
+      linkedAppName: linkedAppName,
+      appVerified: appVerified,
     );
   }
 
-  Future<void> startTimer(String id) async {
-    final db = await _database.database;
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    await db.transaction((txn) async {
-      // Solo un cronómetro de tarea a la vez.
-      final open = await txn.query('task_sessions', where: 'ended_at IS NULL');
-      for (final s in open) {
-        await txn.update('task_sessions', {'ended_at': nowMs},
-            where: 'id = ?', whereArgs: [s['id']]);
-        if (s['task_id'] != id) {
-          await txn.update('tasks', {'status': 'normal'},
-              where: 'id = ? AND status = ?', whereArgs: [s['task_id'], 'running']);
-        }
-      }
-      await txn.insert('task_sessions', {'task_id': id, 'started_at': nowMs});
-      await txn.update('tasks', {'status': 'running'},
-          where: 'id = ?', whereArgs: [id]);
-    });
-  }
+  Future<void> startTimer(String id) => _timer.startTask(id);
 
-  Future<void> pauseTimer(String id) async {
-    final db = await _database.database;
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    await db.transaction((txn) async {
-      await txn.update('task_sessions', {'ended_at': nowMs},
-          where: 'task_id = ? AND ended_at IS NULL', whereArgs: [id]);
-      await txn.update('tasks', {'status': 'normal'},
-          where: 'id = ?', whereArgs: [id]);
-    });
-  }
+  Future<void> pauseTimer(String id) => _timer.pauseTask(id);
 
-  Future<void> completeTask(String id) async {
+  Future<void> completeTask(String id) => _timer.completeTask(id);
+
+  Future<void> deleteTask(String id) async {
     final db = await _database.database;
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
     await db.transaction((txn) async {
-      await txn.update('task_sessions', {'ended_at': nowMs},
-          where: 'task_id = ? AND ended_at IS NULL', whereArgs: [id]);
-      await txn.update('tasks', {'status': 'done', 'completed_at': nowMs},
-          where: 'id = ?', whereArgs: [id]);
+      await txn.delete('task_sessions', where: 'task_id = ?', whereArgs: [id]);
+      await txn.delete('tasks', where: 'id = ?', whereArgs: [id]);
     });
   }
 
@@ -184,13 +181,153 @@ class TasksLocalDatasource {
       'id': 't${now.microsecondsSinceEpoch}',
       'title': input.title,
       'project': input.project,
+      'area_id': input.areaId,
       'priority': input.priority.index + 1,
       'status': 'normal',
       'estimate_min': input.estimateMinutes,
       'planned_at': input.plannedAt?.millisecondsSinceEpoch,
       'notes': input.notes,
       'created_at': now.millisecondsSinceEpoch,
+      'linked_package': input.linkedPackage,
+      'linked_app_name': input.linkedAppName,
     });
+  }
+
+  Future<List<TaskSuggestion>> searchSuggestions(String query) async {
+    final db = await _database.database;
+    final q = query.trim();
+    // Las columnas sueltas junto a MAX(created_at) toman el valor de la fila
+    // más reciente (garantía de SQLite): así precargamos la última config.
+    final rows = await db.rawQuery('''
+      SELECT title, project, priority, estimate_min,
+             COUNT(*) AS c,
+             AVG(estimate_min) AS avg_est,
+             MAX(created_at) AS last_use
+      FROM tasks
+      ${q.isEmpty ? '' : 'WHERE title LIKE ?'}
+      GROUP BY title
+      ORDER BY c DESC, last_use DESC
+      LIMIT 5
+    ''', q.isEmpty ? [] : ['%$q%']);
+    final now = DateTime.now();
+    return [
+      for (final r in rows)
+        TaskSuggestion(
+          title: r['title'] as String,
+          subtitle: [
+            if ((r['project'] as String?)?.isNotEmpty ?? false)
+              r['project'] as String,
+            fmtRelativeDay(
+              DateTime.fromMillisecondsSinceEpoch(r['last_use'] as int),
+              now: now,
+            ).toLowerCase(),
+          ].join(' · '),
+          countLabel:
+              '${r['c']} ${(r['c'] as int) == 1 ? 'vez' : 'veces'}',
+          avgLabel: 'est ${fmtDurationMin(((r['avg_est'] as num?) ?? 0).round())}',
+          project: (r['project'] as String?) ?? 'Personal',
+          priority: TaskPriority
+              .values[((r['priority'] as int?) ?? 2).clamp(1, 3) - 1],
+          estimateMinutes: (r['estimate_min'] as int?) ?? 30,
+        ),
+    ];
+  }
+
+  Future<List<TaskRecurrence>> fetchRecurrences() async {
+    final db = await _database.database;
+    final rows = await db.query('task_recurrences', orderBy: 'created_at ASC');
+    return [for (final r in rows) _recurrenceFromRow(r)];
+  }
+
+  Future<void> createRecurrence(NewTaskRecurrenceInput input) async {
+    final db = await _database.database;
+    await db.insert('task_recurrences', {
+      'id': 'rec${DateTime.now().microsecondsSinceEpoch}',
+      'title': input.title,
+      'project': input.project,
+      'area_id': input.areaId,
+      'priority': input.priority.index + 1,
+      'estimate_min': input.estimateMinutes,
+      'notes': input.notes,
+      'mode': input.mode.name,
+      'same_time_minute': input.sameTimeMinuteOfDay,
+      'weekday_minutes': jsonEncode(
+          input.weekdayMinuteOfDay.map((k, v) => MapEntry('$k', v))),
+      'created_at': DateTime.now().millisecondsSinceEpoch,
+    });
+  }
+
+  Future<void> deleteRecurrence(String id) async {
+    final db = await _database.database;
+    // Solo detiene la generación futura: las tareas ya materializadas con
+    // este recurrence_id (pasadas o de hoy) quedan intactas.
+    await db.delete('task_recurrences', where: 'id = ?', whereArgs: [id]);
+  }
+
+  /// Materializa en `tasks` las ocurrencias de cada regla activa para hoy y
+  /// los próximos [daysAhead] días. Idempotente: no duplica si ya corrió hoy.
+  Future<void> generateUpcomingOccurrences({int daysAhead = 7}) async {
+    final db = await _database.database;
+    final rules = await db.query('task_recurrences');
+    if (rules.isEmpty) return;
+    final today = dayStart(DateTime.now());
+
+    for (final r in rules) {
+      final recurrence = _recurrenceFromRow(r);
+      for (var i = 0; i < daysAhead; i++) {
+        final date = today.add(Duration(days: i));
+        final minuteOfDay = recurrence.mode == RecurrenceMode.dailySameTime
+            ? recurrence.sameTimeMinuteOfDay
+            : recurrence.weekdayMinuteOfDay[date.weekday];
+        if (minuteOfDay == null) continue;
+
+        final dateKey =
+            '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+        final exists = await db.query(
+          'tasks',
+          where: 'recurrence_id = ? AND recurrence_date = ?',
+          whereArgs: [recurrence.id, dateKey],
+          limit: 1,
+        );
+        if (exists.isNotEmpty) continue;
+
+        final plannedAt = DateTime(
+            date.year, date.month, date.day, minuteOfDay ~/ 60, minuteOfDay % 60);
+        await db.insert('tasks', {
+          'id': 't${DateTime.now().microsecondsSinceEpoch}_$i',
+          'title': recurrence.title,
+          'project': recurrence.project,
+          'area_id': recurrence.areaId,
+          'priority': recurrence.priority.index + 1,
+          'status': 'normal',
+          'estimate_min': recurrence.estimateMinutes,
+          'planned_at': plannedAt.millisecondsSinceEpoch,
+          'notes': recurrence.notes,
+          'created_at': DateTime.now().millisecondsSinceEpoch,
+          'recurrence_id': recurrence.id,
+          'recurrence_date': dateKey,
+        });
+      }
+    }
+  }
+
+  TaskRecurrence _recurrenceFromRow(Map<String, Object?> r) {
+    final weekdayJson =
+        jsonDecode(r['weekday_minutes'] as String? ?? '{}') as Map;
+    return TaskRecurrence(
+      id: r['id'] as String,
+      title: r['title'] as String,
+      project: (r['project'] as String?) ?? 'Personal',
+      areaId: r['area_id'] as String?,
+      priority: TaskPriority
+          .values[((r['priority'] as int?) ?? 2).clamp(1, 3) - 1],
+      estimateMinutes: (r['estimate_min'] as int?) ?? 30,
+      notes: r['notes'] as String?,
+      mode: RecurrenceMode.values.firstWhere((m) => m.name == r['mode']),
+      sameTimeMinuteOfDay: r['same_time_minute'] as int?,
+      weekdayMinuteOfDay: weekdayJson.map(
+          (k, v) => MapEntry(int.parse(k as String), (v as num).toInt())),
+    );
   }
 
   Future<Map<String, int>> _minutesByTask() async {

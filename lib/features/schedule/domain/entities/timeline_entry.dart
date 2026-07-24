@@ -2,7 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart' show Color;
 
 /// Tipo de fila de la agenda diaria.
-enum TimelineEntryKind { block, runningBlock, gap, lateMarker }
+enum TimelineEntryKind { block, runningBlock, gap, lateMarker, sessionMarker }
 
 /// Una fila de la agenda: bloque planificado, hueco libre o marca de retraso.
 class TimelineEntry extends Equatable {
@@ -17,6 +17,7 @@ class TimelineEntry extends Equatable {
     this.showPlay = false,
     this.progress,
     this.elapsedLabel,
+    this.taskId,
   });
 
   final String time;
@@ -32,6 +33,11 @@ class TimelineEntry extends Equatable {
   final double? progress;
   final String? elapsedLabel;
 
+  /// Id de la tarea representada (block planificado o runningBlock);
+  /// null para huecos libres, marcadores de sesión y bloques de
+  /// actividades/eventos.
+  final String? taskId;
+
   @override
   List<Object?> get props => [
         time,
@@ -44,6 +50,7 @@ class TimelineEntry extends Equatable {
         showPlay,
         progress,
         elapsedLabel,
+        taskId,
       ];
 }
 

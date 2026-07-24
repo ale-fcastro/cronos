@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/diagnostics/error_reporting.dart';
 import '../../domain/usecases/get_tasks.dart';
 import '../../domain/usecases/task_timer_actions.dart';
 import 'tasks_list_state.dart';
@@ -14,9 +15,13 @@ class TasksListCubit extends Cubit<TasksListState> {
   final PauseTaskTimer _pauseTimer;
 
   Future<void> load() async {
-    final tasks = await _getTasks(scope: state.scope);
-    if (isClosed) return;
-    emit(state.copyWith(tasks: tasks));
+    try {
+      final tasks = await _getTasks(scope: state.scope);
+      if (isClosed) return;
+      emit(state.copyWith(tasks: tasks));
+    } catch (e, st) {
+      reportError('TasksListCubit.load', e, st);
+    }
   }
 
   void setScope(String scope) {

@@ -14,14 +14,19 @@ dependencies:
   equatable: ^2.0.7
   get_it: ^8.0.0
   sqflite: ^2.4.0
+  # SQLite en escritorio (Linux/Windows) y en tests.
+  sqflite_common_ffi: ^2.3.0
+  # Empaqueta el binario nativo de SQLite para Linux/Windows/macOS, para no
+  # depender de que el sistema tenga libsqlite3 instalada y sea localizable.
+  sqlite3_flutter_libs: ^0.5.24
   path: ^1.9.0
   local_auth: ^2.3.0
+  usage_stats: ^2.0.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
-  sqflite_common_ffi: ^2.3.0
 
 flutter:
   uses-material-design: true

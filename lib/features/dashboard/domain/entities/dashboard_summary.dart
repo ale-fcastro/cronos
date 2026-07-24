@@ -59,20 +59,28 @@ class DashboardSummary extends Equatable {
       ];
 }
 
+enum CurrentTrackKind { task, activity }
+
 /// Tarea/actividad con el cronometro corriendo ahora mismo.
 class CurrentTaskInfo extends Equatable {
   const CurrentTaskInfo({
+    required this.id,
+    required this.kind,
     required this.title,
     required this.subtitle,
     required this.elapsedLabel,
   });
 
+  /// Id de la tarea (si [kind] es task); irrelevante para actividades, que
+  /// se pausan sin necesitar id (solo puede haber una corriendo a la vez).
+  final String id;
+  final CurrentTrackKind kind;
   final String title;
   final String subtitle;
   final String elapsedLabel;
 
   @override
-  List<Object?> get props => [title, subtitle, elapsedLabel];
+  List<Object?> get props => [id, kind, title, subtitle, elapsedLabel];
 }
 
 /// Siguiente bloque planificado tras el actual.

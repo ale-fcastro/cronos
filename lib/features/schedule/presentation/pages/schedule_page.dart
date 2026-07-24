@@ -65,11 +65,11 @@ class _DayTimeline extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 96),
       itemCount: entries.length,
       separatorBuilder: (_, __) => Gaps.vSm,
-      itemBuilder: (context, i) => _entryRow(entries[i]),
+      itemBuilder: (context, i) => _entryRow(context, entries[i]),
     );
   }
 
-  Widget _entryRow(TimelineEntry e) {
+  Widget _entryRow(BuildContext context, TimelineEntry e) {
     switch (e.kind) {
       case TimelineEntryKind.lateMarker:
         return Padding(
@@ -80,6 +80,23 @@ class _DayTimeline extends StatelessWidget {
               const SizedBox(width: 8),
               Text(e.time,
                   style: AppTextStyles.metricCaption.copyWith(color: AppColors.danger, fontSize: 10)),
+            ],
+          ),
+        );
+      case TimelineEntryKind.sessionMarker:
+        return Padding(
+          padding: const EdgeInsets.only(left: 50),
+          child: Row(
+            children: [
+              Expanded(
+                child: Divider(
+                    color: (e.accentColor ?? AppColors.textTertiary).withValues(alpha: 0.35),
+                    height: 1),
+              ),
+              const SizedBox(width: 8),
+              Text('${e.subtitle} · ${e.time}',
+                  style: AppTextStyles.metricCaption
+                      .copyWith(color: e.accentColor ?? AppColors.textTertiary, fontSize: 10)),
             ],
           ),
         );
@@ -133,7 +150,12 @@ class _DayTimeline extends StatelessWidget {
                     if (e.progress != null)
                       Expanded(child: LinearProgressCard(label: '', progress: e.progress!)),
                     Gaps.hMd,
-                    const SecondaryButton(label: 'Pausar'),
+                    SecondaryButton(
+                      label: 'Pausar',
+                      onPressed: e.taskId == null
+                          ? null
+                          : () => context.read<ScheduleCubit>().pauseTask(e.taskId!),
+                    ),
                   ],
                 ),
               ],
@@ -173,7 +195,11 @@ class _DayTimeline extends StatelessWidget {
                 if (e.trailingLabel != null) AppText.mono(e.trailingLabel!),
                 if (e.showPlay) ...[
                   Gaps.hSm,
-                  const _PlayCircle(),
+                  _PlayCircle(
+                    onTap: e.taskId == null
+                        ? null
+                        : () => context.read<ScheduleCubit>().startTask(e.taskId!),
+                  ),
                 ],
               ],
             ),
@@ -184,18 +210,24 @@ class _DayTimeline extends StatelessWidget {
 }
 
 class _PlayCircle extends StatelessWidget {
-  const _PlayCircle();
+  const _PlayCircle({this.onTap});
+
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 26,
-      height: 26,
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.fromBorderSide(BorderSide(color: AppColors.borderStrong, width: 1.5)),
+    return InkWell(
+      onTap: onTap,
+      customBorder: const CircleBorder(),
+      child: Container(
+        width: 26,
+        height: 26,
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.fromBorderSide(BorderSide(color: AppColors.borderStrong, width: 1.5)),
+        ),
+        child: const Icon(Icons.play_arrow_rounded, size: 16, color: AppColors.textSecondary),
       ),
-      child: const Icon(Icons.play_arrow_rounded, size: 16, color: AppColors.textSecondary),
     );
   }
 }

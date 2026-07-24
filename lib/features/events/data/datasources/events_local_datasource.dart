@@ -46,6 +46,7 @@ class EventsLocalDatasource {
     await db.insert('events', {
       'title': input.description,
       'category': input.category,
+      'area_id': input.areaId,
       'started_at': start.millisecondsSinceEpoch,
       'ended_at': end.millisecondsSinceEpoch,
     });

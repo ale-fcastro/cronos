@@ -35,7 +35,9 @@ void main() {
   }
 
   test('crear tarea y listarla en Hoy', () async {
-    await datasource.createTask(input(plannedAt: DateTime.now().add(const Duration(hours: 1))));
+    final now = DateTime.now();
+    final laterToday = DateTime(now.year, now.month, now.day, 23, 59);
+    await datasource.createTask(input(plannedAt: laterToday));
     final tasks = await datasource.fetchTasks(scope: 'today');
 
     expect(tasks, hasLength(1));
@@ -101,5 +103,37 @@ void main() {
     final detail = await datasource.fetchDetail(id);
     expect(detail.progress, 0);
     expect(detail.estimateLabel, '1h');
+  });
+
+  test('una tarea vinculada a una app expone el nombre en el detalle', () async {
+    await datasource.createTask(NewTaskInput(
+      title: 'Estudiar con Duolingo',
+      project: 'Personal',
+      priority: TaskPriority.p2,
+      estimateMinutes: 20,
+      linkedPackage: 'com.duolingo',
+      linkedAppName: 'Duolingo',
+    ));
+    final tasks = await datasource.fetchTasks(scope: 'all');
+    final id = tasks.firstWhere((t) => t.title == 'Estudiar con Duolingo').id;
+
+    final detail = await datasource.fetchDetail(id);
+    expect(detail.linkedAppName, 'Duolingo');
+    // Sin sesiones aún y sin acceso a usage_stats (desktop): no hay
+    // señal de verificación posible.
+    expect(detail.appVerified, isNull);
+  });
+
+  test('borrar una tarea la quita de la lista junto con sus sesiones', () async {
+    await datasource.createTask(input());
+    final tasks = await datasource.fetchTasks(scope: 'today');
+    final id = tasks.first.id;
+    await datasource.startTimer(id);
+    await datasource.pauseTimer(id);
+
+    await datasource.deleteTask(id);
+
+    final after = await datasource.fetchTasks(scope: 'today');
+    expect(after.where((t) => t.id == id), isEmpty);
   });
 }

@@ -3,5 +3,8 @@
 abstract final class AppRoutes {
   static const root = '/';
   static const settings = '/settings';
+  static const projects = '/projects';
+  static const activityTypes = '/activity-types';
+  static const taskRecurrences = '/task-recurrences';
   static const taskDetail = '/task-detail';
 }

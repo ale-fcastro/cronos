@@ -3,17 +3,18 @@ import 'package:flutter/material.dart' show Color;
 import '../../../../core/analytics/stats_engine.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/database/data_colors.dart';
+import '../../../../core/services/app_usage_service.dart';
 import '../../../../core/utils/time_format.dart';
 import '../../domain/entities/metrics_entities.dart';
 
 /// Datasource real de métricas: agrega los últimos 7 días desde SQLite.
 class MetricsLocalDatasource {
-  MetricsLocalDatasource(this._database, this._stats);
+  MetricsLocalDatasource(this._database, this._stats, [AppUsageService? appUsage])
+      : _appUsage = appUsage ?? AppUsageService();
 
   final AppDatabase _database;
   final StatsEngine _stats;
-
-  static const _periodDays = 7;
+  final AppUsageService _appUsage;
 
   Future<List<DayStats>> _lastDays(int days, {int endOffset = 0}) async {
     final now = DateTime.now();
@@ -24,9 +25,9 @@ class MetricsLocalDatasource {
 
   // ---------------------------------------------------------------- Métricas
 
-  Future<MetricsSnapshot> fetchSnapshot() async {
-    final period = await _lastDays(_periodDays);
-    final prev = await _lastDays(_periodDays, endOffset: _periodDays);
+  Future<MetricsSnapshot> fetchSnapshot({required int days}) async {
+    final period = await _lastDays(days);
+    final prev = await _lastDays(days, endOffset: days);
 
     int avg(Iterable<int> xs) {
       final list = xs.where((x) => x >= 0).toList();
@@ -49,8 +50,8 @@ class MetricsLocalDatasource {
     final punctuality = avg(period.map((d) => d.punctualityPct));
     final lost = sum(period.map((d) => d.lostMin));
     final lostPrev = sum(prev.map((d) => d.lostMin));
-    final estPrecision = await _estimatePrecisionPct();
-    final offHours = await _offHoursMin();
+    final estPrecision = await _estimatePrecisionPct(days);
+    final offHours = await _offHoursMin(days);
 
     String pct(int v) => v < 0 ? '—' : '$v%';
 
@@ -133,10 +134,10 @@ class MetricsLocalDatasource {
     return segs;
   }
 
-  Future<int> _estimatePrecisionPct() async {
+  Future<int> _estimatePrecisionPct(int days) async {
     final db = await _database.database;
     final fromMs = DateTime.now()
-        .subtract(const Duration(days: _periodDays))
+        .subtract(Duration(days: days))
         .millisecondsSinceEpoch;
     final rows = await db.rawQuery('''
       SELECT t.estimate_min AS est,
@@ -156,12 +157,12 @@ class MetricsLocalDatasource {
     return devs.reduce((a, b) => a + b) ~/ devs.length;
   }
 
-  Future<int> _offHoursMin() async {
+  Future<int> _offHoursMin(int days) async {
     final db = await _database.database;
     final work = await _workWindow();
     var total = 0;
     final now = DateTime.now();
-    for (var i = 0; i < _periodDays; i++) {
+    for (var i = 0; i < days; i++) {
       final day = DateTime(now.year, now.month, now.day - i);
       final startMs = dayStart(day).millisecondsSinceEpoch;
       final endMs = dayEnd(day).millisecondsSinceEpoch;
@@ -200,13 +201,13 @@ class MetricsLocalDatasource {
 
   // ------------------------------------------------------------------ Tareas
 
-  Future<TaskStatistics> fetchTaskStatistics() async {
+  Future<TaskStatistics> fetchTaskStatistics({required int days}) async {
     final db = await _database.database;
     final now = DateTime.now();
     final fromMs =
-        now.subtract(const Duration(days: _periodDays)).millisecondsSinceEpoch;
+        now.subtract(Duration(days: days)).millisecondsSinceEpoch;
     final prevFromMs = now
-        .subtract(const Duration(days: _periodDays * 2))
+        .subtract(Duration(days: days * 2))
         .millisecondsSinceEpoch;
 
     final completed = await db.rawQuery('''
@@ -302,6 +303,9 @@ class MetricsLocalDatasource {
     for (final c in counts) {
       pace.add((c / denom).clamp(0.02, 1.0).toDouble());
     }
+    final avgWeekCount = counts.isEmpty
+        ? 0
+        : (counts.reduce((a, b) => a + b) / counts.length).round();
 
     return TaskStatistics(
       kpis: [
@@ -332,39 +336,139 @@ class MetricsLocalDatasource {
       insight: insight,
       closingPace: pace,
       closingPaceCurrentLabel: '$thisWeekCount esta semana',
+      closingPaceAverageLabel: '$avgWeekCount/sem',
     );
   }
 
   // ---------------------------------------------------------------- Teléfono
 
-  Future<PhoneUsageStats> fetchPhoneUsage() async {
-    // El uso del teléfono requiere permisos especiales de Android
-    // (UsageStatsManager). Hasta integrarlo, se muestra el estado honesto.
-    return const PhoneUsageStats(
+  static const _appDotColors = [
+    DataColors.accent,
+    DataColors.success,
+    DataColors.warning,
+    DataColors.danger,
+    DataColors.neutralBar,
+  ];
+
+  Future<PhoneUsageStats> fetchPhoneUsage({required int days}) async {
+    if (!_appUsage.isSupported) {
+      return const PhoneUsageStats(
+        kpis: [
+          KpiPoint(label: 'Pantalla', value: '—'),
+          KpiPoint(label: 'Desbloqueos', value: '—'),
+          KpiPoint(label: 'Productivo', value: '—'),
+        ],
+        distribution: [
+          WeightedSegment(fraction: 1, color: DataColors.surfaceContainer, label: 'Sin datos'),
+        ],
+        apps: [],
+        insight: 'El uso del teléfono solo se mide en Android.',
+      );
+    }
+    if (!await _appUsage.hasPermission()) {
+      return const PhoneUsageStats(
+        kpis: [
+          KpiPoint(label: 'Pantalla', value: '—'),
+          KpiPoint(label: 'Desbloqueos', value: '—'),
+          KpiPoint(label: 'Productivo', value: '—'),
+        ],
+        distribution: [
+          WeightedSegment(fraction: 1, color: DataColors.surfaceContainer, label: 'Sin datos'),
+        ],
+        apps: [],
+        insight: 'Concedé el permiso "Acceso al uso" desde Configuración > '
+            'Seguridad para ver tu uso real del teléfono acá. Podés '
+            'concederlo al vincular una app con una tarea.',
+      );
+    }
+
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, now.day - (days - 1));
+    final usage = await _appUsage.queryUsage(start, now);
+
+    final db = await _database.database;
+    final linkedRows = await db.rawQuery(
+        'SELECT DISTINCT linked_package FROM tasks WHERE linked_package IS NOT NULL');
+    final linkedPackages = {for (final r in linkedRows) r['linked_package'] as String};
+
+    final totalMin = usage.fold<int>(0, (a, u) => a + u.recentUsage.inMinutes);
+    final productiveMin = usage
+        .where((u) => linkedPackages.contains(u.packageName))
+        .fold<int>(0, (a, u) => a + u.recentUsage.inMinutes);
+
+    final top = usage.take(8).toList();
+    final distribution = <WeightedSegment>[];
+    if (totalMin > 0) {
+      var otherMin = totalMin;
+      for (var i = 0; i < top.length && i < 5; i++) {
+        final min = top[i].recentUsage.inMinutes;
+        if (min <= 0) continue;
+        otherMin -= min;
+        distribution.add(WeightedSegment(
+          fraction: min / totalMin,
+          color: _appDotColors[i % _appDotColors.length],
+          label: '${top[i].appName} ${(min * 100 / totalMin).round()}%',
+        ));
+      }
+      if (otherMin > 0) {
+        distribution.add(WeightedSegment(
+          fraction: otherMin / totalMin,
+          color: DataColors.surfaceContainer,
+          label: 'Otras',
+        ));
+      }
+    } else {
+      distribution.add(const WeightedSegment(
+          fraction: 1, color: DataColors.surfaceContainer, label: 'Sin datos'));
+    }
+
+    String insight;
+    if (usage.isEmpty) {
+      insight = 'Sin uso registrado en este período.';
+    } else if (linkedPackages.isEmpty) {
+      insight = 'Vinculá una app a una tarea (al crearla) para medir cuánto '
+          'de tu tiempo en el teléfono fue productivo.';
+    } else {
+      final pct = totalMin == 0 ? 0 : productiveMin * 100 ~/ totalMin;
+      insight = 'El $pct% de tu tiempo de pantalla fue en apps vinculadas a '
+          'tareas.';
+    }
+
+    return PhoneUsageStats(
       kpis: [
-        KpiPoint(label: 'Pantalla', value: '—'),
-        KpiPoint(label: 'Desbloqueos', value: '—'),
-        KpiPoint(label: 'Productivo', value: '—'),
+        KpiPoint(label: 'Pantalla', value: fmtDurationMin(totalMin)),
+        const KpiPoint(label: 'Desbloqueos', value: '—'),
+        KpiPoint(
+          label: 'Productivo',
+          value: linkedPackages.isEmpty
+              ? '—'
+              : '${totalMin == 0 ? 0 : productiveMin * 100 ~/ totalMin}%',
+        ),
       ],
-      distribution: [
-        WeightedSegment(
-            fraction: 1,
-            color: DataColors.surfaceContainer,
-            label: 'Sin datos'),
+      distribution: distribution,
+      apps: [
+        for (var i = 0; i < top.length; i++)
+          AppUsageRow(
+            name: top[i].appName,
+            subtitle: linkedPackages.contains(top[i].packageName)
+                ? 'Vinculada a una tarea'
+                : top[i].packageName,
+            subtitleColor:
+                linkedPackages.contains(top[i].packageName) ? DataColors.success : null,
+            duration: fmtDurationMin(top[i].recentUsage.inMinutes),
+            dotColor: _appDotColors[i % _appDotColors.length],
+          ),
       ],
-      apps: [],
-      insight: 'El seguimiento automático del uso del teléfono llegará en una '
-          'próxima versión: requiere conceder el permiso de acceso al uso '
-          'de Android.',
+      insight: insight,
     );
   }
 
   // ----------------------------------------------------------------- Eventos
 
-  Future<EventsStatistics> fetchEventsStatistics() async {
+  Future<EventsStatistics> fetchEventsStatistics({required int days}) async {
     final db = await _database.database;
     final fromMs = DateTime.now()
-        .subtract(const Duration(days: _periodDays))
+        .subtract(Duration(days: days))
         .millisecondsSinceEpoch;
 
     final totals = (await db.rawQuery(

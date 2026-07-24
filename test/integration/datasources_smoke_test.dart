@@ -110,11 +110,11 @@ void main() {
     final month = await schedule.fetchMonthOverview(now);
     expect(month.days.length, greaterThanOrEqualTo(28));
 
-    final snapshot = await metrics.fetchSnapshot();
+    final snapshot = await metrics.fetchSnapshot(days: 7);
     expect(snapshot.kpis, isNotEmpty);
-    await metrics.fetchTaskStatistics();
-    await metrics.fetchPhoneUsage();
-    await metrics.fetchEventsStatistics();
+    await metrics.fetchTaskStatistics(days: 7);
+    await metrics.fetchPhoneUsage(days: 7);
+    await metrics.fetchEventsStatistics(days: 7);
 
     expect((await settings.fetchSettings()).categoriesCount, greaterThan(0));
     expect(await tasks.fetchTasks(scope: 'today'), isEmpty);
@@ -143,11 +143,11 @@ void main() {
     expect(agenda.blockCount, greaterThan(0));
     await schedule.fetchMonthOverview(now);
 
-    final snapshot = await metrics.fetchSnapshot();
+    final snapshot = await metrics.fetchSnapshot(days: 7);
     expect(snapshot.distribution, isNotEmpty);
-    final taskStats = await metrics.fetchTaskStatistics();
+    final taskStats = await metrics.fetchTaskStatistics(days: 7);
     expect(taskStats.kpis, isNotEmpty);
-    final eventStats = await metrics.fetchEventsStatistics();
+    final eventStats = await metrics.fetchEventsStatistics(days: 7);
     expect(eventStats.recurrent, hasLength(1));
 
     final today = await tasks.fetchTasks(scope: 'today');

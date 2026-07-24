@@ -38,6 +38,7 @@ export 'widgets/charts/mini_bar_chart.dart';
 // Dialogs
 export 'widgets/dialogs/confirmation_dialog.dart';
 export 'widgets/dialogs/delete_dialog.dart';
+export 'widgets/dialogs/usage_permission_dialog.dart';
 
 // Feedback
 export 'widgets/feedback/app_snack_bar.dart';
@@ -62,6 +63,7 @@ export 'widgets/inputs/tag_selector.dart';
 export 'widgets/pickers/date_picker_field.dart';
 export 'widgets/pickers/dropdown_field.dart';
 export 'widgets/pickers/picker_field.dart';
+export 'widgets/pickers/selection_sheet.dart';
 export 'widgets/pickers/time_picker_field.dart';
 
 // Layout

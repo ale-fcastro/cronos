@@ -50,6 +50,24 @@ class EventsRegisterView extends StatelessWidget {
               selectedIndexes: {state.categoryIndex},
               onToggle: cubit.setCategory,
             ),
+            if (state.lifeAreas.isNotEmpty) ...[
+              Gaps.vMd,
+              TagSelector(
+                label: 'Área de vida',
+                options: [
+                  for (final a in state.lifeAreas)
+                    TagOption(label: a.name, color: a.color),
+                ],
+                selectedIndexes: {
+                  if (state.areaId != null)
+                    state.lifeAreas.indexWhere((a) => a.id == state.areaId),
+                },
+                onToggle: (i) {
+                  final tapped = state.lifeAreas[i].id;
+                  cubit.setArea(state.areaId == tapped ? null : tapped);
+                },
+              ),
+            ],
             Gaps.vMd,
             Row(
               children: [

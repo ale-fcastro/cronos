@@ -8,14 +8,18 @@ class MetricsRepositoryImpl implements MetricsRepository {
   final MetricsLocalDatasource _datasource;
 
   @override
-  Future<MetricsSnapshot> getMetricsSnapshot() => _datasource.fetchSnapshot();
+  Future<MetricsSnapshot> getMetricsSnapshot({required int days}) =>
+      _datasource.fetchSnapshot(days: days);
 
   @override
-  Future<TaskStatistics> getTaskStatistics() => _datasource.fetchTaskStatistics();
+  Future<TaskStatistics> getTaskStatistics({required int days}) =>
+      _datasource.fetchTaskStatistics(days: days);
 
   @override
-  Future<PhoneUsageStats> getPhoneUsage() => _datasource.fetchPhoneUsage();
+  Future<PhoneUsageStats> getPhoneUsage({required int days}) =>
+      _datasource.fetchPhoneUsage(days: days);
 
   @override
-  Future<EventsStatistics> getEventsStatistics() => _datasource.fetchEventsStatistics();
+  Future<EventsStatistics> getEventsStatistics({required int days}) =>
+      _datasource.fetchEventsStatistics(days: days);
 }

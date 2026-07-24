@@ -35,7 +35,7 @@ class DashboardLocalDatasource {
     CurrentTaskInfo? current;
     final nowMs = now.millisecondsSinceEpoch;
     final runningTask = await db.rawQuery('''
-      SELECT t.title, t.estimate_min, s.started_at
+      SELECT t.id, t.title, t.estimate_min, s.started_at
       FROM task_sessions s JOIN tasks t ON t.id = s.task_id
       WHERE s.ended_at IS NULL LIMIT 1
     ''');
@@ -43,13 +43,15 @@ class DashboardLocalDatasource {
       final r = runningTask.first;
       final start = DateTime.fromMillisecondsSinceEpoch(r['started_at'] as int);
       current = CurrentTaskInfo(
+        id: r['id'] as String,
+        kind: CurrentTrackKind.task,
         title: r['title'] as String,
         subtitle: 'En curso · est. ${fmtDurationMin(r['estimate_min'] as int)}',
         elapsedLabel: fmtClock(now.difference(start)),
       );
     } else {
       final runningAct = await db.rawQuery('''
-        SELECT a.name, s.started_at
+        SELECT a.id, a.name, s.started_at
         FROM activity_sessions s JOIN activity_types a ON a.id = s.activity_id
         WHERE s.ended_at IS NULL LIMIT 1
       ''');
@@ -58,6 +60,8 @@ class DashboardLocalDatasource {
         final start =
             DateTime.fromMillisecondsSinceEpoch(r['started_at'] as int);
         current = CurrentTaskInfo(
+          id: r['id'] as String,
+          kind: CurrentTrackKind.activity,
           title: r['name'] as String,
           subtitle: 'Actividad en curso',
           elapsedLabel: fmtClock(now.difference(start)),

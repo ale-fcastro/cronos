@@ -49,6 +49,9 @@ class BottomBar extends StatelessWidget {
                 if (onFabPressed != null && i == half)
                   Expanded(
                     child: Center(
+                      // heightFactor evita que el Center se expanda al alto
+                      // completo que el Scaffold ofrece a la barra.
+                      heightFactor: 1,
                       child: Transform.translate(
                         offset: const Offset(0, -8),
                         child: AppFab(onPressed: onFabPressed),

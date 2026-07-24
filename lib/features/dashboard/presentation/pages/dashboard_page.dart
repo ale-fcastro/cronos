@@ -193,7 +193,10 @@ class _CurrentTaskCard extends StatelessWidget {
           Gaps.hMd,
           MetricLabel(task.elapsedLabel, color: AppColors.accent, size: 16),
           Gaps.hMd,
-          const AppIconButton(icon: Icons.pause_rounded),
+          AppIconButton(
+            icon: Icons.pause_rounded,
+            onPressed: () => context.read<DashboardCubit>().pauseCurrent(task),
+          ),
         ],
       ),
     );

@@ -78,6 +78,7 @@ class TaskStatistics extends Equatable {
     required this.insight,
     required this.closingPace,
     required this.closingPaceCurrentLabel,
+    required this.closingPaceAverageLabel,
   });
 
   final List<KpiPoint> kpis;
@@ -85,10 +86,17 @@ class TaskStatistics extends Equatable {
   final String insight;
   final List<double> closingPace;
   final String closingPaceCurrentLabel;
+  final String closingPaceAverageLabel;
 
   @override
-  List<Object?> get props =>
-      [kpis, deviationByProject, insight, closingPace, closingPaceCurrentLabel];
+  List<Object?> get props => [
+        kpis,
+        deviationByProject,
+        insight,
+        closingPace,
+        closingPaceCurrentLabel,
+        closingPaceAverageLabel,
+      ];
 }
 
 class AppUsageRow extends Equatable {

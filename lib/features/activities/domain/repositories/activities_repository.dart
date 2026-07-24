@@ -1,4 +1,5 @@
 import '../entities/activity_type.dart';
+import '../entities/new_activity_type_input.dart';
 
 abstract interface class ActivitiesRepository {
   Future<List<ActivityType>> getFrequentActivities();
@@ -6,4 +7,6 @@ abstract interface class ActivitiesRepository {
   Future<RunningActivity?> getRunningActivity();
   Future<void> startActivity(String activityId);
   Future<void> stopRunningActivity();
+  Future<void> createActivityType(NewActivityTypeInput input);
+  Future<void> deleteActivityType(String id);
 }

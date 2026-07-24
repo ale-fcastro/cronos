@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/diagnostics/error_reporting.dart';
 import '../../domain/usecases/security_usecases.dart';
 
 class AppLockState extends Equatable {
@@ -32,10 +33,14 @@ class AppLockCubit extends Cubit<AppLockState> {
   final Authenticate _authenticate;
 
   Future<void> _load() async {
-    final enabled = await _getLockEnabled();
-    final supported = await _canAuthenticate();
-    if (isClosed) return;
-    emit(AppLockState(enabled: enabled && supported, supported: supported));
+    try {
+      final enabled = await _getLockEnabled();
+      final supported = await _canAuthenticate();
+      if (isClosed) return;
+      emit(AppLockState(enabled: enabled && supported, supported: supported));
+    } catch (e, st) {
+      reportError('AppLockCubit._load', e, st);
+    }
   }
 
   Future<void> toggle(bool value) async {

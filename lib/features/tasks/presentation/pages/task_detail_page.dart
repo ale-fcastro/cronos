@@ -25,16 +25,38 @@ class TaskDetailPage extends StatelessWidget {
         body: SafeArea(
           child: Padding(
             padding: AppSpacing.page,
-            child: BlocBuilder<TaskDetailCubit, TaskDetailState>(
+            child: BlocConsumer<TaskDetailCubit, TaskDetailState>(
+              listener: (context, state) {
+                if (state.deleted) Navigator.of(context).pop();
+              },
               builder: (context, state) {
                 if (state.isLoading) return const LoadingView();
                 final d = state.detail!;
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Breadcrumb(
-                      parentLabel: 'Tareas',
-                      onBack: () => Navigator.of(context).pop(),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Breadcrumb(
+                          parentLabel: 'Tareas',
+                          onBack: () => Navigator.of(context).pop(),
+                        ),
+                        AppIconButton(
+                          icon: Icons.delete_outline_rounded,
+                          color: AppColors.danger,
+                          onPressed: () async {
+                            final confirmed = await DeleteDialog.show(
+                              context,
+                              title: 'Eliminar "${d.title}"',
+                              message: 'Se borra la tarea y su historial de sesiones.',
+                            );
+                            if (confirmed && context.mounted) {
+                              context.read<TaskDetailCubit>().delete();
+                            }
+                          },
+                        ),
+                      ],
                     ),
                     Gaps.vSm,
                     Text(d.title, style: AppTextStyles.headline),
@@ -51,6 +73,33 @@ class TaskDetailPage extends StatelessWidget {
                           StatusBadge(label: 'Hecha', color: AppColors.success),
                       ],
                     ),
+                    if (d.linkedAppName != null) ...[
+                      Gaps.vSm,
+                      Row(
+                        children: [
+                          Icon(
+                            d.appVerified == true
+                                ? Icons.verified_rounded
+                                : Icons.link_rounded,
+                            size: 14,
+                            color: d.appVerified == true
+                                ? AppColors.success
+                                : AppColors.textTertiary,
+                          ),
+                          Gaps.hXs,
+                          Text(
+                            d.appVerified == true
+                                ? 'Verificado con ${d.linkedAppName}'
+                                : 'Vinculada a ${d.linkedAppName}',
+                            style: AppTextStyles.caption.copyWith(
+                              color: d.appVerified == true
+                                  ? AppColors.success
+                                  : AppColors.textTertiary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                     Gaps.vLg,
                     Expanded(
                       child: ListView(

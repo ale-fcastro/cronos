@@ -1,3 +1,5 @@
+import 'package:sqflite/sqflite.dart' show ConflictAlgorithm;
+
 import '../../../../core/database/app_database.dart';
 import '../../domain/entities/app_settings.dart';
 
@@ -6,6 +8,15 @@ class SettingsLocalDatasource {
   SettingsLocalDatasource(this._database);
 
   final AppDatabase _database;
+
+  Future<void> saveSetting(String key, String value) async {
+    final db = await _database.database;
+    await db.insert(
+      'settings',
+      {'key': key, 'value': value},
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
 
   Future<AppSettings> fetchSettings() async {
     final db = await _database.database;
@@ -18,26 +29,34 @@ class SettingsLocalDatasource {
             .rawQuery('SELECT COUNT(*) AS c FROM activity_types'))
         .first['c'] as int?) ??
         0;
-    final projects = ((await db.rawQuery(
-      "SELECT COUNT(DISTINCT project) AS c FROM tasks WHERE project IS NOT NULL AND project != ''",
-    ))
-        .first['c'] as int?) ??
-        0;
+    final projects =
+        ((await db.rawQuery('SELECT COUNT(*) AS c FROM projects'))
+                .first['c'] as int?) ??
+            0;
+
+    final workStart = map['work_start'] ?? '09:00';
+    final workEnd = map['work_end'] ?? '18:00';
+    final studyStart = map['study_start'] ?? '19:00';
+    final studyEnd = map['study_end'] ?? '21:00';
+    final sleepTime = map['sleep_time'] ?? '23:30';
+    final daysMask = map['working_days'] ?? '1111100';
+    const dayLabels = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
     return AppSettings(
-      workScheduleLabel:
-          '${map['work_start'] ?? '09:00'} – ${map['work_end'] ?? '18:00'}',
-      studyScheduleLabel:
-          '${map['study_start'] ?? '19:00'} – ${map['study_end'] ?? '21:00'}',
-      idealSleepLabel: map['sleep_time'] ?? '23:30',
-      workingDays: const [
-        WorkingDay(label: 'L', active: true),
-        WorkingDay(label: 'M', active: true),
-        WorkingDay(label: 'X', active: true),
-        WorkingDay(label: 'J', active: true),
-        WorkingDay(label: 'V', active: true),
-        WorkingDay(label: 'S', active: false),
-        WorkingDay(label: 'D', active: false),
+      workStart: workStart,
+      workEnd: workEnd,
+      studyStart: studyStart,
+      studyEnd: studyEnd,
+      sleepTime: sleepTime,
+      workScheduleLabel: '$workStart – $workEnd',
+      studyScheduleLabel: '$studyStart – $studyEnd',
+      idealSleepLabel: sleepTime,
+      workingDays: [
+        for (var i = 0; i < 7; i++)
+          WorkingDay(
+            label: dayLabels[i],
+            active: i < daysMask.length && daysMask[i] == '1',
+          ),
       ],
       categoriesCount: categories,
       projectsCount: projects,

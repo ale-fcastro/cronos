@@ -4,7 +4,7 @@ import '../../domain/entities/metrics_entities.dart';
 class AnalyzeState extends Equatable {
   const AnalyzeState({
     this.tabIndex = 0,
-    this.periodIndex = 0,
+    this.periodIndexByTab = const [0, 0, 0, 0],
     this.snapshot,
     this.taskStats,
     this.phoneUsage,
@@ -12,18 +12,23 @@ class AnalyzeState extends Equatable {
   });
 
   final int tabIndex;
-  final int periodIndex;
+
+  /// Índice del período seleccionado (Semana/Mes, Hoy/Semana...) por cada
+  /// pestaña, para que cambiar de pestaña no pierda la selección previa.
+  final List<int> periodIndexByTab;
   final MetricsSnapshot? snapshot;
   final TaskStatistics? taskStats;
   final PhoneUsageStats? phoneUsage;
   final EventsStatistics? eventsStats;
+
+  int get periodIndex => periodIndexByTab[tabIndex];
 
   bool get isLoading =>
       snapshot == null || taskStats == null || phoneUsage == null || eventsStats == null;
 
   AnalyzeState copyWith({
     int? tabIndex,
-    int? periodIndex,
+    List<int>? periodIndexByTab,
     MetricsSnapshot? snapshot,
     TaskStatistics? taskStats,
     PhoneUsageStats? phoneUsage,
@@ -31,7 +36,7 @@ class AnalyzeState extends Equatable {
   }) {
     return AnalyzeState(
       tabIndex: tabIndex ?? this.tabIndex,
-      periodIndex: periodIndex ?? this.periodIndex,
+      periodIndexByTab: periodIndexByTab ?? this.periodIndexByTab,
       snapshot: snapshot ?? this.snapshot,
       taskStats: taskStats ?? this.taskStats,
       phoneUsage: phoneUsage ?? this.phoneUsage,
@@ -41,5 +46,5 @@ class AnalyzeState extends Equatable {
 
   @override
   List<Object?> get props =>
-      [tabIndex, periodIndex, snapshot, taskStats, phoneUsage, eventsStats];
+      [tabIndex, periodIndexByTab, snapshot, taskStats, phoneUsage, eventsStats];
 }

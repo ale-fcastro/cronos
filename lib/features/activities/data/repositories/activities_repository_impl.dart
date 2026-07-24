@@ -1,4 +1,5 @@
 import '../../domain/entities/activity_type.dart';
+import '../../domain/entities/new_activity_type_input.dart';
 import '../../domain/repositories/activities_repository.dart';
 import '../datasources/activities_local_datasource.dart';
 
@@ -21,4 +22,11 @@ class ActivitiesRepositoryImpl implements ActivitiesRepository {
 
   @override
   Future<void> stopRunningActivity() => _datasource.stop();
+
+  @override
+  Future<void> createActivityType(NewActivityTypeInput input) =>
+      _datasource.createActivityType(input);
+
+  @override
+  Future<void> deleteActivityType(String id) => _datasource.deleteActivityType(id);
 }

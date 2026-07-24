@@ -2,6 +2,10 @@ import 'package:get_it/get_it.dart';
 
 import '../analytics/stats_engine.dart';
 import '../database/app_database.dart';
+import '../services/app_usage_service.dart';
+import '../services/life_areas_service.dart';
+import '../services/projects_service.dart';
+import '../services/timer_service.dart';
 
 import '../../features/activities/data/datasources/activities_local_datasource.dart';
 import '../../features/activities/data/repositories/activities_repository_impl.dart';
@@ -27,6 +31,12 @@ import '../../features/metrics/domain/repositories/metrics_repository.dart';
 import '../../features/metrics/domain/usecases/metrics_usecases.dart';
 import '../../features/metrics/presentation/bloc/analyze_cubit.dart';
 
+import '../../features/projects/data/datasources/projects_local_datasource.dart';
+import '../../features/projects/data/repositories/projects_repository_impl.dart';
+import '../../features/projects/domain/repositories/projects_repository.dart';
+import '../../features/projects/domain/usecases/projects_usecases.dart';
+import '../../features/projects/presentation/bloc/projects_cubit.dart';
+
 import '../../features/schedule/data/datasources/schedule_local_datasource.dart';
 import '../../features/schedule/data/repositories/schedule_repository_impl.dart';
 import '../../features/schedule/domain/repositories/schedule_repository.dart';
@@ -45,18 +55,23 @@ import '../../features/settings/data/datasources/settings_local_datasource.dart'
 import '../../features/settings/data/repositories/settings_repository_impl.dart';
 import '../../features/settings/domain/repositories/settings_repository.dart';
 import '../../features/settings/domain/usecases/get_settings.dart';
+import '../../features/settings/domain/usecases/update_setting.dart';
 import '../../features/settings/presentation/bloc/settings_cubit.dart';
 
 import '../../features/tasks/data/datasources/tasks_local_datasource.dart';
 import '../../features/tasks/data/repositories/tasks_repository_impl.dart';
 import '../../features/tasks/domain/repositories/tasks_repository.dart';
 import '../../features/tasks/domain/usecases/create_task.dart';
+import '../../features/tasks/domain/usecases/delete_task.dart';
 import '../../features/tasks/domain/usecases/get_task_detail.dart';
 import '../../features/tasks/domain/usecases/get_tasks.dart';
+import '../../features/tasks/domain/usecases/search_task_suggestions.dart';
+import '../../features/tasks/domain/usecases/task_recurrence_usecases.dart';
 import '../../features/tasks/domain/usecases/task_timer_actions.dart';
 import '../../features/tasks/presentation/bloc/create_task_cubit.dart';
 import '../../features/tasks/presentation/bloc/task_detail_cubit.dart';
 import '../../features/tasks/presentation/bloc/tasks_list_cubit.dart';
+import '../../features/tasks/presentation/bloc/task_recurrences_cubit.dart';
 
 final sl = GetIt.instance;
 
@@ -69,22 +84,26 @@ void configureDependencies({AppDatabase? database}) {
   // Núcleo
   sl.registerLazySingleton<AppDatabase>(() => database ?? AppDatabase());
   sl.registerLazySingleton(() => StatsEngine(sl()));
+  sl.registerLazySingleton(() => LifeAreasService(sl()));
+  sl.registerLazySingleton(() => ProjectsService(sl()));
+  sl.registerLazySingleton(() => TimerService(sl()));
+  sl.registerLazySingleton(() => AppUsageService());
 
   // Dashboard
   sl.registerLazySingleton(() => DashboardLocalDatasource(sl(), sl()));
   sl.registerLazySingleton<DashboardRepository>(() => DashboardRepositoryImpl(sl()));
   sl.registerLazySingleton(() => GetTodaySummary(sl()));
-  sl.registerFactory(() => DashboardCubit(sl()));
+  sl.registerFactory(() => DashboardCubit(sl(), sl()));
 
   // Schedule
   sl.registerLazySingleton(() => ScheduleLocalDatasource(sl(), sl()));
   sl.registerLazySingleton<ScheduleRepository>(() => ScheduleRepositoryImpl(sl()));
   sl.registerLazySingleton(() => GetDayAgenda(sl()));
   sl.registerLazySingleton(() => GetMonthOverview(sl()));
-  sl.registerFactory(() => ScheduleCubit(sl(), sl()));
+  sl.registerFactory(() => ScheduleCubit(sl(), sl(), sl()));
 
   // Tasks
-  sl.registerLazySingleton(() => TasksLocalDatasource(sl()));
+  sl.registerLazySingleton(() => TasksLocalDatasource(sl(), sl(), sl()));
   sl.registerLazySingleton<TasksRepository>(() => TasksRepositoryImpl(sl()));
   sl.registerLazySingleton(() => GetTasks(sl()));
   sl.registerLazySingleton(() => GetTaskDetail(sl()));
@@ -92,36 +111,53 @@ void configureDependencies({AppDatabase? database}) {
   sl.registerLazySingleton(() => PauseTaskTimer(sl()));
   sl.registerLazySingleton(() => CompleteTask(sl()));
   sl.registerLazySingleton(() => CreateTask(sl()));
+  sl.registerLazySingleton(() => DeleteTask(sl()));
+  sl.registerLazySingleton(() => SearchTaskSuggestions(sl()));
+  sl.registerLazySingleton(() => GetTaskRecurrences(sl()));
+  sl.registerLazySingleton(() => CreateTaskRecurrence(sl()));
+  sl.registerLazySingleton(() => DeleteTaskRecurrence(sl()));
+  sl.registerLazySingleton(() => GenerateRecurringTasks(sl()));
   sl.registerFactory(() => TasksListCubit(sl(), sl(), sl()));
   sl.registerFactoryParam<TaskDetailCubit, String, void>(
-      (taskId, _) => TaskDetailCubit(sl(), sl(), sl(), sl(), taskId));
-  sl.registerFactory(() => CreateTaskCubit(sl()));
+      (taskId, _) => TaskDetailCubit(sl(), sl(), sl(), sl(), sl(), taskId));
+  sl.registerFactory(() => CreateTaskCubit(sl(), sl(), sl(), sl(), sl(), sl(), sl()));
+  sl.registerFactory(() => TaskRecurrencesCubit(sl(), sl(), sl()));
 
   // Activities
-  sl.registerLazySingleton(() => ActivitiesLocalDatasource(sl()));
+  sl.registerLazySingleton(() => ActivitiesLocalDatasource(sl(), sl()));
   sl.registerLazySingleton<ActivitiesRepository>(() => ActivitiesRepositoryImpl(sl()));
   sl.registerLazySingleton(() => GetFrequentActivities(sl()));
   sl.registerLazySingleton(() => GetTodayActivityLog(sl()));
   sl.registerLazySingleton(() => GetRunningActivity(sl()));
   sl.registerLazySingleton(() => StartActivity(sl()));
   sl.registerLazySingleton(() => StopRunningActivity(sl()));
-  sl.registerFactory(() => ActivitiesCubit(sl(), sl(), sl(), sl(), sl()));
+  sl.registerLazySingleton(() => CreateActivityType(sl()));
+  sl.registerLazySingleton(() => DeleteActivityType(sl()));
+  sl.registerFactory(() => ActivitiesCubit(sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl()));
 
   // Events
   sl.registerLazySingleton(() => EventsLocalDatasource(sl()));
   sl.registerLazySingleton<EventsRepository>(() => EventsRepositoryImpl(sl()));
   sl.registerLazySingleton(() => SearchEventSuggestions(sl()));
   sl.registerLazySingleton(() => RegisterEvent(sl()));
-  sl.registerFactory(() => EventRegisterCubit(sl(), sl()));
+  sl.registerFactory(() => EventRegisterCubit(sl(), sl(), sl()));
 
   // Metrics (Analizar)
-  sl.registerLazySingleton(() => MetricsLocalDatasource(sl(), sl()));
+  sl.registerLazySingleton(() => MetricsLocalDatasource(sl(), sl(), sl()));
   sl.registerLazySingleton<MetricsRepository>(() => MetricsRepositoryImpl(sl()));
   sl.registerLazySingleton(() => GetMetricsSnapshot(sl()));
   sl.registerLazySingleton(() => GetTaskStatistics(sl()));
   sl.registerLazySingleton(() => GetPhoneUsage(sl()));
   sl.registerLazySingleton(() => GetEventsStatistics(sl()));
   sl.registerFactory(() => AnalyzeCubit(sl(), sl(), sl(), sl()));
+
+  // Projects
+  sl.registerLazySingleton(() => ProjectsLocalDatasource(sl()));
+  sl.registerLazySingleton<ProjectsRepository>(() => ProjectsRepositoryImpl(sl()));
+  sl.registerLazySingleton(() => GetProjects(sl()));
+  sl.registerLazySingleton(() => CreateProject(sl()));
+  sl.registerLazySingleton(() => DeleteProject(sl()));
+  sl.registerFactory(() => ProjectsCubit(sl(), sl(), sl()));
 
   // Security
   sl.registerLazySingleton(() => SecurityLocalDatasource(sl()));
@@ -137,5 +173,6 @@ void configureDependencies({AppDatabase? database}) {
   sl.registerLazySingleton(() => SettingsLocalDatasource(sl()));
   sl.registerLazySingleton<SettingsRepository>(() => SettingsRepositoryImpl(sl()));
   sl.registerLazySingleton(() => GetSettings(sl()));
-  sl.registerFactory(() => SettingsCubit(sl()));
+  sl.registerLazySingleton(() => UpdateSetting(sl()));
+  sl.registerFactory(() => SettingsCubit(sl(), sl()));
 }

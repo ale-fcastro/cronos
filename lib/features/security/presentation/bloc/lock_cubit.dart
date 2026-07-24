@@ -17,21 +17,27 @@ class LockCubit extends Cubit<LockStatus> {
   final Authenticate _authenticate;
 
   Future<void> _init() async {
-    final enabled = await _getLockEnabled();
-    if (isClosed) return;
-    if (!enabled) {
-      emit(LockStatus.unlocked);
-      return;
+    try {
+      final enabled = await _getLockEnabled();
+      if (isClosed) return;
+      if (!enabled) {
+        emit(LockStatus.unlocked);
+        return;
+      }
+      // Si el dispositivo perdió la biometría, no dejamos al usuario fuera.
+      final supported = await _canAuthenticate();
+      if (isClosed) return;
+      if (!supported) {
+        emit(LockStatus.unlocked);
+        return;
+      }
+      emit(LockStatus.locked);
+      await unlock();
+    } catch (_) {
+      // Ante cualquier fallo (p.ej. plataforma sin soporte) la app abre:
+      // el bloqueo nunca debe dejar al usuario fuera de sus datos.
+      if (!isClosed) emit(LockStatus.unlocked);
     }
-    // Si el dispositivo perdió la biometría, no dejamos al usuario fuera.
-    final supported = await _canAuthenticate();
-    if (isClosed) return;
-    if (!supported) {
-      emit(LockStatus.unlocked);
-      return;
-    }
-    emit(LockStatus.locked);
-    await unlock();
   }
 
   Future<void> unlock() async {

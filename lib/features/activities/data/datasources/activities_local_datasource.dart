@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart' show Color;
 
 import '../../../../core/database/app_database.dart';
+import '../../../../core/services/timer_service.dart';
 import '../../../../core/utils/time_format.dart';
 import '../../domain/entities/activity_type.dart';
+import '../../domain/entities/new_activity_type_input.dart';
 
 /// Datasource real de actividades sobre SQLite.
 class ActivitiesLocalDatasource {
-  ActivitiesLocalDatasource(this._database);
+  ActivitiesLocalDatasource(this._database, [TimerService? timerService])
+      : _timer = timerService ?? TimerService(_database);
 
   final AppDatabase _database;
+  final TimerService _timer;
 
   Future<List<ActivityType>> fetchFrequent() async {
     final db = await _database.database;
@@ -105,21 +109,28 @@ class ActivitiesLocalDatasource {
     );
   }
 
-  Future<void> start(String activityId) async {
+  Future<void> start(String activityId) => _timer.startActivity(activityId);
+
+  Future<void> stop() => _timer.stopRunningActivity();
+
+  Future<void> createActivityType(NewActivityTypeInput input) async {
     final db = await _database.database;
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    await db.transaction((txn) async {
-      await txn.update('activity_sessions', {'ended_at': nowMs},
-          where: 'ended_at IS NULL');
-      await txn.insert('activity_sessions',
-          {'activity_id': activityId, 'started_at': nowMs});
+    final maxSortRows =
+        await db.rawQuery('SELECT MAX(sort) AS m FROM activity_types');
+    final nextSort = ((maxSortRows.first['m'] as int?) ?? -1) + 1;
+    await db.insert('activity_types', {
+      'id': 'act${DateTime.now().microsecondsSinceEpoch}',
+      'name': input.name,
+      'color': input.color.toARGB32(),
+      'category': 'personalizada',
+      'area_id': input.areaId,
+      'warn': input.warn ? 1 : 0,
+      'sort': nextSort,
     });
   }
 
-  Future<void> stop() async {
+  Future<void> deleteActivityType(String id) async {
     final db = await _database.database;
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    await db.update('activity_sessions', {'ended_at': nowMs},
-        where: 'ended_at IS NULL');
+    await db.delete('activity_types', where: 'id = ?', whereArgs: [id]);
   }
 }

@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import '../../../../core/models/life_area.dart';
 import '../../../../core/utils/time_format.dart';
 import '../../domain/entities/event_suggestion.dart';
 
@@ -9,6 +10,8 @@ class EventRegisterState extends Equatable {
     this.query = '',
     this.suggestions = const [],
     this.categoryIndex = 0,
+    this.areaId,
+    this.lifeAreas = const [],
     this.startMinuteOfDay,
     this.endMinuteOfDay,
     this.submitted = false,
@@ -17,6 +20,10 @@ class EventRegisterState extends Equatable {
   final String query;
   final List<EventSuggestion> suggestions;
   final int categoryIndex;
+
+  /// Área de vida asignada; null = sin clasificar.
+  final String? areaId;
+  final List<LifeArea> lifeAreas;
 
   /// Minuto del día de inicio; null = hace 15 minutos.
   final int? startMinuteOfDay;
@@ -58,6 +65,9 @@ class EventRegisterState extends Equatable {
     String? query,
     List<EventSuggestion>? suggestions,
     int? categoryIndex,
+    String? areaId,
+    bool clearAreaId = false,
+    List<LifeArea>? lifeAreas,
     int? startMinuteOfDay,
     int? endMinuteOfDay,
     bool? submitted,
@@ -66,6 +76,8 @@ class EventRegisterState extends Equatable {
       query: query ?? this.query,
       suggestions: suggestions ?? this.suggestions,
       categoryIndex: categoryIndex ?? this.categoryIndex,
+      areaId: clearAreaId ? null : (areaId ?? this.areaId),
+      lifeAreas: lifeAreas ?? this.lifeAreas,
       startMinuteOfDay: startMinuteOfDay ?? this.startMinuteOfDay,
       endMinuteOfDay: endMinuteOfDay ?? this.endMinuteOfDay,
       submitted: submitted ?? this.submitted,
@@ -73,6 +85,14 @@ class EventRegisterState extends Equatable {
   }
 
   @override
-  List<Object?> get props =>
-      [query, suggestions, categoryIndex, startMinuteOfDay, endMinuteOfDay, submitted];
+  List<Object?> get props => [
+        query,
+        suggestions,
+        categoryIndex,
+        areaId,
+        lifeAreas,
+        startMinuteOfDay,
+        endMinuteOfDay,
+        submitted,
+      ];
 }

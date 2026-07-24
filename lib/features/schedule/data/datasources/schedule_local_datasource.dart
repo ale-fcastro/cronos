@@ -23,72 +23,135 @@ class ScheduleLocalDatasource {
 
     final blocks = <_Block>[];
 
-    // Tareas planificadas del día.
-    final tasks = await db.rawQuery('''
-      SELECT id, title, project, priority, status, estimate_min, planned_at
-      FROM tasks WHERE planned_at >= ? AND planned_at < ?
-      ORDER BY planned_at ASC
-    ''', [startMs, endMs]);
-    for (final t in tasks) {
-      final planned =
-          DateTime.fromMillisecondsSinceEpoch(t['planned_at'] as int);
+    // Tareas: reconstruidas sesión por sesión (inicio/pausa/reanuda/fin) si
+    // ya se trabajaron hoy; como bloque planificado si aún no se inician.
+    final candidateTaskIds = <String>{};
+    final plannedToday = await db.rawQuery(
+      'SELECT id FROM tasks WHERE planned_at >= ? AND planned_at < ?',
+      [startMs, endMs],
+    );
+    candidateTaskIds.addAll([for (final r in plannedToday) r['id'] as String]);
+    final workedToday = await db.rawQuery('''
+      SELECT DISTINCT task_id FROM task_sessions
+      WHERE started_at < ? AND COALESCE(ended_at, ?) > ?
+    ''', [endMs, nowMs, startMs]);
+    candidateTaskIds.addAll([for (final r in workedToday) r['task_id'] as String]);
+
+    for (final taskId in candidateTaskIds) {
+      final taskRows = await db.query('tasks', where: 'id = ?', whereArgs: [taskId]);
+      if (taskRows.isEmpty) continue;
+      final t = taskRows.first;
+      final title = t['title'] as String;
+      final project = t['project'] as String?;
+      final priority = (t['priority'] as int).clamp(1, 3);
       final estimate = t['estimate_min'] as int;
       final status = t['status'] as String;
-      final priority = (t['priority'] as int).clamp(1, 3);
-      final project = t['project'] as String?;
-      final running = status == 'running';
+      final plannedMs = t['planned_at'] as int?;
       final done = status == 'done';
-      final late = !done && !running && (t['planned_at'] as int) < nowMs;
 
-      String? elapsedLabel;
-      double? progress;
-      if (running) {
-        final open = await db.rawQuery(
-          'SELECT started_at FROM task_sessions WHERE task_id = ? AND ended_at IS NULL LIMIT 1',
-          [t['id']],
-        );
-        final total = await db.rawQuery(
-          'SELECT SUM(COALESCE(ended_at, ?) - started_at) AS ms FROM task_sessions WHERE task_id = ?',
-          [nowMs, t['id']],
-        );
-        final elapsedMin = ((total.first['ms'] as int?) ?? 0) ~/ 60000;
-        if (open.isNotEmpty) {
-          final s = DateTime.fromMillisecondsSinceEpoch(
-              open.first['started_at'] as int);
-          elapsedLabel = fmtClock(now.difference(s));
-        }
-        progress =
-            estimate <= 0 ? 0.0 : (elapsedMin / estimate).clamp(0.0, 1.0).toDouble();
+      final sessionsToday = await db.rawQuery('''
+        SELECT started_at, ended_at FROM task_sessions
+        WHERE task_id = ? AND started_at < ? AND COALESCE(ended_at, ?) > ?
+        ORDER BY started_at ASC
+      ''', [taskId, endMs, nowMs, startMs]);
+
+      if (sessionsToday.isEmpty) {
+        // Sin trabajo hoy: se muestra como bloque planificado (comportamiento previo).
+        if (plannedMs == null || plannedMs < startMs || plannedMs >= endMs) continue;
+        final planned = DateTime.fromMillisecondsSinceEpoch(plannedMs);
+        final late = !done && plannedMs < nowMs;
+        final subtitle = [
+          'Tarea',
+          'P$priority',
+          if (project != null && project.isNotEmpty) project,
+          'est. ${fmtDurationMin(estimate)}',
+        ].join(' · ');
+        blocks.add(_Block(
+          start: planned,
+          durationMin: estimate,
+          entry: TimelineEntry(
+            time: fmtTime(planned),
+            kind: TimelineEntryKind.block,
+            title: title,
+            subtitle: late ? '$subtitle · retrasada' : subtitle,
+            trailingLabel: fmtDurationMin(estimate),
+            accentColor: done ? DataColors.success : _priorityColor(priority),
+            late: late,
+            showPlay: !done,
+            taskId: taskId,
+          ),
+        ));
+        continue;
       }
 
-      final subtitle = [
-        'Tarea',
-        'P$priority',
-        if (project != null && project.isNotEmpty) project,
-        'est. ${fmtDurationMin(estimate)}',
-      ].join(' · ');
+      for (final s in sessionsToday) {
+        final startedAtMs = s['started_at'] as int;
+        final sStart = DateTime.fromMillisecondsSinceEpoch(startedAtMs);
+        final endedAtMs = s['ended_at'] as int?;
 
-      blocks.add(_Block(
-        start: planned,
-        durationMin: estimate,
-        entry: TimelineEntry(
-          time: fmtTime(planned),
-          kind:
-              running ? TimelineEntryKind.runningBlock : TimelineEntryKind.block,
-          title: t['title'] as String,
-          subtitle: late ? '$subtitle · retrasada' : subtitle,
-          trailingLabel: running ? null : fmtDurationMin(estimate),
-          accentColor: running
-              ? null
-              : done
-                  ? DataColors.success
-                  : _priorityColor(priority),
-          late: late,
-          showPlay: !done && !running,
-          progress: progress,
-          elapsedLabel: elapsedLabel,
-        ),
-      ));
+        final earlier = await db.rawQuery(
+          'SELECT COUNT(*) AS c FROM task_sessions WHERE task_id = ? AND started_at < ?',
+          [taskId, startedAtMs],
+        );
+        final isFirstEver = ((earlier.first['c'] as int?) ?? 0) == 0;
+
+        if (endedAtMs == null) {
+          // Sesión abierta: bloque rico existente con cronómetro y progreso.
+          final total = await db.rawQuery(
+            'SELECT SUM(COALESCE(ended_at, ?) - started_at) AS ms FROM task_sessions WHERE task_id = ?',
+            [nowMs, taskId],
+          );
+          final elapsedMin = ((total.first['ms'] as int?) ?? 0) ~/ 60000;
+          final progress =
+              estimate <= 0 ? 0.0 : (elapsedMin / estimate).clamp(0.0, 1.0).toDouble();
+          blocks.add(_Block(
+            start: sStart,
+            durationMin: now.difference(sStart).inMinutes,
+            entry: TimelineEntry(
+              time: fmtTime(sStart),
+              kind: TimelineEntryKind.runningBlock,
+              title: title,
+              subtitle: [
+                'Tarea',
+                'P$priority',
+                if (project != null && project.isNotEmpty) project,
+              ].join(' · '),
+              progress: progress,
+              elapsedLabel: fmtClock(now.difference(sStart)),
+              taskId: taskId,
+            ),
+          ));
+        } else {
+          final sEnd = DateTime.fromMillisecondsSinceEpoch(endedAtMs);
+          final later = await db.rawQuery(
+            'SELECT COUNT(*) AS c FROM task_sessions WHERE task_id = ? AND started_at > ?',
+            [taskId, startedAtMs],
+          );
+          final isLastEver = ((later.first['c'] as int?) ?? 0) == 0;
+          final finishing = done && isLastEver;
+
+          blocks.add(_Block(
+            start: sStart,
+            durationMin: 0,
+            entry: TimelineEntry(
+              time: fmtTime(sStart),
+              kind: TimelineEntryKind.sessionMarker,
+              subtitle: '${isFirstEver ? 'Inicio' : 'Reanuda'} · $title',
+              accentColor: _priorityColor(priority),
+            ),
+          ));
+          blocks.add(_Block(
+            start: sEnd,
+            durationMin: 0,
+            entry: TimelineEntry(
+              time: fmtTime(sEnd),
+              kind: TimelineEntryKind.sessionMarker,
+              subtitle: '${finishing ? 'Finaliza' : 'Pausa'} · $title',
+              accentColor: finishing ? DataColors.success : _priorityColor(priority),
+            ),
+          ));
+        }
+      }
     }
 
     // Sesiones de actividades del día.

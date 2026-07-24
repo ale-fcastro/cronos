@@ -28,6 +28,8 @@ class TaskDetail extends Equatable {
     required this.sessionsCount,
     required this.history,
     this.notes,
+    this.linkedAppName,
+    this.appVerified,
   });
 
   final String id;
@@ -46,6 +48,13 @@ class TaskDetail extends Equatable {
   final List<TaskSession> history;
   final String? notes;
 
+  /// Nombre de la app vinculada (null = sin vincular).
+  final String? linkedAppName;
+
+  /// null = sin vincular o sin datos aún; true/false = verificado o no
+  /// mediante el uso real de la app durante las sesiones de la tarea.
+  final bool? appVerified;
+
   @override
   List<Object?> get props => [
         id,
@@ -61,5 +70,7 @@ class TaskDetail extends Equatable {
         sessionsCount,
         history,
         notes,
+        linkedAppName,
+        appVerified,
       ];
 }

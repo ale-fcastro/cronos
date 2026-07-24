@@ -14,7 +14,7 @@ class AppDatabase {
   final String? _pathOverride;
   Database? _db;
 
-  static const _version = 1;
+  static const _version = 4;
 
   Future<Database> get database async {
     final cached = _db;
@@ -27,6 +27,7 @@ class AppDatabase {
       options: OpenDatabaseOptions(
         version: _version,
         onCreate: _onCreate,
+        onUpgrade: _onUpgrade,
       ),
     );
     _db = db;
@@ -44,13 +45,18 @@ class AppDatabase {
         id TEXT PRIMARY KEY,
         title TEXT NOT NULL,
         project TEXT,
+        area_id TEXT,
         priority INTEGER NOT NULL DEFAULT 2,
         status TEXT NOT NULL DEFAULT 'normal',
         estimate_min INTEGER NOT NULL DEFAULT 30,
         planned_at INTEGER,
         notes TEXT,
         created_at INTEGER NOT NULL,
-        completed_at INTEGER
+        completed_at INTEGER,
+        recurrence_id TEXT,
+        recurrence_date TEXT,
+        linked_package TEXT,
+        linked_app_name TEXT
       )
     ''');
     await db.execute('''
@@ -67,6 +73,7 @@ class AppDatabase {
         name TEXT NOT NULL,
         color INTEGER NOT NULL,
         category TEXT NOT NULL,
+        area_id TEXT,
         warn INTEGER NOT NULL DEFAULT 0,
         sort INTEGER NOT NULL DEFAULT 0
       )
@@ -84,6 +91,7 @@ class AppDatabase {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT NOT NULL,
         category TEXT NOT NULL,
+        area_id TEXT,
         started_at INTEGER NOT NULL,
         ended_at INTEGER NOT NULL
       )
@@ -94,6 +102,36 @@ class AppDatabase {
         value TEXT NOT NULL
       )
     ''');
+    await db.execute('''
+      CREATE TABLE life_areas(
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        color INTEGER NOT NULL,
+        sort INTEGER NOT NULL DEFAULT 0
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE projects(
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        sort INTEGER NOT NULL DEFAULT 0
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE task_recurrences(
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        project TEXT,
+        area_id TEXT,
+        priority INTEGER NOT NULL DEFAULT 2,
+        estimate_min INTEGER NOT NULL DEFAULT 30,
+        notes TEXT,
+        mode TEXT NOT NULL,
+        same_time_minute INTEGER,
+        weekday_minutes TEXT,
+        created_at INTEGER NOT NULL
+      )
+    ''');
     await db.execute(
         'CREATE INDEX idx_task_sessions_task ON task_sessions(task_id)');
     await db.execute(
@@ -101,8 +139,119 @@ class AppDatabase {
     await db.execute(
         'CREATE INDEX idx_activity_sessions_start ON activity_sessions(started_at)');
     await db.execute('CREATE INDEX idx_events_start ON events(started_at)');
+    await db.execute(
+        'CREATE UNIQUE INDEX idx_tasks_recurrence_date ON tasks(recurrence_id, recurrence_date)');
 
     await _seed(db);
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('ALTER TABLE tasks ADD COLUMN area_id TEXT');
+      await db.execute('ALTER TABLE activity_types ADD COLUMN area_id TEXT');
+      await db.execute('ALTER TABLE events ADD COLUMN area_id TEXT');
+      await db.execute('''
+        CREATE TABLE life_areas(
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          color INTEGER NOT NULL,
+          sort INTEGER NOT NULL DEFAULT 0
+        )
+      ''');
+      await db.execute('''
+        CREATE TABLE projects(
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          sort INTEGER NOT NULL DEFAULT 0
+        )
+      ''');
+      await _seedLifeAreas(db);
+      await _seedProjects(db);
+      await _backfillActivityAreas(db);
+    }
+    if (oldVersion < 3) {
+      await db.execute('ALTER TABLE tasks ADD COLUMN recurrence_id TEXT');
+      await db.execute('ALTER TABLE tasks ADD COLUMN recurrence_date TEXT');
+      await db.execute('''
+        CREATE TABLE task_recurrences(
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          project TEXT,
+          area_id TEXT,
+          priority INTEGER NOT NULL DEFAULT 2,
+          estimate_min INTEGER NOT NULL DEFAULT 30,
+          notes TEXT,
+          mode TEXT NOT NULL,
+          same_time_minute INTEGER,
+          weekday_minutes TEXT,
+          created_at INTEGER NOT NULL
+        )
+      ''');
+      await db.execute(
+          'CREATE UNIQUE INDEX idx_tasks_recurrence_date ON tasks(recurrence_id, recurrence_date)');
+    }
+    if (oldVersion < 4) {
+      await db.execute('ALTER TABLE tasks ADD COLUMN linked_package TEXT');
+      await db.execute('ALTER TABLE tasks ADD COLUMN linked_app_name TEXT');
+    }
+  }
+
+  /// Ocho áreas fijas del producto (no editables por el usuario).
+  static const _lifeAreas = [
+    ('trabajo', 'Trabajo', 0xFF6C8EEF, 0),
+    ('aprendizaje', 'Aprendizaje', 0xFF7EC9A2, 1),
+    ('salud', 'Salud', 0xFFE0837A, 2),
+    ('finanzas', 'Finanzas', 0xFFDDB168, 3),
+    ('hogar', 'Hogar', 0xFF9DB1F5, 4),
+    ('relaciones', 'Relaciones', 0xFFD397D9, 5),
+    ('personal', 'Personal', 0xFF6A6F79, 6),
+    ('ocio', 'Ocio', 0xFFE0A63A, 7),
+  ];
+
+  static const _defaultProjects = ['Personal', 'Trabajo', 'Estudio'];
+
+  /// Mapea los tipos de actividad sembrados a su área de vida por defecto.
+  static const _activityAreaMap = {
+    'dormir': 'salud',
+    'comer': 'salud',
+    'ejercicio': 'salud',
+    'descanso': 'personal',
+    'redes': 'ocio',
+    'videojuegos': 'ocio',
+    'transporte': 'personal',
+    'estudio': 'aprendizaje',
+  };
+
+  Future<void> _seedLifeAreas(Database db) async {
+    final batch = db.batch();
+    for (final a in _lifeAreas) {
+      batch.insert('life_areas', {
+        'id': a.$1,
+        'name': a.$2,
+        'color': a.$3,
+        'sort': a.$4,
+      }, conflictAlgorithm: ConflictAlgorithm.ignore);
+    }
+    await batch.commit(noResult: true);
+  }
+
+  Future<void> _seedProjects(Database db) async {
+    final batch = db.batch();
+    for (var i = 0; i < _defaultProjects.length; i++) {
+      final name = _defaultProjects[i];
+      batch.insert('projects', {'id': name, 'name': name, 'sort': i},
+          conflictAlgorithm: ConflictAlgorithm.ignore);
+    }
+    await batch.commit(noResult: true);
+  }
+
+  Future<void> _backfillActivityAreas(Database db) async {
+    final batch = db.batch();
+    _activityAreaMap.forEach((activityId, areaId) {
+      batch.update('activity_types', {'area_id': areaId},
+          where: 'id = ?', whereArgs: [activityId]);
+    });
+    await batch.commit(noResult: true);
   }
 
   Future<void> _seed(Database db) async {
@@ -123,6 +272,7 @@ class AppDatabase {
         'name': t.$2,
         'color': t.$3,
         'category': t.$4,
+        'area_id': _activityAreaMap[t.$1],
         'warn': t.$5,
         'sort': t.$6,
       });
@@ -136,6 +286,14 @@ class AppDatabase {
       'sleep_target_min': '480',
     };
     defaults.forEach((k, v) => batch.insert('settings', {'key': k, 'value': v}));
+    for (var i = 0; i < _defaultProjects.length; i++) {
+      final name = _defaultProjects[i];
+      batch.insert('projects', {'id': name, 'name': name, 'sort': i});
+    }
+    for (final a in _lifeAreas) {
+      batch.insert(
+          'life_areas', {'id': a.$1, 'name': a.$2, 'color': a.$3, 'sort': a.$4});
+    }
     await batch.commit(noResult: true);
   }
 }

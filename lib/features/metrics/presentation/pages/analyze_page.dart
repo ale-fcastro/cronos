@@ -138,7 +138,7 @@ class _MetricsTab extends StatelessWidget {
         ),
         Gaps.vMd,
         SummaryCard(
-          title: 'Evolución del score · 8 semanas',
+          title: 'Evolución del score · 8 días',
           trailing: Text('tendencia ▲',
               style: AppTextStyles.metricCaption.copyWith(color: AppColors.success)),
           child: Column(
@@ -154,7 +154,7 @@ class _MetricsTab extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const AppCaption('s−7'),
+                  const AppCaption('d−7'),
                   Text(snapshot.scoreEvolutionCurrentLabel,
                       style: AppTextStyles.caption.copyWith(color: AppColors.accent)),
                 ],
@@ -214,7 +214,7 @@ class _TasksStatsTab extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const AppCaption('18/sem'),
+                  AppCaption('prom. ${stats.closingPaceAverageLabel}'),
                   Text(stats.closingPaceCurrentLabel,
                       style: AppTextStyles.caption.copyWith(color: AppColors.success)),
                 ],

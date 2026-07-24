@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../shared/shared.dart';
 import '../bloc/activities_cubit.dart';
 import '../bloc/activities_state.dart';
+import 'create_activity_type_dialog.dart';
 
 /// Contenido de la pestaña "Actividad" de la hoja de registro del FAB.
 class ActivitiesRegisterView extends StatelessWidget {
@@ -63,6 +64,13 @@ class ActivitiesRegisterView extends StatelessWidget {
                     onTap: () => cubit.start(a.id),
                   ),
                 DashedSurface(
+                  onTap: () async {
+                    final input = await showCreateActivityTypeDialog(
+                      context,
+                      lifeAreas: state.lifeAreas,
+                    );
+                    if (input != null) cubit.createActivityType(input);
+                  },
                   child: SizedBox(
                     height: 62,
                     child: Row(

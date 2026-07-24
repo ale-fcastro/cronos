@@ -78,7 +78,11 @@ class TasksListPage extends StatelessWidget {
       late: t.status == TaskStatus.late,
       done: t.status == TaskStatus.done,
       highlighted: t.status == TaskStatus.running,
-      onTap: () => Navigator.of(context).pushNamed(AppRoutes.taskDetail, arguments: t.id),
+      onTap: () async {
+        final cubit = context.read<TasksListCubit>();
+        await Navigator.of(context).pushNamed(AppRoutes.taskDetail, arguments: t.id);
+        cubit.load();
+      },
     );
   }
 }
