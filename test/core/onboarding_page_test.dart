@@ -33,24 +33,28 @@ void main() {
       home: OnboardingPage(onDone: () => done = true),
     ));
 
-    expect(find.text('Hola, soy Cronos'), findsOneWidget);
+    expect(find.text('¡Hola! Soy Croni'), findsOneWidget);
     expect(find.text('Siguiente'), findsOneWidget);
 
+    // Croni respira/parpadea sin parar (a propósito, para sentirse vivo),
+    // así que la animación nunca "se asienta": pumpAndSettle no sirve acá,
+    // se avanza con pumps acotados en su lugar.
     // 3 toques en "Siguiente" recorren las 4 diapositivas.
     for (var i = 0; i < 3; i++) {
       await tester.tap(find.text('Siguiente'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
     }
 
     expect(find.text('Empezar'), findsOneWidget);
     await tester.tap(find.text('Empezar'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 400));
 
     // Sin permiso concedido, "Empezar" abre el modal de avisos antes de
     // continuar; lo cerramos con "Ahora no" para terminar el flujo.
     expect(find.text('Avisos de tareas'), findsOneWidget);
     await tester.tap(find.text('Ahora no'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 400));
     expect(done, isTrue);
   });
 

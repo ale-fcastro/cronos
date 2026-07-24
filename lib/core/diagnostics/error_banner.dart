@@ -36,15 +36,24 @@ class ErrorBanner extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.copy, color: Colors.white, size: 18),
-                      tooltip: 'Copiar error',
-                      onPressed: () =>
-                          Clipboard.setData(ClipboardData(text: message)),
+                    // Sin `tooltip:`: ErrorBanner vive fuera del Overlay del
+                    // Navigator (es hermano de la app dentro de
+                    // MaterialApp.builder), y el Tooltip de IconButton
+                    // necesita uno -- lo pedía y tiraba la app entera.
+                    Semantics(
+                      label: 'Copiar error',
+                      child: IconButton(
+                        icon: const Icon(Icons.copy, color: Colors.white, size: 18),
+                        onPressed: () =>
+                            Clipboard.setData(ClipboardData(text: message)),
+                      ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white, size: 18),
-                      onPressed: clearLastError,
+                    Semantics(
+                      label: 'Cerrar',
+                      child: IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white, size: 18),
+                        onPressed: clearLastError,
+                      ),
                     ),
                   ],
                 ),

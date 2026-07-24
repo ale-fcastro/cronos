@@ -203,7 +203,48 @@ class TasksLocalDatasource {
       notes: row['notes'] as String?,
       linkedPackage: row['linked_package'] as String?,
       linkedAppName: row['linked_app_name'] as String?,
+      recurrenceId: row['recurrence_id'] as String?,
     );
+  }
+
+  /// true si ya hay otra tarea (sin terminar) planificada exactamente a
+  /// [plannedAt]. [excludeTaskId] se usa al editar, para no chocar contra
+  /// la propia tarea que se está guardando.
+  Future<bool> hasScheduleConflict(DateTime plannedAt, {String? excludeTaskId}) async {
+    final db = await _database.database;
+    final where = StringBuffer("planned_at = ? AND status != 'done'");
+    final args = <Object?>[plannedAt.millisecondsSinceEpoch];
+    if (excludeTaskId != null) {
+      where.write(' AND id != ?');
+      args.add(excludeTaskId);
+    }
+    final rows = await db.query('tasks', where: where.toString(), whereArgs: args, limit: 1);
+    return rows.isNotEmpty;
+  }
+
+  /// Propaga un nuevo horario a la regla [recurrenceId]: el minuto único
+  /// (modo "todos los días") o el minuto de [weekday] (modo "por día de
+  /// semana"), sin tocar los demás días de esa regla.
+  Future<void> updateRecurrenceTime(
+    String recurrenceId, {
+    required int weekday,
+    required int minuteOfDay,
+  }) async {
+    final db = await _database.database;
+    final rows = await db.query('task_recurrences', where: 'id = ?', whereArgs: [recurrenceId]);
+    if (rows.isEmpty) return;
+    final mode = rows.first['mode'] as String;
+    if (mode == RecurrenceMode.dailySameTime.name) {
+      await db.update('task_recurrences', {'same_time_minute': minuteOfDay},
+          where: 'id = ?', whereArgs: [recurrenceId]);
+    } else {
+      final weekdayJson =
+          jsonDecode(rows.first['weekday_minutes'] as String? ?? '{}') as Map;
+      final map = weekdayJson.map((k, v) => MapEntry(k as String, v));
+      map['$weekday'] = minuteOfDay;
+      await db.update('task_recurrences', {'weekday_minutes': jsonEncode(map)},
+          where: 'id = ?', whereArgs: [recurrenceId]);
+    }
   }
 
   /// Actualiza los campos editables de [id]. No toca estado, cronómetro,

@@ -180,18 +180,20 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
           },
           wrapFab: (fab) => Showcase(
             key: _fabKey,
-            title: 'Registrá en 2 toques',
-            description: 'Acá creás una tarea, una actividad o un '
-                'imprevisto al instante.',
+            title: 'Dale, tocá acá',
+            description: 'Con este botón te registro una tarea, una '
+                'actividad o un imprevisto en 2 toques. Probalo cuando '
+                'quieras.',
             targetShapeBorder: const CircleBorder(),
             child: fab,
           ),
           wrapItem: (i, child) => i == 3
               ? Showcase(
                   key: _analyzeKey,
-                  title: 'Analizar',
-                  description: 'Tus números: métricas, tareas, teléfono '
-                      'y eventos, todo en un mismo lugar.',
+                  title: 'Tus números están acá',
+                  description: 'Métricas, tareas, uso del teléfono y '
+                      'eventos: todo junto para que veas cómo te está '
+                      'yendo de verdad.',
                   child: child,
                 )
               : child,

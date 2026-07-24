@@ -5,37 +5,40 @@ import '../di/service_locator.dart';
 import '../services/notifications_service.dart';
 
 class _OnboardingSlide {
-  const _OnboardingSlide({required this.title, required this.body, this.wave = false});
+  const _OnboardingSlide({required this.title, required this.body, required this.mascotState});
 
   final String title;
   final String body;
-  final bool wave;
+  final MascotState mascotState;
 }
 
 const _slides = [
   _OnboardingSlide(
-    title: 'Hola, soy Cronos',
-    body: 'No soy un gestor de tareas: soy un instrumento de medición. '
-        'Te ayudo a saber qué hacés con tu tiempo, para saber qué vas a '
-        'hacer con tu vida.',
-    wave: true,
+    title: '¡Hola! Soy Croni',
+    body: 'Te voy a acompañar en Cronos. No soy un gestor de tareas: soy tu '
+        'instrumento de medición. Te ayudo a ver qué hacés con tu tiempo, '
+        'para que decidas qué vas a hacer con tu vida.',
+    mascotState: MascotState.wave,
   ),
   _OnboardingSlide(
-    title: 'Tu día en segundos',
-    body: 'Hoy, Agenda y Tareas responden "¿cómo va mi día?" con números '
-        'antes que gráficos. Nada de leer entre líneas.',
+    title: 'Te cuento cómo vas',
+    body: 'En Hoy, Agenda y Tareas te respondo "¿cómo va tu día?" con '
+        'números, antes que con gráficos. Nada de leer entre líneas.',
+    mascotState: MascotState.think,
   ),
   _OnboardingSlide(
-    title: 'Registrar cuesta 2 toques',
-    body: 'El botón + registra una tarea, una actividad o un imprevisto al '
-        'instante. Si cuesta más que eso, dejás de registrar -- por eso es '
-        'así de simple.',
+    title: 'Registrás en 2 toques',
+    body: 'Con el botón + anoto una tarea, una actividad o un imprevisto al '
+        'instante. Si te cuesta más que eso, dejás de registrar -- por eso '
+        'lo hice así de simple.',
+    mascotState: MascotState.walk,
   ),
   _OnboardingSlide(
-    title: 'Tus datos, en tu teléfono',
-    body: 'Todo se guarda localmente, nunca en un servidor. Podés proteger '
-        'la app con huella y activar avisos de tus tareas planificadas '
-        'cuando quieras, desde Configuración.',
+    title: '¡Ya estás listo!',
+    body: 'Tus datos quedan en tu teléfono, nunca en un servidor. Cuando '
+        'quieras, activá huella y avisos de tus tareas planificadas desde '
+        'Configuración. ¿Empezamos?',
+    mascotState: MascotState.celebrate,
   ),
 ];
 
@@ -118,7 +121,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     return Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        CronosMascot(size: 160, wave: slide.wave),
+                        CronosMascot(size: 160, state: slide.mascotState),
                         Gaps.vXl,
                         Text(
                           slide.title,

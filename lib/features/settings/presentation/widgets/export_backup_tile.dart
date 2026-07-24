@@ -57,21 +57,36 @@ class _ExportBackupTileState extends State<ExportBackupTile> {
     }
   }
 
+  /// share_plus no soporta compartir archivos en Linux (lanza
+  /// UnimplementedError); ahí solo mostramos dónde quedó guardado el archivo.
+  bool get _canShareFiles =>
+      Platform.isAndroid || Platform.isIOS || Platform.isMacOS || Platform.isWindows;
+
   Future<void> _runExport(
     _Busy which,
     Future<File> Function() action,
     String doneMessage,
   ) async {
     setState(() => _busy = which);
+    final File file;
     try {
-      final file = await action();
-      _snack(doneMessage);
-      await SharePlus.instance.share(ShareParams(files: [XFile(file.path)]));
+      file = await action();
     } catch (e, st) {
       reportError('ExportBackupTile._runExport', e, st);
       _snack('No se pudo completar la exportación.');
-    } finally {
       if (mounted) setState(() => _busy = _Busy.none);
+      return;
+    }
+    if (mounted) setState(() => _busy = _Busy.none);
+    if (!_canShareFiles) {
+      _snack('$doneMessage Guardado en ${file.path}');
+      return;
+    }
+    _snack(doneMessage);
+    try {
+      await SharePlus.instance.share(ShareParams(files: [XFile(file.path)]));
+    } catch (e, st) {
+      reportError('ExportBackupTile._share', e, st);
     }
   }
 

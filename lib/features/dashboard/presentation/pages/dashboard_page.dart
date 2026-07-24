@@ -43,9 +43,9 @@ class DashboardPage extends StatelessWidget {
                     ? const ProfileAvatar()
                     : Showcase(
                         key: avatarKey!,
-                        title: 'Tu perfil',
-                        description:
-                            'Acá configurás huella, notificaciones, horarios y más.',
+                        title: 'Este sos vos',
+                        description: 'Acá configurás huella, notificaciones, '
+                            'horarios y lo que necesites ajustar.',
                         targetShapeBorder: const CircleBorder(),
                         child: const ProfileAvatar(),
                       ),

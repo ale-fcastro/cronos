@@ -58,4 +58,13 @@ class TasksRepositoryImpl implements TasksRepository {
   @override
   Future<void> generateUpcomingOccurrences() =>
       _datasource.generateUpcomingOccurrences();
+
+  @override
+  Future<bool> hasScheduleConflict(DateTime plannedAt, {String? excludeTaskId}) =>
+      _datasource.hasScheduleConflict(plannedAt, excludeTaskId: excludeTaskId);
+
+  @override
+  Future<void> updateRecurrenceTime(String recurrenceId,
+          {required int weekday, required int minuteOfDay}) =>
+      _datasource.updateRecurrenceTime(recurrenceId, weekday: weekday, minuteOfDay: minuteOfDay);
 }

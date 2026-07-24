@@ -21,4 +21,11 @@ abstract interface class TasksRepository {
   Future<void> createRecurrence(NewTaskRecurrenceInput input);
   Future<void> deleteRecurrence(String id);
   Future<void> generateUpcomingOccurrences();
+
+  /// true si ya hay otra tarea planificada exactamente a esa hora.
+  Future<bool> hasScheduleConflict(DateTime plannedAt, {String? excludeTaskId});
+
+  /// Propaga un nuevo horario a una regla de repetición ya existente.
+  Future<void> updateRecurrenceTime(String recurrenceId,
+      {required int weekday, required int minuteOfDay});
 }

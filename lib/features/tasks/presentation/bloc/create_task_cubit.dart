@@ -24,7 +24,9 @@ class CreateTaskCubit extends Cubit<CreateTaskState> {
     this._projectsService,
     this._createRecurrence,
     this._generateRecurringTasks,
-    this._appUsage, [
+    this._appUsage,
+    this._checkScheduleConflict,
+    this._updateRecurrenceTime, [
     this._editingTaskId,
   ]) : super(const CreateTaskState()) {
     _loadOptions();
@@ -32,6 +34,7 @@ class CreateTaskCubit extends Cubit<CreateTaskState> {
       _loadForEdit(_editingTaskId);
     } else {
       _runSearch();
+      _checkConflict();
     }
   }
 
@@ -44,18 +47,36 @@ class CreateTaskCubit extends Cubit<CreateTaskState> {
   final CreateTaskRecurrence _createRecurrence;
   final GenerateRecurringTasks _generateRecurringTasks;
   final AppUsageService _appUsage;
+  final CheckScheduleConflict _checkScheduleConflict;
+  final UpdateTaskRecurrenceTime _updateRecurrenceTime;
   final String? _editingTaskId;
+
+  String? _originalRecurrenceId;
+  int? _originalMinuteOfDay;
 
   bool get appLinkSupported => _appUsage.isSupported;
 
   /// true si el formulario edita una tarea existente en vez de crear una.
   bool get isEditing => _editingTaskId != null;
 
+  /// true si la tarea editada es una ocurrencia materializada de una regla
+  /// de repetición (en vez de una tarea suelta).
+  bool get isRecurringInstance => _originalRecurrenceId != null;
+
+  /// true si, editando una ocurrencia de una repetición, la hora elegida
+  /// difiere de la original: hay que preguntar si propagarla a la regla.
+  bool get changesRecurrenceTime =>
+      isRecurringInstance &&
+      state.plannedMinuteOfDay != null &&
+      state.plannedMinuteOfDay != _originalMinuteOfDay;
+
   Future<void> _loadForEdit(String id) async {
     try {
       final input = await _getTaskEditData(id);
       if (isClosed) return;
       final plannedAt = input.plannedAt;
+      _originalRecurrenceId = input.recurrenceId;
+      _originalMinuteOfDay = plannedAt == null ? null : plannedAt.hour * 60 + plannedAt.minute;
       emit(state.copyWith(
         title: input.title,
         project: input.project,
@@ -70,8 +91,27 @@ class CreateTaskCubit extends Cubit<CreateTaskState> {
         linkedAppName: input.linkedAppName,
         clearLinkedApp: input.linkedPackage == null,
       ));
+      await _checkConflict();
     } catch (e, st) {
       reportError('CreateTaskCubit._loadForEdit', e, st);
+    }
+  }
+
+  /// Revisa si la fecha/hora actual choca con otra tarea. Solo aplica a
+  /// tareas sueltas: las reglas de repetición generan varias fechas futuras
+  /// y no tienen una única hora "a chequear" en el momento de crearlas.
+  Future<void> _checkConflict() async {
+    if (state.repeatMode != null) {
+      if (state.timeConflict) emit(state.copyWith(timeConflict: false));
+      return;
+    }
+    try {
+      final conflict =
+          await _checkScheduleConflict(state.plannedAt, excludeTaskId: _editingTaskId);
+      if (isClosed) return;
+      emit(state.copyWith(timeConflict: conflict));
+    } catch (e, st) {
+      reportError('CreateTaskCubit._checkConflict', e, st);
     }
   }
 
@@ -120,16 +160,25 @@ class CreateTaskCubit extends Cubit<CreateTaskState> {
       areaId == null ? state.copyWith(clearAreaId: true) : state.copyWith(areaId: areaId));
   void setPriority(TaskPriority v) => emit(state.copyWith(priority: v));
   void setNotes(String v) => emit(state.copyWith(notes: v));
-  void setDate(DateTime v) => emit(state.copyWith(plannedDate: v));
-  void setTime(int hour, int minute) =>
-      emit(state.copyWith(plannedMinuteOfDay: hour * 60 + minute));
+  void setDate(DateTime v) {
+    emit(state.copyWith(plannedDate: v));
+    _checkConflict();
+  }
+
+  void setTime(int hour, int minute) {
+    emit(state.copyWith(plannedMinuteOfDay: hour * 60 + minute));
+    _checkConflict();
+  }
+
   void incrementEstimate() =>
       emit(state.copyWith(estimateMinutes: state.estimateMinutes + 15));
   void decrementEstimate() => emit(
       state.copyWith(estimateMinutes: (state.estimateMinutes - 15).clamp(15, 24 * 60)));
 
-  void setRepeatMode(RecurrenceMode? mode) => emit(
-      mode == null ? state.copyWith(clearRepeatMode: true) : state.copyWith(repeatMode: mode));
+  void setRepeatMode(RecurrenceMode? mode) {
+    emit(mode == null ? state.copyWith(clearRepeatMode: true) : state.copyWith(repeatMode: mode));
+    _checkConflict();
+  }
 
   void setRepeatSameTime(int hour, int minute) =>
       emit(state.copyWith(repeatSameTimeMinuteOfDay: hour * 60 + minute));
@@ -166,7 +215,10 @@ class CreateTaskCubit extends Cubit<CreateTaskState> {
       ? state.copyWith(clearLinkedApp: true)
       : state.copyWith(linkedPackage: app.packageName, linkedAppName: app.appName));
 
-  Future<void> submit() async {
+  /// [alsoUpdateRecurrence] solo importa si [changesRecurrenceTime]: true
+  /// propaga la nueva hora a la regla (para ese día de semana), false deja
+  /// la regla como está y el cambio queda solo en esta ocurrencia.
+  Future<void> submit({bool alsoUpdateRecurrence = false}) async {
     if (!state.canSubmit || state.submitting) return;
     emit(state.copyWith(submitting: true));
     try {
@@ -188,6 +240,13 @@ class CreateTaskCubit extends Cubit<CreateTaskState> {
             linkedAppName: state.linkedAppName,
           ),
         );
+        if (changesRecurrenceTime && alsoUpdateRecurrence) {
+          await _updateRecurrenceTime(
+            _originalRecurrenceId!,
+            weekday: state.plannedAt.weekday,
+            minuteOfDay: state.plannedMinuteOfDay!,
+          );
+        }
       } else if (state.repeatMode == null) {
         await _createTask(NewTaskInput(
           title: title,

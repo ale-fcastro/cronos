@@ -139,12 +139,14 @@ void configureDependencies({AppDatabase? database}) {
   sl.registerLazySingleton(() => CreateTaskRecurrence(sl()));
   sl.registerLazySingleton(() => DeleteTaskRecurrence(sl()));
   sl.registerLazySingleton(() => GenerateRecurringTasks(sl()));
+  sl.registerLazySingleton(() => CheckScheduleConflict(sl()));
+  sl.registerLazySingleton(() => UpdateTaskRecurrenceTime(sl()));
   sl.registerFactory(() => TasksListCubit(sl(), sl(), sl()));
   sl.registerFactoryParam<TaskDetailCubit, String, void>(
       (taskId, _) => TaskDetailCubit(sl(), sl(), sl(), sl(), sl(), sl(), taskId));
   sl.registerFactoryParam<CreateTaskCubit, String?, void>(
-      (editingTaskId, _) => CreateTaskCubit(
-          sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), editingTaskId));
+      (editingTaskId, _) => CreateTaskCubit(sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(),
+          sl(), sl(), editingTaskId));
   sl.registerFactory(() => TaskRecurrencesCubit(sl(), sl(), sl()));
 
   // Activities

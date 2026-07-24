@@ -27,3 +27,12 @@ class GenerateRecurringTasks {
   final TasksRepository _repository;
   Future<void> call() => _repository.generateUpcomingOccurrences();
 }
+
+/// Propaga a la regla el nuevo horario elegido al editar una de sus
+/// ocurrencias ya materializadas (solo el día de semana correspondiente).
+class UpdateTaskRecurrenceTime {
+  const UpdateTaskRecurrenceTime(this._repository);
+  final TasksRepository _repository;
+  Future<void> call(String recurrenceId, {required int weekday, required int minuteOfDay}) =>
+      _repository.updateRecurrenceTime(recurrenceId, weekday: weekday, minuteOfDay: minuteOfDay);
+}

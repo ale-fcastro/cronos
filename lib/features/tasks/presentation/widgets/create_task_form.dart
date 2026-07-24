@@ -202,6 +202,13 @@ class _CreateTaskFormState extends State<CreateTaskForm> {
                 onToggle: cubit.toggleRepeatWeekday,
                 onSetTime: cubit.setRepeatWeekdayTime,
               ),
+            if (state.repeatMode == null && state.timeConflict) ...[
+              const SizedBox(height: 6),
+              const Text(
+                'Ya tenés otra tarea planificada a esa hora.',
+                style: TextStyle(color: AppColors.danger, fontSize: 12),
+              ),
+            ],
             Gaps.vMd,
             DurationField(
               valueText: state.estimateLabel,
@@ -240,12 +247,31 @@ class _CreateTaskFormState extends State<CreateTaskForm> {
                   : (state.repeatMode == null ? 'Crear tarea' : 'Crear tarea recurrente'),
               expanded: true,
               loading: state.submitting,
-              onPressed: state.canSubmit ? cubit.submit : null,
+              onPressed: state.canSubmit ? () => _submit(context, cubit) : null,
             ),
           ],
         );
       },
     );
+  }
+
+  /// Si se editó la hora de una tarea que es parte de una repetición,
+  /// pregunta si el nuevo horario también aplica a las próximas ocurrencias
+  /// antes de guardar.
+  Future<void> _submit(BuildContext context, CreateTaskCubit cubit) async {
+    var alsoUpdateRecurrence = false;
+    if (cubit.changesRecurrenceTime) {
+      alsoUpdateRecurrence = await ConfirmationDialog.show(
+        context,
+        title: '¿Actualizar la repetición también?',
+        message: 'Esta tarea es parte de una repetición. Podés dejar este '
+            'cambio de horario solo para hoy, o aplicarlo también a las '
+            'próximas ocurrencias de esa repetición.',
+        confirmLabel: 'Sí, todas',
+        cancelLabel: 'Solo esta vez',
+      );
+    }
+    await cubit.submit(alsoUpdateRecurrence: alsoUpdateRecurrence);
   }
 }
 

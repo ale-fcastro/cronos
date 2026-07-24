@@ -13,3 +13,10 @@ class UpdateTask {
   Future<void> call(String id, NewTaskInput input) =>
       _repository.updateTask(id, input);
 }
+
+class CheckScheduleConflict {
+  const CheckScheduleConflict(this._repository);
+  final TasksRepository _repository;
+  Future<bool> call(DateTime plannedAt, {String? excludeTaskId}) =>
+      _repository.hasScheduleConflict(plannedAt, excludeTaskId: excludeTaskId);
+}

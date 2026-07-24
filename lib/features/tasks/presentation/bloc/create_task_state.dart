@@ -25,6 +25,7 @@ class CreateTaskState extends Equatable {
     this.linkedAppName,
     this.submitting = false,
     this.submitted = false,
+    this.timeConflict = false,
   });
 
   final String title;
@@ -64,6 +65,10 @@ class CreateTaskState extends Equatable {
   final bool submitting;
   final bool submitted;
 
+  /// true si ya hay otra tarea planificada exactamente a esta fecha y hora
+  /// (solo aplica a tareas sueltas, no a reglas de repetición).
+  final bool timeConflict;
+
   DateTime get effectiveDate => plannedDate ?? DateTime.now();
 
   int get effectiveMinuteOfDay {
@@ -98,6 +103,7 @@ class CreateTaskState extends Equatable {
     if (repeatMode == RecurrenceMode.dailyPerWeekday) {
       return repeatWeekdayMinuteOfDay.isNotEmpty;
     }
+    if (repeatMode == null && timeConflict) return false;
     return true;
   }
 
@@ -123,6 +129,7 @@ class CreateTaskState extends Equatable {
     bool clearLinkedApp = false,
     bool? submitting,
     bool? submitted,
+    bool? timeConflict,
   }) {
     return CreateTaskState(
       title: title ?? this.title,
@@ -145,6 +152,7 @@ class CreateTaskState extends Equatable {
       linkedAppName: clearLinkedApp ? null : (linkedAppName ?? this.linkedAppName),
       submitting: submitting ?? this.submitting,
       submitted: submitted ?? this.submitted,
+      timeConflict: timeConflict ?? this.timeConflict,
     );
   }
 
@@ -168,5 +176,6 @@ class CreateTaskState extends Equatable {
         linkedAppName,
         submitting,
         submitted,
+        timeConflict,
       ];
 }
