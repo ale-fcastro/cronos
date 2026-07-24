@@ -12,6 +12,8 @@ import '../../../security/presentation/widgets/app_lock_tile.dart';
 import '../../domain/entities/app_settings.dart';
 import '../bloc/settings_cubit.dart';
 import '../bloc/settings_state.dart';
+import '../widgets/export_backup_tile.dart';
+import '../widgets/nudge_settings_tile.dart';
 import '../widgets/profile_photo_tile.dart';
 
 /// Pantalla Configuración: accesible desde el avatar del dashboard.
@@ -87,6 +89,34 @@ class SettingsPage extends StatelessWidget {
                                     }
                                   },
                                 ),
+                                for (final cs in s.customSchedules) ...[
+                                  const Divider(height: 1),
+                                  _customScheduleRow(context, cubit, cs),
+                                ],
+                                const Divider(height: 1),
+                                InkWell(
+                                  onTap: () => _addCustomSchedule(context, cubit),
+                                  child: const Padding(
+                                    padding:
+                                        EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.add_rounded,
+                                            color: AppColors.accent, size: 18),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'Agregar horario',
+                                          style: TextStyle(
+                                            color: AppColors.accent,
+                                            fontFamily: AppTextStyles.sans,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -144,6 +174,8 @@ class SettingsPage extends StatelessWidget {
                           Gaps.vLg,
                           const SectionHeader(title: 'Notificaciones'),
                           const NotificationsSettingsTile(),
+                          Gaps.vMd,
+                          const NudgeSettingsTile(),
                           Gaps.vLg,
                           const SectionHeader(title: 'Seguridad'),
                           const AppLockTile(),
@@ -172,6 +204,9 @@ class SettingsPage extends StatelessWidget {
                               ),
                             ),
                           ),
+                          Gaps.vLg,
+                          const SectionHeader(title: 'Exportar y backup'),
+                          const ExportBackupTile(),
                           Gaps.vLg,
                           const SectionHeader(title: 'Ayuda'),
                           AppCard(
@@ -251,6 +286,59 @@ class SettingsPage extends StatelessWidget {
     );
     if (picked == null) return null;
     return '${two(picked.hour)}:${two(picked.minute)}';
+  }
+
+  /// Igual que [_pickTime] pero en minuto del día, para los horarios
+  /// personalizados (guardados como enteros, no como "HH:mm").
+  Future<int?> _pickTimeMinute(
+      BuildContext context, String helpText, int initialMinute) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: initialMinute ~/ 60, minute: initialMinute % 60),
+      helpText: helpText,
+    );
+    if (picked == null) return null;
+    return picked.hour * 60 + picked.minute;
+  }
+
+  Widget _customScheduleRow(BuildContext context, SettingsCubit cubit, CustomSchedule cs) {
+    return InkWell(
+      onTap: () async {
+        final start = await _pickTimeMinute(context, '${cs.name} · inicio', cs.startMinute);
+        if (start == null || !context.mounted) return;
+        final end = await _pickTimeMinute(context, '${cs.name} · fin', cs.endMinute);
+        if (end == null) return;
+        cubit.updateCustomSchedule(cs.id, start, end);
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(cs.name, style: AppTextStyles.body.copyWith(fontSize: 14)),
+            Row(
+              children: [
+                Text(cs.label,
+                    style: AppTextStyles.metricCaption
+                        .copyWith(color: AppColors.accent, fontSize: 13)),
+                const SizedBox(width: 10),
+                GestureDetector(
+                  onTap: () => cubit.deleteCustomSchedule(cs.id),
+                  child: const Icon(Icons.close_rounded,
+                      color: AppColors.textTertiary, size: 16),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _addCustomSchedule(BuildContext context, SettingsCubit cubit) async {
+    final result = await _AddScheduleDialog.show(context);
+    if (result == null) return;
+    await cubit.createCustomSchedule(result.name, result.startMinute, result.endMinute);
   }
 
   Widget _row(String label, String value,
@@ -446,6 +534,126 @@ class _ScoreWeightsDialogState extends State<_ScoreWeightsDialog> {
           onPressed: value >= 100 ? null : () => onChanged(value + 5),
         ),
       ],
+    );
+  }
+}
+
+typedef _NewSchedule = ({String name, int startMinute, int endMinute});
+
+/// Diálogo "Agregar horario": nombre libre + inicio/fin. Para medir contra
+/// cualquier horario propio (gimnasio, salir, lo que sea), no solo los
+/// tres fijos.
+class _AddScheduleDialog extends StatefulWidget {
+  const _AddScheduleDialog();
+
+  static Future<_NewSchedule?> show(BuildContext context) {
+    return showDialog<_NewSchedule>(
+      context: context,
+      builder: (_) => const _AddScheduleDialog(),
+    );
+  }
+
+  @override
+  State<_AddScheduleDialog> createState() => _AddScheduleDialogState();
+}
+
+class _AddScheduleDialogState extends State<_AddScheduleDialog> {
+  final _nameController = TextEditingController();
+  int _start = 20 * 60;
+  int _end = 23 * 60;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  String _hhmm(int m) => '${two(m ~/ 60)}:${two(m % 60)}';
+
+  Future<void> _pick(bool isStart) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(
+        hour: (isStart ? _start : _end) ~/ 60,
+        minute: (isStart ? _start : _end) % 60,
+      ),
+    );
+    if (picked == null) return;
+    setState(() {
+      final minute = picked.hour * 60 + picked.minute;
+      if (isStart) {
+        _start = minute;
+      } else {
+        _end = minute;
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Agregar horario', style: AppTextStyles.headline),
+            Gaps.vLg,
+            AppTextField(
+              label: 'Nombre',
+              hint: 'Gimnasio, salir de fiesta…',
+              autofocus: true,
+              controller: _nameController,
+              onChanged: (_) => setState(() {}),
+            ),
+            Gaps.vMd,
+            Row(
+              children: [
+                Expanded(
+                  child: TimePickerField(
+                    label: 'Inicio',
+                    valueText: _hhmm(_start),
+                    onTap: () => _pick(true),
+                  ),
+                ),
+                Gaps.hSm,
+                Expanded(
+                  child: TimePickerField(
+                    label: 'Fin',
+                    valueText: _hhmm(_end),
+                    onTap: () => _pick(false),
+                  ),
+                ),
+              ],
+            ),
+            Gaps.vXl,
+            Row(
+              children: [
+                Expanded(
+                  child: SecondaryButton(
+                    label: 'Cancelar',
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ),
+                Gaps.hSm,
+                Expanded(
+                  child: PrimaryButton(
+                    label: 'Agregar',
+                    onPressed: _nameController.text.trim().isEmpty
+                        ? null
+                        : () => Navigator.of(context).pop((
+                              name: _nameController.text.trim(),
+                              startMinute: _start,
+                              endMinute: _end,
+                            )),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

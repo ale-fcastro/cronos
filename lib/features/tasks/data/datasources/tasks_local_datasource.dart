@@ -178,8 +178,8 @@ class TasksLocalDatasource {
 
   Future<void> startTimer(String id) => _timer.startTask(id);
 
-  Future<void> pauseTimer(String id, {String? reason}) =>
-      _timer.pauseTask(id, reason: reason);
+  Future<void> pauseTimer(String id, {String? reason, String? areaId}) =>
+      _timer.pauseTask(id, reason: reason, areaId: areaId);
 
   Future<void> completeTask(String id) async {
     await _timer.completeTask(id);

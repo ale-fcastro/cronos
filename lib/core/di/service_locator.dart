@@ -3,8 +3,11 @@ import 'package:get_it/get_it.dart';
 import '../analytics/stats_engine.dart';
 import '../database/app_database.dart';
 import '../services/app_usage_service.dart';
+import '../services/export_service.dart';
 import '../services/life_areas_service.dart';
+import '../services/linked_app_guard_service.dart';
 import '../services/notifications_service.dart';
+import '../services/nudge_service.dart';
 import '../services/onboarding_service.dart';
 import '../services/profile_service.dart';
 import '../services/projects_service.dart';
@@ -63,6 +66,7 @@ import '../../features/security/presentation/bloc/lock_cubit.dart';
 import '../../features/settings/data/datasources/settings_local_datasource.dart';
 import '../../features/settings/data/repositories/settings_repository_impl.dart';
 import '../../features/settings/domain/repositories/settings_repository.dart';
+import '../../features/settings/domain/usecases/custom_schedule_usecases.dart';
 import '../../features/settings/domain/usecases/get_settings.dart';
 import '../../features/settings/domain/usecases/update_setting.dart';
 import '../../features/settings/presentation/bloc/settings_cubit.dart';
@@ -98,6 +102,9 @@ void configureDependencies({AppDatabase? database}) {
   sl.registerLazySingleton(() => ProjectsService(sl()));
   sl.registerLazySingleton(() => TimerService(sl()));
   sl.registerLazySingleton(() => AppUsageService());
+  sl.registerLazySingleton(() => LinkedAppGuardService(sl(), sl(), sl()));
+  sl.registerLazySingleton(() => ExportService(sl()));
+  sl.registerLazySingleton(() => NudgeService(sl(), sl()));
   sl.registerLazySingleton(() => NotificationsService(sl()));
   sl.registerLazySingleton(() => OnboardingService(sl()));
   sl.registerLazySingleton(() => ProfileService(sl()));
@@ -106,14 +113,14 @@ void configureDependencies({AppDatabase? database}) {
   sl.registerLazySingleton(() => DashboardLocalDatasource(sl(), sl()));
   sl.registerLazySingleton<DashboardRepository>(() => DashboardRepositoryImpl(sl()));
   sl.registerLazySingleton(() => GetTodaySummary(sl()));
-  sl.registerFactory(() => DashboardCubit(sl(), sl()));
+  sl.registerFactory(() => DashboardCubit(sl(), sl(), sl()));
 
   // Schedule
   sl.registerLazySingleton(() => ScheduleLocalDatasource(sl(), sl()));
   sl.registerLazySingleton<ScheduleRepository>(() => ScheduleRepositoryImpl(sl()));
   sl.registerLazySingleton(() => GetDayAgenda(sl()));
   sl.registerLazySingleton(() => GetMonthOverview(sl()));
-  sl.registerFactory(() => ScheduleCubit(sl(), sl(), sl()));
+  sl.registerFactory(() => ScheduleCubit(sl(), sl(), sl(), sl()));
 
   // Tasks
   sl.registerLazySingleton(() => TasksLocalDatasource(sl(), sl(), sl(), sl()));
@@ -134,7 +141,7 @@ void configureDependencies({AppDatabase? database}) {
   sl.registerLazySingleton(() => GenerateRecurringTasks(sl()));
   sl.registerFactory(() => TasksListCubit(sl(), sl(), sl()));
   sl.registerFactoryParam<TaskDetailCubit, String, void>(
-      (taskId, _) => TaskDetailCubit(sl(), sl(), sl(), sl(), sl(), taskId));
+      (taskId, _) => TaskDetailCubit(sl(), sl(), sl(), sl(), sl(), sl(), taskId));
   sl.registerFactoryParam<CreateTaskCubit, String?, void>(
       (editingTaskId, _) => CreateTaskCubit(
           sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), editingTaskId));
@@ -200,5 +207,8 @@ void configureDependencies({AppDatabase? database}) {
   sl.registerLazySingleton<SettingsRepository>(() => SettingsRepositoryImpl(sl()));
   sl.registerLazySingleton(() => GetSettings(sl()));
   sl.registerLazySingleton(() => UpdateSetting(sl()));
-  sl.registerFactory(() => SettingsCubit(sl(), sl()));
+  sl.registerLazySingleton(() => CreateCustomSchedule(sl()));
+  sl.registerLazySingleton(() => UpdateCustomSchedule(sl()));
+  sl.registerLazySingleton(() => DeleteCustomSchedule(sl()));
+  sl.registerFactory(() => SettingsCubit(sl(), sl(), sl(), sl(), sl()));
 }

@@ -36,7 +36,10 @@ class TimerService {
   /// Pausa la tarea [id]. Si [reason] no es null, la pausa queda
   /// "justificada": al reanudarla o finalizarla se registra el tiempo
   /// transcurrido como Evento de esa categoría (ver [_resolvePendingPause]).
-  Future<void> pauseTask(String id, {String? reason}) async {
+  /// [areaId] es el área de vida que el usuario eligió para ese Evento (puede
+  /// diferir del área de la tarea misma, p.ej. una interrupción social en
+  /// medio de una tarea de trabajo).
+  Future<void> pauseTask(String id, {String? reason, String? areaId}) async {
     final db = await _database.database;
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     await db.transaction((txn) async {
@@ -48,6 +51,7 @@ class TimerService {
             'status': 'normal',
             if (reason != null) 'pause_reason': reason,
             if (reason != null) 'paused_at': nowMs,
+            if (reason != null) 'pause_area_id': areaId,
           },
           where: 'id = ?',
           whereArgs: [id]);
@@ -73,7 +77,7 @@ class TimerService {
   Future<void> _resolvePendingPause(Transaction txn, String id, int nowMs) async {
     final rows = await txn.query(
       'tasks',
-      columns: ['pause_reason', 'paused_at', 'area_id'],
+      columns: ['pause_reason', 'paused_at', 'area_id', 'pause_area_id'],
       where: 'id = ? AND pause_reason IS NOT NULL AND paused_at IS NOT NULL',
       whereArgs: [id],
     );
@@ -81,17 +85,40 @@ class TimerService {
     final row = rows.first;
     final reason = row['pause_reason'] as String;
     final pausedAt = row['paused_at'] as int;
+    final areaId = (row['pause_area_id'] as String?) ?? row['area_id'] as String?;
     if (nowMs > pausedAt) {
       await txn.insert('events', {
         'title': reason,
         'category': reason,
-        'area_id': row['area_id'],
+        'area_id': areaId,
         'started_at': pausedAt,
         'ended_at': nowMs,
       });
     }
-    await txn.update('tasks', {'pause_reason': null, 'paused_at': null},
+    await txn.update(
+        'tasks', {'pause_reason': null, 'paused_at': null, 'pause_area_id': null},
         where: 'id = ?', whereArgs: [id]);
+  }
+
+  /// Descarta una pausa justificada pendiente sin registrar Evento (el
+  /// usuario indicó que fue un abandono accidental de la app vinculada:
+  /// "fue sin querer"). No-op si no había pausa pendiente.
+  Future<void> discardPendingPause(String id) async {
+    final db = await _database.database;
+    await db.update(
+        'tasks', {'pause_reason': null, 'paused_at': null, 'pause_area_id': null},
+        where: 'id = ?', whereArgs: [id]);
+  }
+
+  /// Reemplaza el motivo (y área de vida) de una pausa justificada pendiente,
+  /// sin tocar el instante en que se pausó. Se usa cuando se auto-pausó con
+  /// un motivo genérico apenas se detectó el abandono de la app vinculada, y
+  /// el usuario luego lo justifica con la categoría real.
+  Future<void> updatePendingPauseReason(String id, {required String reason, String? areaId}) async {
+    final db = await _database.database;
+    await db.update(
+        'tasks', {'pause_reason': reason, 'pause_area_id': areaId},
+        where: 'id = ? AND pause_reason IS NOT NULL', whereArgs: [id]);
   }
 
   /// Pausa la tarea que esté corriendo ahora mismo, sin conocer su id
@@ -142,7 +169,9 @@ class TimerService {
   /// Detiene la actividad en curso. Si [reason] no es null, queda una
   /// interrupción justificada pendiente: si el usuario retoma la MISMA
   /// actividad después, ese tramo se registra como Evento de esa categoría.
-  Future<void> stopRunningActivity({String? reason}) async {
+  /// [areaId] es el área de vida elegida por el usuario para ese Evento; si
+  /// no se especifica, se hereda la del tipo de actividad.
+  Future<void> stopRunningActivity({String? reason, String? areaId}) async {
     final db = await _database.database;
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     await db.transaction((txn) async {
@@ -155,16 +184,19 @@ class TimerService {
       await txn.update('activity_sessions', {'ended_at': nowMs}, where: 'ended_at IS NULL');
       if (reason != null && open.isNotEmpty) {
         final activityId = open.first['activity_id'] as String;
-        final areaRows = await txn.query('activity_types',
-            columns: ['area_id'], where: 'id = ?', whereArgs: [activityId]);
-        final areaId = areaRows.isEmpty ? null : areaRows.first['area_id'] as String?;
+        var resolvedAreaId = areaId;
+        if (resolvedAreaId == null) {
+          final areaRows = await txn.query('activity_types',
+              columns: ['area_id'], where: 'id = ?', whereArgs: [activityId]);
+          resolvedAreaId = areaRows.isEmpty ? null : areaRows.first['area_id'] as String?;
+        }
         await txn.insert(
           'pending_activity_interruption',
           {
             'id': 1,
             'activity_id': activityId,
             'reason': reason,
-            'area_id': areaId,
+            'area_id': resolvedAreaId,
             'stopped_at': nowMs,
           },
           conflictAlgorithm: ConflictAlgorithm.replace,

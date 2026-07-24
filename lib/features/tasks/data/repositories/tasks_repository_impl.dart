@@ -26,8 +26,8 @@ class TasksRepositoryImpl implements TasksRepository {
   Future<void> startTimer(String id) => _datasource.startTimer(id);
 
   @override
-  Future<void> pauseTimer(String id, {String? reason}) =>
-      _datasource.pauseTimer(id, reason: reason);
+  Future<void> pauseTimer(String id, {String? reason, String? areaId}) =>
+      _datasource.pauseTimer(id, reason: reason, areaId: areaId);
 
   @override
   Future<void> completeTask(String id) => _datasource.completeTask(id);

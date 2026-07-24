@@ -14,7 +14,7 @@ class AppDatabase {
   final String? _pathOverride;
   Database? _db;
 
-  static const _version = 7;
+  static const _version = 8;
 
   Future<Database> get database async {
     final cached = _db;
@@ -39,6 +39,12 @@ class AppDatabase {
     _db = null;
   }
 
+  /// Ruta del archivo .db en disco, para backup/restauración completa.
+  Future<String> resolvePath() async {
+    final dbFactory = _factoryOverride ?? databaseFactory;
+    return _pathOverride ?? p.join(await dbFactory.getDatabasesPath(), 'cronos.db');
+  }
+
   Future<void> _onCreate(Database db, int version) async {
     await db.execute('''
       CREATE TABLE tasks(
@@ -58,7 +64,8 @@ class AppDatabase {
         linked_package TEXT,
         linked_app_name TEXT,
         pause_reason TEXT,
-        paused_at INTEGER
+        paused_at INTEGER,
+        pause_area_id TEXT
       )
     ''');
     await db.execute('''
@@ -239,6 +246,9 @@ class AppDatabase {
           sort INTEGER NOT NULL DEFAULT 0
         )
       ''');
+    }
+    if (oldVersion < 8) {
+      await db.execute('ALTER TABLE tasks ADD COLUMN pause_area_id TEXT');
     }
   }
 

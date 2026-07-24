@@ -21,7 +21,8 @@ class ActivitiesRepositoryImpl implements ActivitiesRepository {
   Future<void> startActivity(String activityId) => _datasource.start(activityId);
 
   @override
-  Future<void> stopRunningActivity({String? reason}) => _datasource.stop(reason: reason);
+  Future<void> stopRunningActivity({String? reason, String? areaId}) =>
+      _datasource.stop(reason: reason, areaId: areaId);
 
   @override
   Future<void> createActivityType(NewActivityTypeInput input) =>

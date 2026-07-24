@@ -12,6 +12,9 @@ import '../../features/tasks/presentation/bloc/tasks_list_cubit.dart';
 import '../../features/tasks/presentation/pages/tasks_list_page.dart';
 import '../../shared/shared.dart';
 import '../di/service_locator.dart';
+import '../models/event_category.dart';
+import '../services/life_areas_service.dart';
+import '../services/linked_app_guard_service.dart';
 import '../services/onboarding_service.dart';
 import 'register_sheet.dart';
 
@@ -32,6 +35,7 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
   late final TasksListCubit _tasks = sl<TasksListCubit>();
   late final AnalyzeCubit _analyze = sl<AnalyzeCubit>();
   late final OnboardingService _onboarding = sl<OnboardingService>();
+  late final LinkedAppGuardService _linkedAppGuard = sl<LinkedAppGuardService>();
 
   final _fabKey = GlobalKey();
   final _analyzeKey = GlobalKey();
@@ -72,7 +76,10 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
     // conceder el permiso de "Acceso al uso": al reanudar, Analizar >
     // Teléfono debe reflejar el permiso ya concedido sin que el usuario
     // tenga que hacer nada más.
-    if (state == AppLifecycleState.resumed) _refreshAll();
+    if (state == AppLifecycleState.resumed) {
+      _refreshAll();
+      _maybeGuardLinkedApp();
+    }
   }
 
   void _refreshAll() {
@@ -80,6 +87,51 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
     _schedule.reload();
     _tasks.load();
     _analyze.refresh();
+  }
+
+  /// Si Cronos vuelve al frente mientras corre una tarea vinculada a una
+  /// app y se detecta que esa app fue abandonada por otra cosa, la
+  /// auto-pausa y pide justificación (con "fue sin querer" como opción para
+  /// descartarla y retomar con otros 5 segundos de gracia). Android no deja
+  /// que una app en segundo plano se traiga a sí misma al frente, así que
+  /// esto solo puede dispararse cuando el usuario ya volvió por su cuenta.
+  Future<void> _maybeGuardLinkedApp() async {
+    final running = await _linkedAppGuard.getRunningLinkedTask();
+    if (running == null) return;
+    final left = await _linkedAppGuard.didLeave(running.packageName);
+    if (!left || !mounted) return;
+
+    await _linkedAppGuard.autoPauseForLeave(running.id);
+    _refreshAll();
+    if (!mounted) return;
+
+    final areas = await sl<LifeAreasService>().getAll();
+    if (!mounted) return;
+    final result = await PauseReasonDialog.show(
+      context,
+      reasons: [...eventCategories, 'Fue sin querer'],
+      areas: areas,
+    );
+    if (result == null) return;
+
+    if (result.reason == 'Fue sin querer') {
+      await _linkedAppGuard.discardAndResume(running.id);
+      _refreshAll();
+      if (!mounted) return;
+      final reopened = await OpenLinkedAppDialog.show(
+        context,
+        packageName: running.packageName,
+        appName: running.appName,
+      );
+      if (!reopened) {
+        await _linkedAppGuard.autoPauseForLeave(running.id);
+        _refreshAll();
+      }
+    } else {
+      await _linkedAppGuard.confirmJustification(running.id,
+          reason: result.reason, areaId: result.areaId);
+      _refreshAll();
+    }
   }
 
   static const _items = [

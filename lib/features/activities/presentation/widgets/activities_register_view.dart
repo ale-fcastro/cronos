@@ -49,12 +49,13 @@ class ActivitiesRegisterView extends StatelessWidget {
                           cubit.stop();
                           return;
                         }
-                        final reason = await PauseReasonDialog.show(
+                        final result = await PauseReasonDialog.show(
                           context,
                           reasons: sleepInterruptionReasons,
+                          areas: state.lifeAreas,
                         );
-                        if (reason == null) return;
-                        cubit.stop(reason: reason);
+                        if (result == null) return;
+                        cubit.stop(reason: result.reason, areaId: result.areaId);
                       },
                     ),
                   ],

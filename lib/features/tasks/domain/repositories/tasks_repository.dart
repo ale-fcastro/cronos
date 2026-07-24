@@ -9,7 +9,7 @@ abstract interface class TasksRepository {
   Future<List<TaskSuggestion>> searchSuggestions(String query);
   Future<TaskDetail> getTaskDetail(String id);
   Future<void> startTimer(String id);
-  Future<void> pauseTimer(String id, {String? reason});
+  Future<void> pauseTimer(String id, {String? reason, String? areaId});
   Future<void> completeTask(String id);
   Future<void> createTask(NewTaskInput input);
 

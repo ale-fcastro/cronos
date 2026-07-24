@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/diagnostics/error_reporting.dart';
+import '../../../../core/services/life_areas_service.dart';
 import '../../../../core/services/timer_service.dart';
 import '../../domain/entities/timeline_entry.dart';
 import '../../domain/usecases/get_day_agenda.dart';
@@ -9,9 +10,11 @@ import '../../domain/usecases/get_month_overview.dart';
 import 'schedule_state.dart';
 
 class ScheduleCubit extends Cubit<ScheduleState> {
-  ScheduleCubit(this._getDayAgenda, this._getMonthOverview, this._timer)
+  ScheduleCubit(
+      this._getDayAgenda, this._getMonthOverview, this._timer, this._lifeAreasService)
       : super(const ScheduleState()) {
     _load();
+    _loadLifeAreas();
     // Igual que el detalle de tarea: mientras haya un bloque en curso en la
     // vista Día, se refresca cada segundo para que el cronómetro inline se
     // vea correr en vivo en vez de quedar estático hasta la próxima recarga.
@@ -26,6 +29,7 @@ class ScheduleCubit extends Cubit<ScheduleState> {
   final GetDayAgenda _getDayAgenda;
   final GetMonthOverview _getMonthOverview;
   final TimerService _timer;
+  final LifeAreasService _lifeAreasService;
   Timer? _ticker;
 
   Future<void> _load() async {
@@ -37,6 +41,16 @@ class ScheduleCubit extends Cubit<ScheduleState> {
       emit(state.copyWith(day: day, month: month));
     } catch (e, st) {
       reportError('ScheduleCubit._load', e, st);
+    }
+  }
+
+  Future<void> _loadLifeAreas() async {
+    try {
+      final areas = await _lifeAreasService.getAll();
+      if (isClosed) return;
+      emit(state.copyWith(lifeAreas: areas));
+    } catch (e, st) {
+      reportError('ScheduleCubit._loadLifeAreas', e, st);
     }
   }
 
@@ -59,9 +73,9 @@ class ScheduleCubit extends Cubit<ScheduleState> {
     }
   }
 
-  Future<void> pauseTask(String taskId, {String? reason}) async {
+  Future<void> pauseTask(String taskId, {String? reason, String? areaId}) async {
     try {
-      await _timer.pauseTask(taskId, reason: reason);
+      await _timer.pauseTask(taskId, reason: reason, areaId: areaId);
       await _load();
     } catch (e, st) {
       reportError('ScheduleCubit.pauseTask', e, st);

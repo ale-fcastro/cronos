@@ -29,7 +29,8 @@ class StartActivity {
 class StopRunningActivity {
   const StopRunningActivity(this._repository);
   final ActivitiesRepository _repository;
-  Future<void> call({String? reason}) => _repository.stopRunningActivity(reason: reason);
+  Future<void> call({String? reason, String? areaId}) =>
+      _repository.stopRunningActivity(reason: reason, areaId: areaId);
 }
 
 class CreateActivityType {

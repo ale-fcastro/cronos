@@ -83,4 +83,48 @@ class AppUsageService {
       return Duration.zero;
     }
   }
+
+  /// Ordena los eventos ACTIVITY_RESUMED con package conocido, de más viejo
+  /// a más nuevo, entre [start] y ahora. Base de [isCurrentForeground] y
+  /// [wasLinkedAppLeftSince].
+  Future<List<native.EventUsageInfo>> _resumedEventsSince(DateTime start) async {
+    final events = await native.UsageStats.queryEvents(start, DateTime.now());
+    final resumed = events
+        .where((e) => e.eventTypeDescription == 'ACTIVITY_RESUMED' && e.packageName != null)
+        .toList()
+      ..sort((a, b) => (a.timeStampDate ?? DateTime(0)).compareTo(b.timeStampDate ?? DateTime(0)));
+    return resumed;
+  }
+
+  /// true si [packageName] es la última app que pasó a primer plano en los
+  /// últimos 15 segundos. Se usa durante el conteo de gracia al iniciar una
+  /// tarea vinculada: mientras Cronos sigue al frente esperando, este es el
+  /// evento RESUMED más reciente en la ventana.
+  Future<bool> isCurrentForeground(String packageName) async {
+    if (!isSupported) return false;
+    try {
+      final resumed = await _resumedEventsSince(DateTime.now().subtract(const Duration(seconds: 15)));
+      if (resumed.isEmpty) return false;
+      return resumed.last.packageName == packageName;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// true si, desde [since], el usuario pasó a otra app distinta de
+  /// [packageName] antes de que Cronos volviera al frente (lo que sea que
+  /// haya disparado este chequeo). Heurística: como Cronos mismo acaba de
+  /// volver a primer plano, su propio evento RESUMED es el último de la
+  /// lista; el anterior a ese es la última app que realmente se usó.
+  Future<bool> wasLinkedAppLeftSince(String packageName, DateTime since) async {
+    if (!isSupported) return false;
+    try {
+      final resumed = await _resumedEventsSince(since);
+      if (resumed.length < 2) return false;
+      final lastBeforeReturning = resumed[resumed.length - 2].packageName;
+      return lastBeforeReturning != packageName;
+    } catch (_) {
+      return false;
+    }
+  }
 }

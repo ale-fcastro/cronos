@@ -17,5 +17,10 @@ void main() {
     );
     // No debe lanzar.
     await service.requestPermission();
+    expect(await service.isCurrentForeground('com.example'), isFalse);
+    expect(
+      await service.wasLinkedAppLeftSince('com.example', DateTime.now()),
+      isFalse,
+    );
   });
 }

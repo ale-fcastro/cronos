@@ -112,7 +112,8 @@ class ActivitiesLocalDatasource {
 
   Future<void> start(String activityId) => _timer.startActivity(activityId);
 
-  Future<void> stop({String? reason}) => _timer.stopRunningActivity(reason: reason);
+  Future<void> stop({String? reason, String? areaId}) =>
+      _timer.stopRunningActivity(reason: reason, areaId: areaId);
 
   Future<void> createActivityType(NewActivityTypeInput input) async {
     final db = await _database.database;

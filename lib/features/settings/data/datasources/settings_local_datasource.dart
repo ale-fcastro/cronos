@@ -75,6 +75,49 @@ class SettingsLocalDatasource {
       scoreWeightEfficiency: wEfficiency,
       scoreWeightSleep: wSleep,
       scoreWeightPunctuality: wPunctuality,
+      customSchedules: await _fetchCustomSchedules(db),
     );
+  }
+
+  Future<List<CustomSchedule>> _fetchCustomSchedules(db) async {
+    final rows = await db.query('custom_schedules', orderBy: 'sort ASC');
+    return [
+      for (final r in rows)
+        CustomSchedule(
+          id: r['id'] as String,
+          name: r['name'] as String,
+          startMinute: r['start_minute'] as int,
+          endMinute: r['end_minute'] as int,
+        ),
+    ];
+  }
+
+  Future<void> createCustomSchedule(String name, int startMinute, int endMinute) async {
+    final db = await _database.database;
+    final maxSortRows =
+        await db.rawQuery('SELECT MAX(sort) AS m FROM custom_schedules');
+    final nextSort = ((maxSortRows.first['m'] as int?) ?? -1) + 1;
+    await db.insert('custom_schedules', {
+      'id': 'sch${DateTime.now().microsecondsSinceEpoch}',
+      'name': name,
+      'start_minute': startMinute,
+      'end_minute': endMinute,
+      'sort': nextSort,
+    });
+  }
+
+  Future<void> updateCustomSchedule(String id, int startMinute, int endMinute) async {
+    final db = await _database.database;
+    await db.update(
+      'custom_schedules',
+      {'start_minute': startMinute, 'end_minute': endMinute},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<void> deleteCustomSchedule(String id) async {
+    final db = await _database.database;
+    await db.delete('custom_schedules', where: 'id = ?', whereArgs: [id]);
   }
 }

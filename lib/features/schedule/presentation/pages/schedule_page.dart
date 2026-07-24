@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/di/service_locator.dart';
 import '../../../../core/models/event_category.dart';
+import '../../../../core/models/life_area.dart';
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/navigation/profile_avatar.dart';
+import '../../../../core/services/linked_app_guard_service.dart';
 import '../../../../shared/shared.dart';
 import '../../domain/entities/month_overview.dart';
 import '../../domain/entities/timeline_entry.dart';
@@ -53,7 +56,7 @@ class SchedulePage extends StatelessWidget {
             Gaps.vLg,
             Expanded(
               child: state.viewMode == ScheduleViewMode.day
-                  ? _DayTimeline(entries: state.day!.entries)
+                  ? _DayTimeline(entries: state.day!.entries, lifeAreas: state.lifeAreas)
                   : _MonthView(month: state.month!),
             ),
           ],
@@ -64,15 +67,33 @@ class SchedulePage extends StatelessWidget {
 }
 
 class _DayTimeline extends StatelessWidget {
-  const _DayTimeline({required this.entries});
+  const _DayTimeline({required this.entries, this.lifeAreas = const []});
 
   final List<TimelineEntry> entries;
+  final List<LifeArea> lifeAreas;
 
   Future<void> _openTaskDetail(BuildContext context, String? taskId) async {
     if (taskId == null) return;
     await Navigator.of(context).pushNamed(AppRoutes.taskDetail, arguments: taskId);
     if (!context.mounted) return;
     context.read<ScheduleCubit>().reload();
+  }
+
+  /// Si la tarea tiene una app vinculada, da 5 segundos de gracia para
+  /// abrirla antes de iniciar el cronómetro; si no la abre, no inicia nada.
+  Future<void> _startTask(BuildContext context, String taskId) async {
+    final linked = await sl<LinkedAppGuardService>().getLinkedApp(taskId);
+    if (linked != null) {
+      if (!context.mounted) return;
+      final opened = await OpenLinkedAppDialog.show(
+        context,
+        packageName: linked.packageName,
+        appName: linked.appName,
+      );
+      if (!opened) return;
+    }
+    if (!context.mounted) return;
+    context.read<ScheduleCubit>().startTask(taskId);
   }
 
   @override
@@ -190,12 +211,14 @@ class _DayTimeline extends StatelessWidget {
                           ? null
                           : () async {
                               final cubit = context.read<ScheduleCubit>();
-                              final reason = await PauseReasonDialog.show(
+                              final result = await PauseReasonDialog.show(
                                 context,
                                 reasons: eventCategories,
+                                areas: lifeAreas,
                               );
-                              if (reason == null) return;
-                              cubit.pauseTask(e.taskId!, reason: reason);
+                              if (result == null) return;
+                              cubit.pauseTask(e.taskId!,
+                                  reason: result.reason, areaId: result.areaId);
                             },
                     ),
                   ],
@@ -239,9 +262,7 @@ class _DayTimeline extends StatelessWidget {
                 if (e.showPlay) ...[
                   Gaps.hSm,
                   _PlayCircle(
-                    onTap: e.taskId == null
-                        ? null
-                        : () => context.read<ScheduleCubit>().startTask(e.taskId!),
+                    onTap: e.taskId == null ? null : () => _startTask(context, e.taskId!),
                   ),
                 ],
               ],

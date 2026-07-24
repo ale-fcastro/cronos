@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/models/event_category.dart';
+import '../../../../core/models/life_area.dart';
+import '../../../../core/services/linked_app_guard_service.dart';
 import '../../../../shared/shared.dart';
 import '../../../../shared/shared.dart' as ds show TaskPriority;
 import '../../domain/entities/task_detail.dart';
@@ -117,7 +119,7 @@ class TaskDetailPage extends StatelessWidget {
                       child: ListView(
                         padding: const EdgeInsets.only(bottom: 32),
                         children: [
-                          _TimerCard(detail: d),
+                          _TimerCard(detail: d, lifeAreas: state.lifeAreas),
                           Gaps.vMd,
                           Row(
                             children: [
@@ -257,9 +259,10 @@ Future<void> _editTask(BuildContext context, TaskDetail d) async {
 }
 
 class _TimerCard extends StatelessWidget {
-  const _TimerCard({required this.detail});
+  const _TimerCard({required this.detail, this.lifeAreas = const []});
 
   final TaskDetail detail;
+  final List<LifeArea> lifeAreas;
 
   @override
   Widget build(BuildContext context) {
@@ -309,15 +312,26 @@ class _TimerCard extends StatelessWidget {
                   onPressed: () async {
                     final cubit = context.read<TaskDetailCubit>();
                     if (!running) {
+                      final linked = await sl<LinkedAppGuardService>().getLinkedApp(detail.id);
+                      if (linked != null) {
+                        if (!context.mounted) return;
+                        final opened = await OpenLinkedAppDialog.show(
+                          context,
+                          packageName: linked.packageName,
+                          appName: linked.appName,
+                        );
+                        if (!opened) return;
+                      }
                       cubit.resume();
                       return;
                     }
-                    final reason = await PauseReasonDialog.show(
+                    final result = await PauseReasonDialog.show(
                       context,
                       reasons: eventCategories,
+                      areas: lifeAreas,
                     );
-                    if (reason == null) return;
-                    cubit.pause(reason: reason);
+                    if (result == null) return;
+                    cubit.pause(reason: result.reason, areaId: result.areaId);
                   },
                 ),
               ),

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:showcaseview/showcaseview.dart';
 
 import '../../../../core/models/event_category.dart';
+import '../../../../core/models/life_area.dart';
 import '../../../../core/navigation/profile_avatar.dart';
 import '../../../../shared/shared.dart';
 import '../../domain/entities/dashboard_summary.dart';
@@ -77,7 +78,8 @@ class DashboardPage extends StatelessWidget {
               ],
             ),
             Gaps.vMd,
-            if (s.currentTask != null) _CurrentTaskCard(task: s.currentTask!),
+            if (s.currentTask != null)
+              _CurrentTaskCard(task: s.currentTask!, lifeAreas: state.lifeAreas),
             if (s.nextTask != null) ...[
               Gaps.vMd,
               _NextTaskRow(task: s.nextTask!),
@@ -152,9 +154,10 @@ class _ScoreCard extends StatelessWidget {
 }
 
 class _CurrentTaskCard extends StatelessWidget {
-  const _CurrentTaskCard({required this.task});
+  const _CurrentTaskCard({required this.task, this.lifeAreas = const []});
 
   final CurrentTaskInfo task;
+  final List<LifeArea> lifeAreas;
 
   @override
   Widget build(BuildContext context) {
@@ -184,14 +187,15 @@ class _CurrentTaskCard extends StatelessWidget {
                 cubit.pauseCurrent(task);
                 return;
               }
-              final reason = await PauseReasonDialog.show(
+              final result = await PauseReasonDialog.show(
                 context,
                 reasons: task.kind == CurrentTrackKind.task
                     ? eventCategories
                     : sleepInterruptionReasons,
+                areas: lifeAreas,
               );
-              if (reason == null) return;
-              cubit.pauseCurrent(task, reason: reason);
+              if (result == null) return;
+              cubit.pauseCurrent(task, reason: result.reason, areaId: result.areaId);
             },
           ),
         ],

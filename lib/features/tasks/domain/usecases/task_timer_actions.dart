@@ -9,8 +9,8 @@ class StartTaskTimer {
 class PauseTaskTimer {
   const PauseTaskTimer(this._repository);
   final TasksRepository _repository;
-  Future<void> call(String id, {String? reason}) =>
-      _repository.pauseTimer(id, reason: reason);
+  Future<void> call(String id, {String? reason, String? areaId}) =>
+      _repository.pauseTimer(id, reason: reason, areaId: areaId);
 }
 
 class CompleteTask {

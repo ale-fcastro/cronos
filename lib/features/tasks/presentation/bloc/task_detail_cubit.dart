@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/diagnostics/error_reporting.dart';
+import '../../../../core/services/life_areas_service.dart';
 import '../../domain/entities/task_summary.dart';
 import '../../domain/usecases/delete_task.dart';
 import '../../domain/usecases/get_task_detail.dart';
@@ -15,9 +16,11 @@ class TaskDetailCubit extends Cubit<TaskDetailState> {
     this._pauseTimer,
     this._completeTask,
     this._deleteTask,
+    this._lifeAreasService,
     this.taskId,
   ) : super(const TaskDetailState()) {
     load();
+    _loadLifeAreas();
     // Refresca el cronómetro cada segundo mientras la tarea corre, y
     // también mientras tenga una pausa justificada pendiente (para que su
     // duración se vea avanzar en vivo).
@@ -34,6 +37,7 @@ class TaskDetailCubit extends Cubit<TaskDetailState> {
   final PauseTaskTimer _pauseTimer;
   final CompleteTask _completeTask;
   final DeleteTask _deleteTask;
+  final LifeAreasService _lifeAreasService;
   final String taskId;
   Timer? _ticker;
 
@@ -41,14 +45,24 @@ class TaskDetailCubit extends Cubit<TaskDetailState> {
     try {
       final detail = await _getTaskDetail(taskId);
       if (isClosed) return;
-      emit(TaskDetailState(detail: detail));
+      emit(TaskDetailState(detail: detail, lifeAreas: state.lifeAreas));
     } catch (e, st) {
       reportError('TaskDetailCubit.load', e, st);
     }
   }
 
-  Future<void> pause({String? reason}) async {
-    await _pauseTimer(taskId, reason: reason);
+  Future<void> _loadLifeAreas() async {
+    try {
+      final areas = await _lifeAreasService.getAll();
+      if (isClosed) return;
+      emit(TaskDetailState(detail: state.detail, deleted: state.deleted, lifeAreas: areas));
+    } catch (e, st) {
+      reportError('TaskDetailCubit._loadLifeAreas', e, st);
+    }
+  }
+
+  Future<void> pause({String? reason, String? areaId}) async {
+    await _pauseTimer(taskId, reason: reason, areaId: areaId);
     await load();
   }
 
@@ -66,7 +80,7 @@ class TaskDetailCubit extends Cubit<TaskDetailState> {
     try {
       await _deleteTask(taskId);
       if (isClosed) return;
-      emit(TaskDetailState(detail: state.detail, deleted: true));
+      emit(TaskDetailState(detail: state.detail, deleted: true, lifeAreas: state.lifeAreas));
     } catch (e, st) {
       reportError('TaskDetailCubit.delete', e, st);
     }
