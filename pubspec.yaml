@@ -33,7 +33,7 @@ dependencies:
   share_plus: ^12.0.2
   csv: ^8.0.0
   workmanager: ^0.9.0+3
-  file_picker: ^8.1.6
+  file_picker: ^10.0.0
 
 dev_dependencies:
   flutter_test:

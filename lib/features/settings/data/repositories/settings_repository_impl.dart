@@ -15,13 +15,20 @@ class SettingsRepositoryImpl implements SettingsRepository {
       _datasource.saveSetting(key, value);
 
   @override
-  Future<void> createCustomSchedule(String name, int startMinute, int endMinute) =>
-      _datasource.createCustomSchedule(name, startMinute, endMinute);
+  Future<void> createCustomSchedule(
+          String name, int weekday, int startMinute, int endMinute) =>
+      _datasource.createCustomSchedule(name, weekday, startMinute, endMinute);
 
   @override
-  Future<void> updateCustomSchedule(String id, int startMinute, int endMinute) =>
-      _datasource.updateCustomSchedule(id, startMinute, endMinute);
+  Future<void> updateCustomSchedule(
+          String id, String name, int weekday, int startMinute, int endMinute) =>
+      _datasource.updateCustomSchedule(id, name, weekday, startMinute, endMinute);
 
   @override
   Future<void> deleteCustomSchedule(String id) => _datasource.deleteCustomSchedule(id);
+
+  @override
+  Future<void> updateScheduleRange(
+          String type, int weekday, int startMinute, int endMinute) =>
+      _datasource.updateScheduleRange(type, weekday, startMinute, endMinute);
 }

@@ -35,11 +35,6 @@ class SettingsLocalDatasource {
                 .first['c'] as int?) ??
             0;
 
-    final workStart = map['work_start'] ?? '09:00';
-    final workEnd = map['work_end'] ?? '18:00';
-    final studyStart = map['study_start'] ?? '19:00';
-    final studyEnd = map['study_end'] ?? '21:00';
-    final sleepTime = map['sleep_time'] ?? '23:30';
     final daysMask = map['working_days'] ?? '1111100';
     const dayLabels = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
@@ -50,15 +45,15 @@ class SettingsLocalDatasource {
     final wSleep = weight(ScoreWeightKeys.sleep, scoreWeightDefaults.sleep);
     final wPunctuality = weight(ScoreWeightKeys.punctuality, scoreWeightDefaults.punctuality);
 
+    // Cargar horarios por día de la semana
+    final workSchedules = await _fetchScheduleRanges(db, 'work');
+    final studySchedules = await _fetchScheduleRanges(db, 'study');
+    final sleepSchedules = await _fetchScheduleRanges(db, 'sleep');
+
     return AppSettings(
-      workStart: workStart,
-      workEnd: workEnd,
-      studyStart: studyStart,
-      studyEnd: studyEnd,
-      sleepTime: sleepTime,
-      workScheduleLabel: '$workStart – $workEnd',
-      studyScheduleLabel: '$studyStart – $studyEnd',
-      idealSleepLabel: sleepTime,
+      workSchedules: workSchedules,
+      studySchedules: studySchedules,
+      sleepSchedules: sleepSchedules,
       workingDays: [
         for (var i = 0; i < 7; i++)
           WorkingDay(
@@ -86,13 +81,32 @@ class SettingsLocalDatasource {
         CustomSchedule(
           id: r['id'] as String,
           name: r['name'] as String,
+            weekday: r['weekday'] as int? ?? 1,
           startMinute: r['start_minute'] as int,
           endMinute: r['end_minute'] as int,
         ),
     ];
   }
 
-  Future<void> createCustomSchedule(String name, int startMinute, int endMinute) async {
+  Future<List<ScheduleRange>> _fetchScheduleRanges(db, String type) async {
+    final rows = await db.query(
+      'schedule_ranges',
+      where: 'type = ?',
+      whereArgs: [type],
+      orderBy: 'weekday ASC',
+    );
+    return [
+      for (final r in rows)
+        ScheduleRange(
+          weekday: r['weekday'] as int,
+          startMinute: r['start_minute'] as int,
+          endMinute: r['end_minute'] as int,
+        ),
+    ];
+  }
+
+    Future<void> createCustomSchedule(
+        String name, int weekday, int startMinute, int endMinute) async {
     final db = await _database.database;
     final maxSortRows =
         await db.rawQuery('SELECT MAX(sort) AS m FROM custom_schedules');
@@ -100,17 +114,24 @@ class SettingsLocalDatasource {
     await db.insert('custom_schedules', {
       'id': 'sch${DateTime.now().microsecondsSinceEpoch}',
       'name': name,
+        'weekday': weekday,
       'start_minute': startMinute,
       'end_minute': endMinute,
       'sort': nextSort,
     });
   }
 
-  Future<void> updateCustomSchedule(String id, int startMinute, int endMinute) async {
+    Future<void> updateCustomSchedule(
+        String id, String name, int weekday, int startMinute, int endMinute) async {
     final db = await _database.database;
     await db.update(
       'custom_schedules',
-      {'start_minute': startMinute, 'end_minute': endMinute},
+        {
+          'name': name,
+          'weekday': weekday,
+          'start_minute': startMinute,
+          'end_minute': endMinute,
+        },
       where: 'id = ?',
       whereArgs: [id],
     );
@@ -119,5 +140,19 @@ class SettingsLocalDatasource {
   Future<void> deleteCustomSchedule(String id) async {
     final db = await _database.database;
     await db.delete('custom_schedules', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> updateScheduleRange(
+      String type, int weekday, int startMinute, int endMinute) async {
+    final db = await _database.database;
+    await db.update(
+      'schedule_ranges',
+      {
+        'start_minute': startMinute,
+        'end_minute': endMinute,
+      },
+      where: 'type = ? AND weekday = ?',
+      whereArgs: [type, weekday],
+    );
   }
 }

@@ -159,11 +159,12 @@ class MetricsLocalDatasource {
 
   Future<int> _offHoursMin(int days) async {
     final db = await _database.database;
-    final work = await _workWindow();
     var total = 0;
     final now = DateTime.now();
     for (var i = 0; i < days; i++) {
       final day = DateTime(now.year, now.month, now.day - i);
+      final weekday = day.weekday; // 1=Monday..7=Sunday
+      final work = await _workWindow(weekday);
       final startMs = dayStart(day).millisecondsSinceEpoch;
       final endMs = dayEnd(day).millisecondsSinceEpoch;
       final nowMs = now.millisecondsSinceEpoch;
@@ -185,18 +186,20 @@ class MetricsLocalDatasource {
     return total;
   }
 
-  Future<(int, int)> _workWindow() async {
+  Future<(int, int)> _workWindow(int weekday) async {
     final db = await _database.database;
-    Future<int> minutes(String key, int fallback) async {
-      final rows =
-          await db.query('settings', where: 'key = ?', whereArgs: [key]);
-      if (rows.isEmpty) return fallback;
-      final parts = (rows.first['value'] as String).split(':');
-      if (parts.length != 2) return fallback;
-      return (int.tryParse(parts[0]) ?? 0) * 60 + (int.tryParse(parts[1]) ?? 0);
+    // Buscar en schedule_ranges para el weekday específico
+    final rows = await db.query(
+      'schedule_ranges',
+      where: 'type = ? AND weekday = ?',
+      whereArgs: ['work', weekday],
+    );
+    if (rows.isEmpty) {
+      // Fallback: si no hay datos, usar valores por defecto
+      return (540, 1080); // 9:00 - 18:00
     }
-
-    return (await minutes('work_start', 540), await minutes('work_end', 1080));
+    final row = rows.first;
+    return (row['start_minute'] as int, row['end_minute'] as int);
   }
 
   // ------------------------------------------------------------------ Tareas

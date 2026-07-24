@@ -67,6 +67,7 @@ import '../../features/settings/data/datasources/settings_local_datasource.dart'
 import '../../features/settings/data/repositories/settings_repository_impl.dart';
 import '../../features/settings/domain/repositories/settings_repository.dart';
 import '../../features/settings/domain/usecases/custom_schedule_usecases.dart';
+import '../../features/settings/domain/usecases/schedule_range_usecases.dart';
 import '../../features/settings/domain/usecases/get_settings.dart';
 import '../../features/settings/domain/usecases/update_setting.dart';
 import '../../features/settings/presentation/bloc/settings_cubit.dart';
@@ -212,5 +213,6 @@ void configureDependencies({AppDatabase? database}) {
   sl.registerLazySingleton(() => CreateCustomSchedule(sl()));
   sl.registerLazySingleton(() => UpdateCustomSchedule(sl()));
   sl.registerLazySingleton(() => DeleteCustomSchedule(sl()));
-  sl.registerFactory(() => SettingsCubit(sl(), sl(), sl(), sl(), sl()));
+  sl.registerLazySingleton(() => UpdateScheduleRange(sl()));
+  sl.registerFactory(() => SettingsCubit(sl(), sl(), sl(), sl(), sl(), sl()));
 }

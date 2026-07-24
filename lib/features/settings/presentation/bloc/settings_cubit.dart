@@ -3,6 +3,7 @@ import '../../../../core/diagnostics/error_reporting.dart';
 import '../../domain/usecases/custom_schedule_usecases.dart';
 import '../../domain/usecases/get_settings.dart';
 import '../../domain/usecases/update_setting.dart';
+import '../../domain/usecases/schedule_range_usecases.dart';
 import 'settings_state.dart';
 
 class SettingsCubit extends Cubit<SettingsState> {
@@ -12,6 +13,7 @@ class SettingsCubit extends Cubit<SettingsState> {
     this._createCustomSchedule,
     this._updateCustomSchedule,
     this._deleteCustomSchedule,
+    this._updateScheduleRange,
   ) : super(const SettingsState()) {
     load();
   }
@@ -21,6 +23,7 @@ class SettingsCubit extends Cubit<SettingsState> {
   final CreateCustomSchedule _createCustomSchedule;
   final UpdateCustomSchedule _updateCustomSchedule;
   final DeleteCustomSchedule _deleteCustomSchedule;
+  final UpdateScheduleRange _updateScheduleRange;
 
   Future<void> load() async {
     try {
@@ -51,18 +54,20 @@ class SettingsCubit extends Cubit<SettingsState> {
     await saveSetting('working_days', mask);
   }
 
-  Future<void> createCustomSchedule(String name, int startMinute, int endMinute) async {
+  Future<void> createCustomSchedule(
+      String name, int weekday, int startMinute, int endMinute) async {
     try {
-      await _createCustomSchedule(name, startMinute, endMinute);
+      await _createCustomSchedule(name, weekday, startMinute, endMinute);
       await load();
     } catch (e, st) {
       reportError('SettingsCubit.createCustomSchedule', e, st);
     }
   }
 
-  Future<void> updateCustomSchedule(String id, int startMinute, int endMinute) async {
+  Future<void> updateCustomSchedule(
+      String id, String name, int weekday, int startMinute, int endMinute) async {
     try {
-      await _updateCustomSchedule(id, startMinute, endMinute);
+      await _updateCustomSchedule(id, name, weekday, startMinute, endMinute);
       await load();
     } catch (e, st) {
       reportError('SettingsCubit.updateCustomSchedule', e, st);
@@ -75,6 +80,16 @@ class SettingsCubit extends Cubit<SettingsState> {
       await load();
     } catch (e, st) {
       reportError('SettingsCubit.deleteCustomSchedule', e, st);
+    }
+  }
+
+  Future<void> updateScheduleRange(
+      String type, int weekday, int startMinute, int endMinute) async {
+    try {
+      await _updateScheduleRange(type, weekday, startMinute, endMinute);
+      await load();
+    } catch (e, st) {
+      reportError('SettingsCubit.updateScheduleRange', e, st);
     }
   }
 }

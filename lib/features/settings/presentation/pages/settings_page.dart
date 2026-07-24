@@ -63,31 +63,22 @@ class SettingsPage extends StatelessWidget {
                                 _row(
                                   'Horario laboral',
                                   s.workScheduleLabel,
-                                  onTap: () => _editRange(
-                                      context, cubit, 'Horario laboral',
-                                      s.workStart, s.workEnd,
-                                      'work_start', 'work_end'),
+                                  chevron: true,
+                                  onTap: () => _editScheduleRanges(context, cubit, 'work', s.workSchedules),
                                 ),
                                 const Divider(height: 1),
                                 _row(
                                   'Horario de estudio',
                                   s.studyScheduleLabel,
-                                  onTap: () => _editRange(
-                                      context, cubit, 'Horario de estudio',
-                                      s.studyStart, s.studyEnd,
-                                      'study_start', 'study_end'),
+                                  chevron: true,
+                                  onTap: () => _editScheduleRanges(context, cubit, 'study', s.studySchedules),
                                 ),
                                 const Divider(height: 1),
                                 _row(
                                   'Hora ideal de dormir',
                                   s.idealSleepLabel,
-                                  onTap: () async {
-                                    final t = await _pickTime(context,
-                                        'Hora ideal de dormir', s.sleepTime);
-                                    if (t != null) {
-                                      cubit.saveSetting('sleep_time', t);
-                                    }
-                                  },
+                                  chevron: true,
+                                  onTap: () => _editScheduleRanges(context, cubit, 'sleep', s.sleepSchedules),
                                 ),
                                 for (final cs in s.customSchedules) ...[
                                   const Divider(height: 1),
@@ -235,21 +226,19 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  /// Abre dos pickers (inicio y fin) y persiste ambos extremos del rango.
-  Future<void> _editRange(
+  /// Abre dialog para editar horarios por día de la semana.
+  Future<void> _editScheduleRanges(
     BuildContext context,
     SettingsCubit cubit,
-    String label,
-    String start,
-    String end,
-    String startKey,
-    String endKey,
+    String type,
+    List<ScheduleRange> current,
   ) async {
-    final pickedStart = await _pickTime(context, '$label · inicio', start);
-    if (pickedStart == null || !context.mounted) return;
-    final pickedEnd = await _pickTime(context, '$label · fin', end);
-    await cubit.saveSetting(startKey, pickedStart);
-    if (pickedEnd != null) await cubit.saveSetting(endKey, pickedEnd);
+    final title = type == 'work'
+        ? 'Horario laboral'
+        : type == 'study'
+            ? 'Horario de estudio'
+            : 'Hora ideal de dormir';
+    await _ScheduleRangesDialog.show(context, title, type, current, cubit);
   }
 
   Future<void> _editScoreWeights(
@@ -271,63 +260,49 @@ class SettingsPage extends StatelessWidget {
     await cubit.saveSetting(ScoreWeightKeys.punctuality, '${result.punctuality}');
   }
 
-  /// Muestra un time picker precargado con "HH:mm" y devuelve "HH:mm".
-  Future<String?> _pickTime(
-      BuildContext context, String helpText, String hhmm) async {
-    final parts = hhmm.split(':');
-    final initial = TimeOfDay(
-      hour: int.tryParse(parts[0]) ?? 0,
-      minute: parts.length > 1 ? int.tryParse(parts[1]) ?? 0 : 0,
-    );
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: initial,
-      helpText: helpText,
-    );
-    if (picked == null) return null;
-    return '${two(picked.hour)}:${two(picked.minute)}';
-  }
-
-  /// Igual que [_pickTime] pero en minuto del día, para los horarios
-  /// personalizados (guardados como enteros, no como "HH:mm").
-  Future<int?> _pickTimeMinute(
-      BuildContext context, String helpText, int initialMinute) async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay(hour: initialMinute ~/ 60, minute: initialMinute % 60),
-      helpText: helpText,
-    );
-    if (picked == null) return null;
-    return picked.hour * 60 + picked.minute;
-  }
-
   Widget _customScheduleRow(BuildContext context, SettingsCubit cubit, CustomSchedule cs) {
     return InkWell(
       onTap: () async {
-        final start = await _pickTimeMinute(context, '${cs.name} · inicio', cs.startMinute);
-        if (start == null || !context.mounted) return;
-        final end = await _pickTimeMinute(context, '${cs.name} · fin', cs.endMinute);
-        if (end == null) return;
-        cubit.updateCustomSchedule(cs.id, start, end);
+        final result = await _CustomScheduleDialog.show(
+          context,
+          title: 'Editar horario',
+          actionLabel: 'Guardar cambios',
+          initialName: cs.name,
+          initialWeekday: cs.weekday,
+          initialStartMinute: cs.startMinute,
+          initialEndMinute: cs.endMinute,
+        );
+        if (result == null || !context.mounted) return;
+        await cubit.updateCustomSchedule(
+          cs.id,
+          result.name,
+          result.weekday,
+          result.startMinute,
+          result.endMinute,
+        );
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(cs.name, style: AppTextStyles.body.copyWith(fontSize: 14)),
-            Row(
-              children: [
-                Text(cs.label,
-                    style: AppTextStyles.metricCaption
-                        .copyWith(color: AppColors.accent, fontSize: 13)),
-                const SizedBox(width: 10),
-                GestureDetector(
-                  onTap: () => cubit.deleteCustomSchedule(cs.id),
-                  child: const Icon(Icons.close_rounded,
-                      color: AppColors.textTertiary, size: 16),
-                ),
-              ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(cs.name, style: AppTextStyles.body.copyWith(fontSize: 14)),
+                  const SizedBox(height: 2),
+                  Text('${cs.weekdayLabel} · ${cs.label}',
+                      style: AppTextStyles.metricCaption
+                          .copyWith(color: AppColors.accent, fontSize: 13)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            GestureDetector(
+              onTap: () => cubit.deleteCustomSchedule(cs.id),
+              child: const Icon(Icons.close_rounded,
+                  color: AppColors.textTertiary, size: 16),
             ),
           ],
         ),
@@ -336,9 +311,22 @@ class SettingsPage extends StatelessWidget {
   }
 
   Future<void> _addCustomSchedule(BuildContext context, SettingsCubit cubit) async {
-    final result = await _AddScheduleDialog.show(context);
+    final result = await _CustomScheduleDialog.show(
+      context,
+      title: 'Agregar horario',
+      actionLabel: 'Agregar',
+      initialName: '',
+      initialWeekday: DateTime.now().weekday,
+      initialStartMinute: 20 * 60,
+      initialEndMinute: 23 * 60,
+    );
     if (result == null) return;
-    await cubit.createCustomSchedule(result.name, result.startMinute, result.endMinute);
+    await cubit.createCustomSchedule(
+      result.name,
+      result.weekday,
+      result.startMinute,
+      result.endMinute,
+    );
   }
 
   Widget _row(String label, String value,
@@ -538,29 +526,67 @@ class _ScoreWeightsDialogState extends State<_ScoreWeightsDialog> {
   }
 }
 
-typedef _NewSchedule = ({String name, int startMinute, int endMinute});
+typedef _ScheduleDraft = ({String name, int weekday, int startMinute, int endMinute});
 
-/// Diálogo "Agregar horario": nombre libre + inicio/fin. Para medir contra
-/// cualquier horario propio (gimnasio, salir, lo que sea), no solo los
-/// tres fijos.
-class _AddScheduleDialog extends StatefulWidget {
-  const _AddScheduleDialog();
+class _CustomScheduleDialog extends StatefulWidget {
+  const _CustomScheduleDialog({
+    required this.title,
+    required this.actionLabel,
+    required this.initialName,
+    required this.initialWeekday,
+    required this.initialStartMinute,
+    required this.initialEndMinute,
+  });
 
-  static Future<_NewSchedule?> show(BuildContext context) {
-    return showDialog<_NewSchedule>(
+  final String title;
+  final String actionLabel;
+  final String initialName;
+  final int initialWeekday;
+  final int initialStartMinute;
+  final int initialEndMinute;
+
+  static Future<_ScheduleDraft?> show(
+    BuildContext context, {
+    required String title,
+    required String actionLabel,
+    required String initialName,
+    required int initialWeekday,
+    required int initialStartMinute,
+    required int initialEndMinute,
+  }) {
+    return showDialog<_ScheduleDraft>(
       context: context,
-      builder: (_) => const _AddScheduleDialog(),
+      builder: (_) => _CustomScheduleDialog(
+        title: title,
+        actionLabel: actionLabel,
+        initialName: initialName,
+        initialWeekday: initialWeekday,
+        initialStartMinute: initialStartMinute,
+        initialEndMinute: initialEndMinute,
+      ),
     );
   }
 
   @override
-  State<_AddScheduleDialog> createState() => _AddScheduleDialogState();
+  State<_CustomScheduleDialog> createState() => _CustomScheduleDialogState();
 }
 
-class _AddScheduleDialogState extends State<_AddScheduleDialog> {
-  final _nameController = TextEditingController();
-  int _start = 20 * 60;
-  int _end = 23 * 60;
+class _CustomScheduleDialogState extends State<_CustomScheduleDialog> {
+  late final TextEditingController _nameController;
+  late int _weekday;
+  late int _start;
+  late int _end;
+
+  static const _weekdaySegments = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.initialName);
+    _weekday = widget.initialWeekday.clamp(1, 7);
+    _start = widget.initialStartMinute;
+    _end = widget.initialEndMinute;
+  }
 
   @override
   void dispose() {
@@ -592,66 +618,228 @@ class _AddScheduleDialogState extends State<_AddScheduleDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Agregar horario', style: AppTextStyles.headline),
-            Gaps.vLg,
-            AppTextField(
-              label: 'Nombre',
-              hint: 'Gimnasio, salir de fiesta…',
-              autofocus: true,
-              controller: _nameController,
-              onChanged: (_) => setState(() {}),
-            ),
-            Gaps.vMd,
-            Row(
-              children: [
-                Expanded(
-                  child: TimePickerField(
-                    label: 'Inicio',
-                    valueText: _hhmm(_start),
-                    onTap: () => _pick(true),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(widget.title, style: AppTextStyles.headline),
+              Gaps.vLg,
+              AppTextField(
+                label: 'Nombre',
+                hint: 'Gimnasio, salir de fiesta…',
+                autofocus: true,
+                controller: _nameController,
+                onChanged: (_) => setState(() {}),
+              ),
+              Gaps.vMd,
+              AppSegmentedButton(
+                expanded: true,
+                segments: _weekdaySegments,
+                selectedIndex: _weekday - 1,
+                onChanged: (i) => setState(() => _weekday = i + 1),
+              ),
+              Gaps.vSm,
+              Text('Día del horario', style: AppTextStyles.caption.copyWith(fontSize: 11)),
+              Gaps.vMd,
+              Row(
+                children: [
+                  Expanded(
+                    child: TimePickerField(
+                      label: 'Inicio',
+                      valueText: _hhmm(_start),
+                      onTap: () => _pick(true),
+                    ),
+                  ),
+                  Gaps.hSm,
+                  Expanded(
+                    child: TimePickerField(
+                      label: 'Fin',
+                      valueText: _hhmm(_end),
+                      onTap: () => _pick(false),
+                    ),
+                  ),
+                ],
+              ),
+              Gaps.vXl,
+              Row(
+                children: [
+                  Expanded(
+                    child: SecondaryButton(
+                      label: 'Cancelar',
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ),
+                  Gaps.hSm,
+                  Expanded(
+                    child: PrimaryButton(
+                      label: widget.actionLabel,
+                      onPressed: _nameController.text.trim().isEmpty
+                          ? null
+                          : () => Navigator.of(context).pop((
+                                name: _nameController.text.trim(),
+                                weekday: _weekday,
+                                startMinute: _start,
+                                endMinute: _end,
+                              )),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Dialog para editar horarios de trabajo/estudio/sueño por día de la semana.
+class _ScheduleRangesDialog extends StatefulWidget {
+  const _ScheduleRangesDialog({
+    required this.title,
+    required this.type,
+    required this.ranges,
+    required this.cubit,
+  });
+
+  final String title;
+  final String type;
+  final List<ScheduleRange> ranges;
+  final SettingsCubit cubit;
+
+  static Future<void> show(
+    BuildContext context,
+    String title,
+    String type,
+    List<ScheduleRange> ranges,
+    SettingsCubit cubit,
+  ) {
+    return showDialog(
+      context: context,
+      builder: (_) => _ScheduleRangesDialog(
+        title: title,
+        type: type,
+        ranges: ranges,
+        cubit: cubit,
+      ),
+    );
+  }
+
+  @override
+  State<_ScheduleRangesDialog> createState() => _ScheduleRangesDialogState();
+}
+
+class _ScheduleRangesDialogState extends State<_ScheduleRangesDialog> {
+  static const _weekdayLabels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+
+  String _hhmm(int m) => '${two(m ~/ 60)}:${two(m % 60)}';
+
+  Future<void> _editDay(int weekday) async {
+    final current = widget.ranges.firstWhere(
+      (r) => r.weekday == weekday,
+      orElse: () => ScheduleRange(weekday: weekday, startMinute: 9 * 60, endMinute: 18 * 60),
+    );
+
+    final isSleep = widget.type == 'sleep';
+
+    if (isSleep) {
+      // Para sleep, solo pedir una hora (la hora de dormir)
+      final picked = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay(
+          hour: current.startMinute ~/ 60,
+          minute: current.startMinute % 60,
+        ),
+        helpText: '${_weekdayLabels[weekday - 1]} · Hora de dormir',
+      );
+      if (picked == null || !mounted) return;
+      final minute = picked.hour * 60 + picked.minute;
+      await widget.cubit.updateScheduleRange(widget.type, weekday, minute, minute);
+    } else {
+      // Para work/study, pedir inicio y fin
+      final pickedStart = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay(
+          hour: current.startMinute ~/ 60,
+          minute: current.startMinute % 60,
+        ),
+        helpText: '${_weekdayLabels[weekday - 1]} · Inicio',
+      );
+      if (pickedStart == null || !mounted) return;
+
+      final pickedEnd = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay(
+          hour: current.endMinute ~/ 60,
+          minute: current.endMinute % 60,
+        ),
+        helpText: '${_weekdayLabels[weekday - 1]} · Fin',
+      );
+      if (pickedEnd == null || !mounted) return;
+
+      final startMinute = pickedStart.hour * 60 + pickedStart.minute;
+      final endMinute = pickedEnd.hour * 60 + pickedEnd.minute;
+      await widget.cubit.updateScheduleRange(widget.type, weekday, startMinute, endMinute);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(widget.title, style: AppTextStyles.headline),
+              Gaps.vLg,
+              for (int weekday = 1; weekday <= 7; weekday++) ...[
+                InkWell(
+                  onTap: () => _editDay(weekday),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(_weekdayLabels[weekday - 1], style: AppTextStyles.body),
+                        Row(
+                          children: [
+                            Text(
+                              widget.ranges.any((r) => r.weekday == weekday)
+                                  ? (widget.type == 'sleep'
+                                      ? _hhmm(widget.ranges.firstWhere((r) => r.weekday == weekday).startMinute)
+                                      : widget.ranges.firstWhere((r) => r.weekday == weekday).label)
+                                  : '—',
+                              style: AppTextStyles.metricCaption.copyWith(
+                                color: AppColors.accent,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Icon(Icons.chevron_right_rounded, color: AppColors.textTertiary, size: 18),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                Gaps.hSm,
-                Expanded(
-                  child: TimePickerField(
-                    label: 'Fin',
-                    valueText: _hhmm(_end),
-                    onTap: () => _pick(false),
-                  ),
-                ),
+                if (weekday < 7) const Divider(height: 1),
               ],
-            ),
-            Gaps.vXl,
-            Row(
-              children: [
-                Expanded(
-                  child: SecondaryButton(
-                    label: 'Cancelar',
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
+              Gaps.vXl,
+              SizedBox(
+                width: double.infinity,
+                child: PrimaryButton(
+                  label: 'Cerrar',
+                  onPressed: () => Navigator.of(context).pop(),
                 ),
-                Gaps.hSm,
-                Expanded(
-                  child: PrimaryButton(
-                    label: 'Agregar',
-                    onPressed: _nameController.text.trim().isEmpty
-                        ? null
-                        : () => Navigator.of(context).pop((
-                              name: _nameController.text.trim(),
-                              startMinute: _start,
-                              endMinute: _end,
-                            )),
-                  ),
-                ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -14,7 +14,7 @@ class AppDatabase {
   final String? _pathOverride;
   Database? _db;
 
-  static const _version = 8;
+  static const _version = 10;
 
   Future<Database> get database async {
     final cached = _db;
@@ -163,9 +163,19 @@ class AppDatabase {
       CREATE TABLE custom_schedules(
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
+        weekday INTEGER NOT NULL DEFAULT 1,
         start_minute INTEGER NOT NULL,
         end_minute INTEGER NOT NULL,
         sort INTEGER NOT NULL DEFAULT 0
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE schedule_ranges(
+        type TEXT NOT NULL,
+        weekday INTEGER NOT NULL,
+        start_minute INTEGER NOT NULL,
+        end_minute INTEGER NOT NULL,
+        PRIMARY KEY (type, weekday)
       )
     ''');
 
@@ -241,6 +251,7 @@ class AppDatabase {
         CREATE TABLE custom_schedules(
           id TEXT PRIMARY KEY,
           name TEXT NOT NULL,
+          weekday INTEGER NOT NULL DEFAULT 1,
           start_minute INTEGER NOT NULL,
           end_minute INTEGER NOT NULL,
           sort INTEGER NOT NULL DEFAULT 0
@@ -249,6 +260,24 @@ class AppDatabase {
     }
     if (oldVersion < 8) {
       await db.execute('ALTER TABLE tasks ADD COLUMN pause_area_id TEXT');
+    }
+    if (oldVersion < 9) {
+      await db.execute('ALTER TABLE custom_schedules ADD COLUMN weekday INTEGER NOT NULL DEFAULT 1');
+    }
+    if (oldVersion < 10) {
+      // Crear tabla para horarios de trabajo/estudio/sueño por día de la semana
+      await db.execute('''
+        CREATE TABLE schedule_ranges(
+          type TEXT NOT NULL,
+          weekday INTEGER NOT NULL,
+          start_minute INTEGER NOT NULL,
+          end_minute INTEGER NOT NULL,
+          PRIMARY KEY (type, weekday)
+        )
+      ''');
+      
+      // Migrar valores actuales de settings a schedule_ranges para todos los días
+      await _migrateSchedulesToRanges(db);
     }
   }
 
@@ -353,6 +382,54 @@ class AppDatabase {
     for (final a in _lifeAreas) {
       batch.insert(
           'life_areas', {'id': a.$1, 'name': a.$2, 'color': a.$3, 'sort': a.$4});
+    }
+    await batch.commit(noResult: true);
+  }
+
+  Future<void> _migrateSchedulesToRanges(Database db) async {
+    // Leer valores actuales de settings
+    final settingsMap = <String, String>{};
+    final rows = await db.query('settings');
+    for (final r in rows) {
+      settingsMap[r['key'] as String] = r['value'] as String;
+    }
+    
+    int _parseTimeToMinutes(String hhmm, int fallback) {
+      final parts = hhmm.split(':');
+      if (parts.length != 2) return fallback;
+      final h = int.tryParse(parts[0]);
+      final m = int.tryParse(parts[1]);
+      if (h == null || m == null) return fallback;
+      return h * 60 + m;
+    }
+    
+    final workStart = _parseTimeToMinutes(settingsMap['work_start'] ?? '09:00', 9 * 60);
+    final workEnd = _parseTimeToMinutes(settingsMap['work_end'] ?? '18:00', 18 * 60);
+    final studyStart = _parseTimeToMinutes(settingsMap['study_start'] ?? '19:00', 19 * 60);
+    final studyEnd = _parseTimeToMinutes(settingsMap['study_end'] ?? '21:00', 21 * 60);
+    final sleepTime = _parseTimeToMinutes(settingsMap['sleep_time'] ?? '23:30', 23 * 60 + 30);
+    
+    // Insertar horarios para los 7 días de la semana
+    final batch = db.batch();
+    for (int weekday = 1; weekday <= 7; weekday++) {
+      batch.insert('schedule_ranges', {
+        'type': 'work',
+        'weekday': weekday,
+        'start_minute': workStart,
+        'end_minute': workEnd,
+      });
+      batch.insert('schedule_ranges', {
+        'type': 'study',
+        'weekday': weekday,
+        'start_minute': studyStart,
+        'end_minute': studyEnd,
+      });
+      batch.insert('schedule_ranges', {
+        'type': 'sleep',
+        'weekday': weekday,
+        'start_minute': sleepTime,
+        'end_minute': sleepTime, // Para sleep, start y end son iguales (hora de dormir)
+      });
     }
     await batch.commit(noResult: true);
   }
