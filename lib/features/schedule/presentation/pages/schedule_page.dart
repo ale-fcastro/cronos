@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/models/event_category.dart';
 import '../../../../shared/shared.dart';
 import '../../domain/entities/month_overview.dart';
@@ -60,6 +61,13 @@ class _DayTimeline extends StatelessWidget {
 
   final List<TimelineEntry> entries;
 
+  Future<void> _openTaskDetail(BuildContext context, String? taskId) async {
+    if (taskId == null) return;
+    await Navigator.of(context).pushNamed(AppRoutes.taskDetail, arguments: taskId);
+    if (!context.mounted) return;
+    context.read<ScheduleCubit>().reload();
+  }
+
   @override
   Widget build(BuildContext context) {
     if (entries.isEmpty) {
@@ -81,32 +89,41 @@ class _DayTimeline extends StatelessWidget {
   Widget _entryRow(BuildContext context, TimelineEntry e) {
     switch (e.kind) {
       case TimelineEntryKind.lateMarker:
-        return Padding(
-          padding: const EdgeInsets.only(left: 50),
-          child: Row(
-            children: [
-              const Expanded(child: Divider(color: AppColors.danger, height: 1)),
-              const SizedBox(width: 8),
-              Text(e.time,
-                  style: AppTextStyles.metricCaption.copyWith(color: AppColors.danger, fontSize: 10)),
-            ],
+        return InkWell(
+          onTap: e.taskId == null ? null : () => _openTaskDetail(context, e.taskId),
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.only(left: 50),
+            child: Row(
+              children: [
+                const Expanded(child: Divider(color: AppColors.danger, height: 1)),
+                const SizedBox(width: 8),
+                Text(e.time,
+                    style:
+                        AppTextStyles.metricCaption.copyWith(color: AppColors.danger, fontSize: 10)),
+              ],
+            ),
           ),
         );
       case TimelineEntryKind.sessionMarker:
-        return Padding(
-          padding: const EdgeInsets.only(left: 50),
-          child: Row(
-            children: [
-              Expanded(
-                child: Divider(
-                    color: (e.accentColor ?? AppColors.textTertiary).withValues(alpha: 0.35),
-                    height: 1),
-              ),
-              const SizedBox(width: 8),
-              Text('${e.subtitle} · ${e.time}',
-                  style: AppTextStyles.metricCaption
-                      .copyWith(color: e.accentColor ?? AppColors.textTertiary, fontSize: 10)),
-            ],
+        return InkWell(
+          onTap: e.taskId == null ? null : () => _openTaskDetail(context, e.taskId),
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.only(left: 50),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Divider(
+                      color: (e.accentColor ?? AppColors.textTertiary).withValues(alpha: 0.35),
+                      height: 1),
+                ),
+                const SizedBox(width: 8),
+                Text('${e.subtitle} · ${e.time}',
+                    style: AppTextStyles.metricCaption
+                        .copyWith(color: e.accentColor ?? AppColors.textTertiary, fontSize: 10)),
+              ],
+            ),
           ),
         );
       case TimelineEntryKind.gap:
@@ -128,6 +145,7 @@ class _DayTimeline extends StatelessWidget {
           timeColor: AppColors.accent,
           emphasized: true,
           child: HighlightSurface(
+            onTap: e.taskId == null ? null : () => _openTaskDetail(context, e.taskId),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -186,6 +204,7 @@ class _DayTimeline extends StatelessWidget {
           child: AppCard(
             padding: AppSpacing.cardDense,
             borderColor: e.late ? AppColors.danger.withValues(alpha: 0.35) : null,
+            onTap: e.taskId == null ? null : () => _openTaskDetail(context, e.taskId),
             child: Row(
               children: [
                 Container(

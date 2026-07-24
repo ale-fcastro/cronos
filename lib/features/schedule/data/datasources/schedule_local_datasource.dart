@@ -138,6 +138,7 @@ class ScheduleLocalDatasource {
               kind: TimelineEntryKind.sessionMarker,
               subtitle: '${isFirstEver ? 'Inicio' : 'Reanuda'} · $title',
               accentColor: _priorityColor(priority),
+              taskId: taskId,
             ),
           ));
           blocks.add(_Block(
@@ -148,6 +149,7 @@ class ScheduleLocalDatasource {
               kind: TimelineEntryKind.sessionMarker,
               subtitle: '${finishing ? 'Finaliza' : 'Pausa'} · $title',
               accentColor: finishing ? DataColors.success : _priorityColor(priority),
+              taskId: taskId,
             ),
           ));
         }
