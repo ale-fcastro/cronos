@@ -13,6 +13,9 @@ class CreateTaskCubit extends Cubit<CreateTaskState> {
   void setProjectForDemo(String v) => emit(state.copyWith(project: v));
   void setPriority(TaskPriority v) => emit(state.copyWith(priority: v));
   void setNotes(String v) => emit(state.copyWith(notes: v));
+  void setDate(DateTime v) => emit(state.copyWith(plannedDate: v));
+  void setTime(int hour, int minute) =>
+      emit(state.copyWith(plannedMinuteOfDay: hour * 60 + minute));
   void incrementEstimate() =>
       emit(state.copyWith(estimateMinutes: state.estimateMinutes + 15));
   void decrementEstimate() => emit(
@@ -24,8 +27,7 @@ class CreateTaskCubit extends Cubit<CreateTaskState> {
       title: state.title.trim(),
       project: state.project,
       priority: state.priority,
-      dateLabel: state.dateLabel,
-      timeLabel: state.timeLabel,
+      plannedAt: state.plannedAt,
       estimateMinutes: state.estimateMinutes,
       notes: state.notes.trim().isEmpty ? null : state.notes.trim(),
     ));

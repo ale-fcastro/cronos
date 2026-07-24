@@ -6,6 +6,7 @@ import 'core/navigation/app_routes.dart';
 import 'shared/theme/app_theme.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   configureDependencies();
   runApp(const CronosApp());
 }

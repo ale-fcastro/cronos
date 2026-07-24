@@ -6,7 +6,7 @@ import '../../domain/entities/task_priority.dart' as domain;
 import '../bloc/create_task_cubit.dart';
 import '../bloc/create_task_state.dart';
 
-const _projects = ['API Clientes', 'Tesis', 'Personal'];
+const _projects = ['Personal', 'Trabajo', 'Estudio'];
 
 /// Formulario "Nueva tarea": reutilizado por la hoja de registro del FAB.
 class CreateTaskForm extends StatelessWidget {
@@ -36,7 +36,8 @@ class CreateTaskForm extends StatelessWidget {
               valueText: state.project,
               leadingColor: AppColors.accent,
               onTap: () {
-                final next = _projects[(_projects.indexOf(state.project) + 1) % _projects.length];
+                final i = _projects.indexOf(state.project);
+                final next = _projects[(i + 1) % _projects.length];
                 cubit.setProjectForDemo(next);
               },
             ),
@@ -56,19 +57,45 @@ class CreateTaskForm extends StatelessWidget {
               children: [
                 Expanded(
                   flex: 7,
-                  child: DatePickerField(valueText: state.dateLabel, onTap: () {}),
+                  child: DatePickerField(
+                    valueText: state.dateLabel,
+                    onTap: () async {
+                      final now = DateTime.now();
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: state.effectiveDate,
+                        firstDate: now.subtract(const Duration(days: 30)),
+                        lastDate: now.add(const Duration(days: 365)),
+                      );
+                      if (picked != null) cubit.setDate(picked);
+                    },
+                  ),
                 ),
                 Gaps.hSm,
                 Expanded(
                   flex: 5,
-                  child: TimePickerField(valueText: state.timeLabel, onTap: () {}),
+                  child: TimePickerField(
+                    valueText: state.timeLabel,
+                    onTap: () async {
+                      final picked = await showTimePicker(
+                        context: context,
+                        initialTime: TimeOfDay(
+                          hour: state.effectiveMinuteOfDay ~/ 60,
+                          minute: state.effectiveMinuteOfDay % 60,
+                        ),
+                      );
+                      if (picked != null) {
+                        cubit.setTime(picked.hour, picked.minute);
+                      }
+                    },
+                  ),
                 ),
               ],
             ),
             Gaps.vMd,
             DurationField(
               valueText: state.estimateLabel,
-              helperText: 'media en tareas similares: 1h 24m',
+              helperText: 'ajusta en pasos de 15 minutos',
               onDecrement: cubit.decrementEstimate,
               onIncrement: cubit.incrementEstimate,
             ),

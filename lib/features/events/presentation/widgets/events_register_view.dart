@@ -53,9 +53,40 @@ class EventsRegisterView extends StatelessWidget {
             Gaps.vMd,
             Row(
               children: [
-                Expanded(child: TimePickerField(label: 'Inicio', valueText: state.startLabel)),
+                Expanded(
+                  child: TimePickerField(
+                    label: 'Inicio',
+                    valueText: state.startLabel,
+                    onTap: () async {
+                      final picked = await showTimePicker(
+                        context: context,
+                        initialTime: TimeOfDay(
+                          hour: state.effectiveStartMinute ~/ 60,
+                          minute: state.effectiveStartMinute % 60,
+                        ),
+                      );
+                      if (picked != null) {
+                        cubit.setStart(picked.hour, picked.minute);
+                      }
+                    },
+                  ),
+                ),
                 Gaps.hSm,
-                Expanded(child: TimePickerField(label: 'Fin', valueText: state.endLabel)),
+                Expanded(
+                  child: TimePickerField(
+                    label: 'Fin',
+                    valueText: state.endLabel,
+                    onTap: () async {
+                      final picked = await showTimePicker(
+                        context: context,
+                        initialTime: TimeOfDay.now(),
+                      );
+                      if (picked != null) {
+                        cubit.setEnd(picked.hour, picked.minute);
+                      }
+                    },
+                  ),
+                ),
               ],
             ),
             Gaps.vLg,

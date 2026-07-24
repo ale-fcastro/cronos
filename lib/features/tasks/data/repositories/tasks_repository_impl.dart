@@ -2,12 +2,12 @@ import '../../domain/entities/new_task_input.dart';
 import '../../domain/entities/task_detail.dart';
 import '../../domain/entities/task_summary.dart';
 import '../../domain/repositories/tasks_repository.dart';
-import '../datasources/tasks_mock_datasource.dart';
+import '../datasources/tasks_local_datasource.dart';
 
 class TasksRepositoryImpl implements TasksRepository {
   const TasksRepositoryImpl(this._datasource);
 
-  final TasksMockDatasource _datasource;
+  final TasksLocalDatasource _datasource;
 
   @override
   Future<List<TaskSummary>> getTasks({required String scope}) =>

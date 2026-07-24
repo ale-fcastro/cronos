@@ -15,8 +15,11 @@ class ScheduleCubit extends Cubit<ScheduleState> {
     final now = DateTime.now();
     final day = await _getDayAgenda(now);
     final month = await _getMonthOverview(now);
+    if (isClosed) return;
     emit(state.copyWith(day: day, month: month));
   }
+
+  Future<void> reload() => _load();
 
   void setViewMode(ScheduleViewMode mode) => emit(state.copyWith(viewMode: mode));
 }

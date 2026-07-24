@@ -1,12 +1,12 @@
 import '../../domain/entities/month_overview.dart';
 import '../../domain/entities/timeline_entry.dart';
 import '../../domain/repositories/schedule_repository.dart';
-import '../datasources/schedule_mock_datasource.dart';
+import '../datasources/schedule_local_datasource.dart';
 
 class ScheduleRepositoryImpl implements ScheduleRepository {
   const ScheduleRepositoryImpl(this._datasource);
 
-  final ScheduleMockDatasource _datasource;
+  final ScheduleLocalDatasource _datasource;
 
   @override
   Future<AgendaDay> getDayAgenda(DateTime date) => _datasource.fetchDayAgenda(date);

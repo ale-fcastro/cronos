@@ -15,6 +15,7 @@ class TasksListCubit extends Cubit<TasksListState> {
 
   Future<void> load() async {
     final tasks = await _getTasks(scope: state.scope);
+    if (isClosed) return;
     emit(state.copyWith(tasks: tasks));
   }
 

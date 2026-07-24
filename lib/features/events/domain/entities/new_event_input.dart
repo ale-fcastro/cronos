@@ -2,12 +2,12 @@ class NewEventInput {
   const NewEventInput({
     required this.description,
     required this.category,
-    required this.startLabel,
-    required this.endLabel,
+    required this.start,
+    required this.end,
   });
 
   final String description;
   final String category;
-  final String startLabel;
-  final String endLabel;
+  final DateTime start;
+  final DateTime end;
 }

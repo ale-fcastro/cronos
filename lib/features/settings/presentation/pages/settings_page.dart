@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../../shared/shared.dart';
+import '../../../security/presentation/widgets/app_lock_tile.dart';
 import '../../domain/entities/app_settings.dart';
 import '../bloc/settings_cubit.dart';
 import '../bloc/settings_state.dart';
@@ -81,6 +82,9 @@ class SettingsPage extends StatelessWidget {
                               ],
                             ),
                           ),
+                          Gaps.vLg,
+                          const SectionHeader(title: 'Seguridad'),
+                          const AppLockTile(),
                           Gaps.vLg,
                           const SectionHeader(title: 'Score'),
                           AppCard(

@@ -6,17 +6,17 @@ class NewTaskInput {
     required this.title,
     required this.project,
     required this.priority,
-    required this.dateLabel,
-    required this.timeLabel,
     required this.estimateMinutes,
+    this.plannedAt,
     this.notes,
   });
 
   final String title;
   final String project;
   final TaskPriority priority;
-  final String dateLabel;
-  final String timeLabel;
+
+  /// Fecha y hora planificadas (null = sin planificar).
+  final DateTime? plannedAt;
   final int estimateMinutes;
   final String? notes;
 }

@@ -1,11 +1,11 @@
 import '../../domain/entities/activity_type.dart';
 import '../../domain/repositories/activities_repository.dart';
-import '../datasources/activities_mock_datasource.dart';
+import '../datasources/activities_local_datasource.dart';
 
 class ActivitiesRepositoryImpl implements ActivitiesRepository {
   const ActivitiesRepositoryImpl(this._datasource);
 
-  final ActivitiesMockDatasource _datasource;
+  final ActivitiesLocalDatasource _datasource;
 
   @override
   Future<List<ActivityType>> getFrequentActivities() => _datasource.fetchFrequent();

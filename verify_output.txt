@@ -1,0 +1,65 @@
+===== jue 23 jul 2026 20:56:39 AST =====
+== flutter --version ==
+Flutter 3.44.8 • channel stable • https://github.com/flutter/flutter.git
+Framework • revision 058e0af2c2 (hace 7 horas) • 2026-07-23 10:56:21 -0700
+Engine • hash 13ffd72b2f9a5ca4db2a74ea52d5353ec2e8f939 (revision 0cd610717b) (8 hours ago) • 2026-07-23 16:11:34.000Z
+Tools • Dart 3.12.2 • DevTools 2.57.0
+
+== flutter pub get ==
+Resolving dependencies...
+Downloading packages...
+  flutter_lints 5.0.0 (6.0.0 available)
+  get_it 8.3.0 (9.2.1 available)
+  hooks 2.0.2 (2.1.0 available)
+  lints 5.1.1 (6.1.0 available)
+  local_auth 2.3.0 (3.0.2 available)
+  local_auth_android 1.0.56 (2.0.9 available)
+  local_auth_darwin 1.6.1 (2.0.3 available)
+  local_auth_windows 1.0.11 (2.0.1 available)
+  matcher 0.12.19 (0.12.20 available)
+  meta 1.18.0 (1.19.0 available)
+  native_toolchain_c 0.19.2 (0.19.3 available)
+  record_use 0.6.0 (1.0.0 available)
+  test_api 0.7.11 (0.7.13 available)
+  vector_math 2.2.0 (2.4.1 available)
+Got dependencies!
+14 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+
+== flutter analyze ==
+Analyzing cronos...                                             
+No issues found! (ran in 1.3s)
+ANALYZE_EXIT=0
+
+== flutter test ==
+00:00 +0: loading /home/fcastro_dev/android/cronos/test/core/time_format_test.dart
+00:00 +0: /home/fcastro_dev/android/cronos/test/core/stats_engine_test.dart: día sin datos produce stats vacías
+00:00 +1: /home/fcastro_dev/android/cronos/test/core/stats_engine_test.dart: día sin datos produce stats vacías
+00:00 +2: /home/fcastro_dev/android/cronos/test/core/stats_engine_test.dart: día sin datos produce stats vacías
+00:00 +3: /home/fcastro_dev/android/cronos/test/features/security_local_datasource_test.dart: el bloqueo está desactivado por defecto
+00:00 +4: /home/fcastro_dev/android/cronos/test/features/security_local_datasource_test.dart: el bloqueo está desactivado por defecto
+00:00 +5: /home/fcastro_dev/android/cronos/test/features/security_local_datasource_test.dart: el bloqueo está desactivado por defecto
+00:00 +6: /home/fcastro_dev/android/cronos/test/features/security_local_datasource_test.dart: el bloqueo está desactivado por defecto
+00:00 +7: /home/fcastro_dev/android/cronos/test/features/security_local_datasource_test.dart: el bloqueo está desactivado por defecto
+00:00 +8: /home/fcastro_dev/android/cronos/test/features/security_local_datasource_test.dart: el bloqueo está desactivado por defecto
+00:00 +9: /home/fcastro_dev/android/cronos/test/features/security_local_datasource_test.dart: el bloqueo está desactivado por defecto
+00:00 +10: /home/fcastro_dev/android/cronos/test/features/security_local_datasource_test.dart: el bloqueo está desactivado por defecto
+00:00 +11: /home/fcastro_dev/android/cronos/test/features/security_local_datasource_test.dart: el bloqueo está desactivado por defecto
+00:00 +12: /home/fcastro_dev/android/cronos/test/features/security_local_datasource_test.dart: el bloqueo está desactivado por defecto
+00:00 +13: /home/fcastro_dev/android/cronos/test/features/security_local_datasource_test.dart: el bloqueo está desactivado por defecto
+00:00 +14: /home/fcastro_dev/android/cronos/test/features/security_local_datasource_test.dart: el bloqueo está desactivado por defecto
+00:00 +15: /home/fcastro_dev/android/cronos/test/features/security_local_datasource_test.dart: el bloqueo está desactivado por defecto
+00:00 +16: /home/fcastro_dev/android/cronos/test/features/security_local_datasource_test.dart: el bloqueo está desactivado por defecto
+00:00 +17: /home/fcastro_dev/android/cronos/test/features/tasks_local_datasource_test.dart: solo un cronómetro de tarea corre a la vez
+00:00 +18: /home/fcastro_dev/android/cronos/test/features/tasks_local_datasource_test.dart: solo un cronómetro de tarea corre a la vez
+00:00 +19: /home/fcastro_dev/android/cronos/test/features/security_local_datasource_test.dart: activar y desactivar el bloqueo persiste en settings
+00:00 +20: /home/fcastro_dev/android/cronos/test/features/security_local_datasource_test.dart: activar y desactivar el bloqueo persiste en settings
+00:00 +21: /home/fcastro_dev/android/cronos/test/features/security_local_datasource_test.dart: activar y desactivar el bloqueo persiste en settings
+00:00 +22: /home/fcastro_dev/android/cronos/test/features/security_local_datasource_test.dart: activar y desactivar el bloqueo persiste en settings
+00:00 +23: /home/fcastro_dev/android/cronos/test/features/security_local_datasource_test.dart: activar y desactivar el bloqueo persiste en settings
+00:00 +24: /home/fcastro_dev/android/cronos/test/features/security_local_datasource_test.dart: canAuthenticate no explota sin plataforma (devuelve false)
+00:00 +25: /home/fcastro_dev/android/cronos/test/widget_test.dart: Cronos arranca y muestra el dashboard Hoy
+00:00 +26: /home/fcastro_dev/android/cronos/test/widget_test.dart: Cronos arranca y muestra el dashboard Hoy
+00:00 +27: /home/fcastro_dev/android/cronos/test/widget_test.dart: Cronos arranca y muestra el dashboard Hoy
+00:01 +28: All tests passed!
+TEST_EXIT=0

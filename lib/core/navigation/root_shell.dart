@@ -25,6 +25,27 @@ class RootShell extends StatefulWidget {
 class _RootShellState extends State<RootShell> {
   int _index = 0;
 
+  late final DashboardCubit _dashboard = sl<DashboardCubit>();
+  late final ScheduleCubit _schedule = sl<ScheduleCubit>();
+  late final TasksListCubit _tasks = sl<TasksListCubit>();
+  late final AnalyzeCubit _analyze = sl<AnalyzeCubit>();
+
+  @override
+  void dispose() {
+    _dashboard.close();
+    _schedule.close();
+    _tasks.close();
+    _analyze.close();
+    super.dispose();
+  }
+
+  void _refreshAll() {
+    _dashboard.load();
+    _schedule.reload();
+    _tasks.load();
+    _analyze.refresh();
+  }
+
   static const _items = [
     BottomBarItem(icon: AppIcons.today, label: 'Hoy'),
     BottomBarItem(icon: AppIcons.agenda, label: 'Agenda'),
@@ -36,10 +57,10 @@ class _RootShellState extends State<RootShell> {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider(create: (_) => sl<DashboardCubit>()),
-        BlocProvider(create: (_) => sl<ScheduleCubit>()),
-        BlocProvider(create: (_) => sl<TasksListCubit>()),
-        BlocProvider(create: (_) => sl<AnalyzeCubit>()),
+        BlocProvider.value(value: _dashboard),
+        BlocProvider.value(value: _schedule),
+        BlocProvider.value(value: _tasks),
+        BlocProvider.value(value: _analyze),
       ],
       child: Scaffold(
         backgroundColor: AppColors.background,
@@ -61,8 +82,14 @@ class _RootShellState extends State<RootShell> {
         bottomNavigationBar: BottomBar(
           items: _items,
           currentIndex: _index,
-          onTap: (i) => setState(() => _index = i),
-          onFabPressed: () => showRegisterSheet(context),
+          onTap: (i) {
+            setState(() => _index = i);
+            _refreshAll();
+          },
+          onFabPressed: () async {
+            await showRegisterSheet(context);
+            _refreshAll();
+          },
         ),
       ),
     );

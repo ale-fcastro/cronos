@@ -22,6 +22,7 @@ class AnalyzeCubit extends Cubit<AnalyzeState> {
     final taskStats = await _getTaskStatistics();
     final phoneUsage = await _getPhoneUsage();
     final eventsStats = await _getEventsStatistics();
+    if (isClosed) return;
     emit(state.copyWith(
       snapshot: snapshot,
       taskStats: taskStats,
@@ -29,6 +30,8 @@ class AnalyzeCubit extends Cubit<AnalyzeState> {
       eventsStats: eventsStats,
     ));
   }
+
+  Future<void> refresh() => _load();
 
   void setTab(int index) => emit(state.copyWith(tabIndex: index, periodIndex: 0));
 
