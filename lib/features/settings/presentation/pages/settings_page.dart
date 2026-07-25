@@ -712,7 +712,7 @@ class _ScheduleRangesDialogState extends State<_ScheduleRangesDialog> {
       );
       if (picked == null || !mounted) return;
       final minute = picked.hour * 60 + picked.minute;
-      await widget.cubit.updateScheduleRange(widget.type, weekday, minute, minute);
+      await _applyToOneOrAllDays(weekday, minute, minute);
     } else {
       // Para work/study, pedir inicio y fin
       final pickedStart = await showTimePicker(
@@ -731,6 +731,29 @@ class _ScheduleRangesDialogState extends State<_ScheduleRangesDialog> {
 
       final startMinute = pickedStart.hour * 60 + pickedStart.minute;
       final endMinute = pickedEnd.hour * 60 + pickedEnd.minute;
+      await _applyToOneOrAllDays(weekday, startMinute, endMinute);
+    }
+  }
+
+  /// Ofrece replicar el horario recién elegido a los 7 días, para no tener
+  /// que repetir la carga día por día: quien quiera un día distinto lo
+  /// ajusta después tocándolo de nuevo.
+  Future<void> _applyToOneOrAllDays(int weekday, int startMinute, int endMinute) async {
+    if (!mounted) return;
+    final applyToAll = await ConfirmationDialog.show(
+      context,
+      title: 'Aplicar a todos los días',
+      message: 'Podés usar este mismo horario para el resto de la semana y '
+          'después ajustar algún día puntual si hace falta.',
+      confirmLabel: 'Aplicar a los 7 días',
+      cancelLabel: 'Solo este día',
+    );
+    if (!mounted) return;
+    if (applyToAll) {
+      for (var wd = 1; wd <= 7; wd++) {
+        await widget.cubit.updateScheduleRange(widget.type, wd, startMinute, endMinute);
+      }
+    } else {
       await widget.cubit.updateScheduleRange(widget.type, weekday, startMinute, endMinute);
     }
   }
