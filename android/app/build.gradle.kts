@@ -31,6 +31,13 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            // R8 (activo por defecto en release con este AGP) ofuscaba el
+            // constructor generado por Room para WorkManager, causando
+            // "NoSuchMethodException: WorkDatabase_Impl.<init>" al abrir la
+            // app recién instalada. Sin reglas de keep propias, apagar la
+            // minificación es lo más seguro para una app de uso personal.
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }

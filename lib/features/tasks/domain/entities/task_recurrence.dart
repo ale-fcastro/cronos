@@ -20,6 +20,7 @@ class TaskRecurrence extends Equatable {
     required this.priority,
     required this.estimateMinutes,
     required this.mode,
+    required this.startDate,
     this.areaId,
     this.notes,
     this.sameTimeMinuteOfDay,
@@ -35,6 +36,10 @@ class TaskRecurrence extends Equatable {
   final String? notes;
   final RecurrenceMode mode;
 
+  /// Primer día en que puede generarse una ocurrencia; días anteriores no
+  /// generan tarea aunque el patrón (hora, día de semana) los cubra.
+  final DateTime startDate;
+
   /// Minuto del día (0..1439); usado cuando [mode] es [RecurrenceMode.dailySameTime].
   final int? sameTimeMinuteOfDay;
 
@@ -45,18 +50,19 @@ class TaskRecurrence extends Equatable {
   static const _weekdayShort = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
   String get scheduleLabel {
-    if (mode == RecurrenceMode.dailySameTime) {
-      final m = sameTimeMinuteOfDay ?? 0;
-      return 'Todos los días · ${_hhmm(m)}';
-    }
-    final days = weekdayMinuteOfDay.keys.toList()..sort();
-    return days
-        .map((d) => '${_weekdayShort[d - 1]} ${_hhmm(weekdayMinuteOfDay[d]!)}')
-        .join(' · ');
+    final schedule = mode == RecurrenceMode.dailySameTime
+        ? 'Todos los días · ${_hhmm(sameTimeMinuteOfDay ?? 0)}'
+        : (weekdayMinuteOfDay.keys.toList()..sort())
+            .map((d) => '${_weekdayShort[d - 1]} ${_hhmm(weekdayMinuteOfDay[d]!)}')
+            .join(' · ');
+    return '$schedule · desde ${_ddmm(startDate)}';
   }
 
   String _hhmm(int m) =>
       '${(m ~/ 60).toString().padLeft(2, '0')}:${(m % 60).toString().padLeft(2, '0')}';
+
+  String _ddmm(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}';
 
   @override
   List<Object?> get props => [
@@ -68,6 +74,7 @@ class TaskRecurrence extends Equatable {
         estimateMinutes,
         notes,
         mode,
+        startDate,
         sameTimeMinuteOfDay,
         weekdayMinuteOfDay,
       ];
@@ -81,6 +88,7 @@ class NewTaskRecurrenceInput {
     required this.priority,
     required this.estimateMinutes,
     required this.mode,
+    required this.startDate,
     this.areaId,
     this.notes,
     this.sameTimeMinuteOfDay,
@@ -94,6 +102,9 @@ class NewTaskRecurrenceInput {
   final int estimateMinutes;
   final String? notes;
   final RecurrenceMode mode;
+
+  /// Primer día desde el que empieza a generarse (por defecto, hoy).
+  final DateTime startDate;
   final int? sameTimeMinuteOfDay;
   final Map<int, int> weekdayMinuteOfDay;
 }

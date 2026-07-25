@@ -1,7 +1,7 @@
 name: cronos
 description: Sistema operativo personal del tiempo.
 publish_to: 'none'
-version: 0.1.0
+version: 0.2.0+2
 
 environment:
   sdk: '>=3.6.0 <4.0.0'
@@ -34,6 +34,9 @@ dependencies:
   csv: ^8.0.0
   workmanager: ^0.9.0+3
   file_picker: ^10.0.0
+  http: ^1.2.2
+  package_info_plus: ^8.1.2
+  url_launcher: ^6.3.1
 
 dev_dependencies:
   flutter_test:

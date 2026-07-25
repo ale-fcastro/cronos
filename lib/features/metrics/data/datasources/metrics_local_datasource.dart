@@ -172,32 +172,35 @@ class MetricsLocalDatasource {
         SELECT started_at, ended_at FROM task_sessions
         WHERE started_at < ? AND COALESCE(ended_at, ?) > ?
       ''', [endMs, nowMs, startMs]);
-      final ws = DateTime(day.year, day.month, day.day, work.$1 ~/ 60, work.$1 % 60);
-      final we = DateTime(day.year, day.month, day.day, work.$2 ~/ 60, work.$2 % 60);
+      // Sin horario laboral ese día (p.ej. fin de semana sin trabajo): todo
+      // el tiempo trabajado ese día cuenta como fuera de horario.
+      final ws = work == null
+          ? null
+          : DateTime(day.year, day.month, day.day, work.$1 ~/ 60, work.$1 % 60);
+      final we = work == null
+          ? null
+          : DateTime(day.year, day.month, day.day, work.$2 ~/ 60, work.$2 % 60);
       for (final r in rows) {
         final s = DateTime.fromMillisecondsSinceEpoch(r['started_at'] as int);
         final e = DateTime.fromMillisecondsSinceEpoch(
             (r['ended_at'] as int?) ?? nowMs);
         final inDay = overlapMinutes(s, e, dayStart(day), dayEnd(day));
-        final inWork = overlapMinutes(s, e, ws, we);
+        final inWork = (ws == null || we == null) ? 0 : overlapMinutes(s, e, ws, we);
         total += (inDay - inWork).clamp(0, 24 * 60);
       }
     }
     return total;
   }
 
-  Future<(int, int)> _workWindow(int weekday) async {
+  /// null = sin horario laboral definido para ese día de la semana.
+  Future<(int, int)?> _workWindow(int weekday) async {
     final db = await _database.database;
-    // Buscar en schedule_ranges para el weekday específico
     final rows = await db.query(
       'schedule_ranges',
       where: 'type = ? AND weekday = ?',
       whereArgs: ['work', weekday],
     );
-    if (rows.isEmpty) {
-      // Fallback: si no hay datos, usar valores por defecto
-      return (540, 1080); // 9:00 - 18:00
-    }
+    if (rows.isEmpty) return null;
     final row = rows.first;
     return (row['start_minute'] as int, row['end_minute'] as int);
   }

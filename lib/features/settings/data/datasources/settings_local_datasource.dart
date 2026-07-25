@@ -35,9 +35,6 @@ class SettingsLocalDatasource {
                 .first['c'] as int?) ??
             0;
 
-    final daysMask = map['working_days'] ?? '1111100';
-    const dayLabels = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
-
     int weight(String key, int fallback) =>
         int.tryParse(map[key] ?? '') ?? fallback;
     final wCompliance = weight(ScoreWeightKeys.compliance, scoreWeightDefaults.compliance);
@@ -54,16 +51,8 @@ class SettingsLocalDatasource {
       workSchedules: workSchedules,
       studySchedules: studySchedules,
       sleepSchedules: sleepSchedules,
-      workingDays: [
-        for (var i = 0; i < 7; i++)
-          WorkingDay(
-            label: dayLabels[i],
-            active: i < daysMask.length && daysMask[i] == '1',
-          ),
-      ],
       categoriesCount: categories,
       projectsCount: projects,
-      prioritiesLabel: 'P1–P3',
       scoreWeightsLabel: 'Cumplimiento $wCompliance · Eficiencia $wEfficiency · '
           'Sueño $wSleep · Puntualidad $wPunctuality',
       scoreWeightCompliance: wCompliance,
@@ -142,17 +131,29 @@ class SettingsLocalDatasource {
     await db.delete('custom_schedules', where: 'id = ?', whereArgs: [id]);
   }
 
+  /// Upsert: si la fila (type, weekday) no existe todavía -en instalaciones
+  /// donde schedule_ranges quedó vacía- un UPDATE no afecta nada y el
+  /// cambio se pierde en silencio. INSERT+REPLACE cubre ambos casos.
   Future<void> updateScheduleRange(
       String type, int weekday, int startMinute, int endMinute) async {
     final db = await _database.database;
-    await db.update(
+    await db.insert(
       'schedule_ranges',
       {
+        'type': type,
+        'weekday': weekday,
         'start_minute': startMinute,
         'end_minute': endMinute,
       },
-      where: 'type = ? AND weekday = ?',
-      whereArgs: [type, weekday],
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
+  }
+
+  /// Marca el día como "sin horario" (p.ej. sábado/domingo sin trabajo):
+  /// quita la fila en vez de guardar un rango vacío.
+  Future<void> deleteScheduleRange(String type, int weekday) async {
+    final db = await _database.database;
+    await db.delete('schedule_ranges',
+        where: 'type = ? AND weekday = ?', whereArgs: [type, weekday]);
   }
 }

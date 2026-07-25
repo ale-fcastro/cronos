@@ -21,6 +21,7 @@ class CreateTaskState extends Equatable {
     this.repeatMode,
     this.repeatSameTimeMinuteOfDay = 540,
     this.repeatWeekdayMinuteOfDay = const {},
+    this.repeatStartDate,
     this.linkedPackage,
     this.linkedAppName,
     this.submitting = false,
@@ -56,6 +57,9 @@ class CreateTaskState extends Equatable {
   /// [RecurrenceMode.dailyPerWeekday]. Solo los días presentes están activos.
   final Map<int, int> repeatWeekdayMinuteOfDay;
 
+  /// Primer día desde el que se generan ocurrencias; null = hoy.
+  final DateTime? repeatStartDate;
+
   /// App vinculada para verificar cumplimiento automáticamente; null = ninguna.
   final String? linkedPackage;
   final String? linkedAppName;
@@ -83,6 +87,12 @@ class CreateTaskState extends Equatable {
     final d = effectiveDate;
     final m = effectiveMinuteOfDay;
     return DateTime(d.year, d.month, d.day, m ~/ 60, m % 60);
+  }
+
+  /// Fecha desde la que empieza a repetirse; por defecto, hoy.
+  DateTime get effectiveRepeatStartDate {
+    final d = repeatStartDate ?? DateTime.now();
+    return DateTime(d.year, d.month, d.day);
   }
 
   String get dateLabel => fmtDayChip(effectiveDate);
@@ -124,6 +134,7 @@ class CreateTaskState extends Equatable {
     bool clearRepeatMode = false,
     int? repeatSameTimeMinuteOfDay,
     Map<int, int>? repeatWeekdayMinuteOfDay,
+    DateTime? repeatStartDate,
     String? linkedPackage,
     String? linkedAppName,
     bool clearLinkedApp = false,
@@ -148,6 +159,7 @@ class CreateTaskState extends Equatable {
           repeatSameTimeMinuteOfDay ?? this.repeatSameTimeMinuteOfDay,
       repeatWeekdayMinuteOfDay:
           repeatWeekdayMinuteOfDay ?? this.repeatWeekdayMinuteOfDay,
+      repeatStartDate: repeatStartDate ?? this.repeatStartDate,
       linkedPackage: clearLinkedApp ? null : (linkedPackage ?? this.linkedPackage),
       linkedAppName: clearLinkedApp ? null : (linkedAppName ?? this.linkedAppName),
       submitting: submitting ?? this.submitting,
@@ -172,6 +184,7 @@ class CreateTaskState extends Equatable {
         repeatMode,
         repeatSameTimeMinuteOfDay,
         repeatWeekdayMinuteOfDay,
+        repeatStartDate,
         linkedPackage,
         linkedAppName,
         submitting,

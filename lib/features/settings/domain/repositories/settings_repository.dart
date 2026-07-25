@@ -12,4 +12,5 @@ abstract interface class SettingsRepository {
 
   Future<void> updateScheduleRange(
       String type, int weekday, int startMinute, int endMinute);
+  Future<void> deleteScheduleRange(String type, int weekday);
 }

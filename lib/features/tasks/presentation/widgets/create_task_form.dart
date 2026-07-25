@@ -202,6 +202,23 @@ class _CreateTaskFormState extends State<CreateTaskForm> {
                 onToggle: cubit.toggleRepeatWeekday,
                 onSetTime: cubit.setRepeatWeekdayTime,
               ),
+            if (state.repeatMode != null) ...[
+              Gaps.vMd,
+              DatePickerField(
+                label: 'Empieza el',
+                valueText: fmtDayChip(state.effectiveRepeatStartDate),
+                onTap: () async {
+                  final now = DateTime.now();
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: state.effectiveRepeatStartDate,
+                    firstDate: now.subtract(const Duration(days: 30)),
+                    lastDate: now.add(const Duration(days: 365)),
+                  );
+                  if (picked != null) cubit.setRepeatStartDate(picked);
+                },
+              ),
+            ],
             if (state.repeatMode == null && state.timeConflict) ...[
               const SizedBox(height: 6),
               const Text(

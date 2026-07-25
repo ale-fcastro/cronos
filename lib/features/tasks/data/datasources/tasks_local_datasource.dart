@@ -390,6 +390,7 @@ class TasksLocalDatasource {
       'same_time_minute': input.sameTimeMinuteOfDay,
       'weekday_minutes': jsonEncode(
           input.weekdayMinuteOfDay.map((k, v) => MapEntry('$k', v))),
+      'start_date': _dateKey(input.startDate),
       'created_at': DateTime.now().millisecondsSinceEpoch,
     });
   }
@@ -413,13 +414,13 @@ class TasksLocalDatasource {
       final recurrence = _recurrenceFromRow(r);
       for (var i = 0; i < daysAhead; i++) {
         final date = today.add(Duration(days: i));
+        if (date.isBefore(dayStart(recurrence.startDate))) continue;
         final minuteOfDay = recurrence.mode == RecurrenceMode.dailySameTime
             ? recurrence.sameTimeMinuteOfDay
             : recurrence.weekdayMinuteOfDay[date.weekday];
         if (minuteOfDay == null) continue;
 
-        final dateKey =
-            '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+        final dateKey = _dateKey(date);
         final exists = await db.query(
           'tasks',
           where: 'recurrence_id = ? AND recurrence_date = ?',
@@ -468,10 +469,27 @@ class TasksLocalDatasource {
       estimateMinutes: (r['estimate_min'] as int?) ?? 30,
       notes: r['notes'] as String?,
       mode: RecurrenceMode.values.firstWhere((m) => m.name == r['mode']),
+      // Reglas creadas antes de esta columna (null) quedan sin restricción
+      // de inicio: se comportan como siempre, generan desde hoy.
+      startDate: _parseDateKey(r['start_date'] as String?) ?? DateTime(2000),
       sameTimeMinuteOfDay: r['same_time_minute'] as int?,
       weekdayMinuteOfDay: weekdayJson.map(
           (k, v) => MapEntry(int.parse(k as String), (v as num).toInt())),
     );
+  }
+
+  String _dateKey(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  DateTime? _parseDateKey(String? key) {
+    if (key == null) return null;
+    final parts = key.split('-');
+    if (parts.length != 3) return null;
+    final y = int.tryParse(parts[0]);
+    final m = int.tryParse(parts[1]);
+    final d = int.tryParse(parts[2]);
+    if (y == null || m == null || d == null) return null;
+    return DateTime(y, m, d);
   }
 
   Future<Map<String, int>> _minutesByTask() async {

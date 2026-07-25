@@ -2,6 +2,7 @@ import 'package:get_it/get_it.dart';
 
 import '../analytics/stats_engine.dart';
 import '../database/app_database.dart';
+import '../services/app_update_service.dart';
 import '../services/app_usage_service.dart';
 import '../services/export_service.dart';
 import '../services/life_areas_service.dart';
@@ -103,6 +104,7 @@ void configureDependencies({AppDatabase? database}) {
   sl.registerLazySingleton(() => ProjectsService(sl()));
   sl.registerLazySingleton(() => TimerService(sl()));
   sl.registerLazySingleton(() => AppUsageService());
+  sl.registerLazySingleton(() => AppUpdateService());
   sl.registerLazySingleton(() => LinkedAppGuardService(sl(), sl(), sl()));
   sl.registerLazySingleton(() => ExportService(sl()));
   sl.registerLazySingleton(() => NudgeService(sl(), sl()));
@@ -214,5 +216,6 @@ void configureDependencies({AppDatabase? database}) {
   sl.registerLazySingleton(() => UpdateCustomSchedule(sl()));
   sl.registerLazySingleton(() => DeleteCustomSchedule(sl()));
   sl.registerLazySingleton(() => UpdateScheduleRange(sl()));
-  sl.registerFactory(() => SettingsCubit(sl(), sl(), sl(), sl(), sl(), sl()));
+  sl.registerLazySingleton(() => DeleteScheduleRange(sl()));
+  sl.registerFactory(() => SettingsCubit(sl(), sl(), sl(), sl(), sl(), sl(), sl()));
 }

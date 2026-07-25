@@ -44,4 +44,41 @@ void main() {
     expect(weekCount, 0);
     expect(monthCount, 1);
   });
+
+  test(
+      'un día sin horario laboral cuenta todo el tiempo trabajado como fuera de horario',
+      () async {
+    final db = await database.database;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    await db.insert('tasks', {
+      'id': 't1',
+      'title': 'Foco',
+      'project': 'Personal',
+      'priority': 2,
+      'status': 'done',
+      'estimate_min': 60,
+      'created_at': today.millisecondsSinceEpoch,
+    });
+    // Sesión de 2 horas hoy, 08:00-10:00 (dentro del día, sin importar la
+    // hora real a la que corra el test).
+    final start = today.add(const Duration(hours: 8));
+    final end = today.add(const Duration(hours: 10));
+    await db.insert('task_sessions', {
+      'task_id': 't1',
+      'started_at': start.millisecondsSinceEpoch,
+      'ended_at': end.millisecondsSinceEpoch,
+    });
+
+    // Sin horario laboral definido para hoy: toda la sesión debería contar
+    // como "fuera de horario" en vez de asumir un 9-18 por defecto.
+    await db.delete('schedule_ranges',
+        where: 'type = ? AND weekday = ?', whereArgs: ['work', today.weekday]);
+
+    final snapshot = await metrics.fetchSnapshot(days: 1);
+    final offHours = snapshot.kpis.firstWhere((k) => k.label == 'Fuera de horario');
+
+    expect(offHours.value, '2h');
+  });
 }

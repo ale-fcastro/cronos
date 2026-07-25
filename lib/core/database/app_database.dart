@@ -14,7 +14,7 @@ class AppDatabase {
   final String? _pathOverride;
   Database? _db;
 
-  static const _version = 10;
+  static const _version = 11;
 
   Future<Database> get database async {
     final cached = _db;
@@ -138,6 +138,7 @@ class AppDatabase {
         mode TEXT NOT NULL,
         same_time_minute INTEGER,
         weekday_minutes TEXT,
+        start_date TEXT,
         created_at INTEGER NOT NULL
       )
     ''');
@@ -262,7 +263,14 @@ class AppDatabase {
       await db.execute('ALTER TABLE tasks ADD COLUMN pause_area_id TEXT');
     }
     if (oldVersion < 9) {
-      await db.execute('ALTER TABLE custom_schedules ADD COLUMN weekday INTEGER NOT NULL DEFAULT 1');
+      // La migración de la v7 ya crea custom_schedules con la columna
+      // weekday incluida: si oldVersion < 7, este bloque corre en la misma
+      // pasada que aquel y la columna ya existe. Solo la agregamos si de
+      // verdad falta (instalaciones que quedaron exactamente en v7/v8).
+      if (!await _columnExists(db, 'custom_schedules', 'weekday')) {
+        await db.execute(
+            'ALTER TABLE custom_schedules ADD COLUMN weekday INTEGER NOT NULL DEFAULT 1');
+      }
     }
     if (oldVersion < 10) {
       // Crear tabla para horarios de trabajo/estudio/sueño por día de la semana
@@ -279,6 +287,16 @@ class AppDatabase {
       // Migrar valores actuales de settings a schedule_ranges para todos los días
       await _migrateSchedulesToRanges(db);
     }
+    if (oldVersion < 11) {
+      if (!await _columnExists(db, 'task_recurrences', 'start_date')) {
+        await db.execute('ALTER TABLE task_recurrences ADD COLUMN start_date TEXT');
+      }
+    }
+  }
+
+  Future<bool> _columnExists(Database db, String table, String column) async {
+    final info = await db.rawQuery('PRAGMA table_info($table)');
+    return info.any((row) => row['name'] == column);
   }
 
   /// Ocho áreas fijas del producto (no editables por el usuario).
@@ -382,6 +400,22 @@ class AppDatabase {
     for (final a in _lifeAreas) {
       batch.insert(
           'life_areas', {'id': a.$1, 'name': a.$2, 'color': a.$3, 'sort': a.$4});
+    }
+    // Horario por día de semana (work/study/sleep), mismos valores por
+    // defecto que la tabla settings de arriba. Sin esto, una instalación
+    // nueva deja schedule_ranges vacía y el editor de horarios de
+    // Configuración no tiene nada que actualizar (UPDATE sobre 0 filas).
+    for (var weekday = 1; weekday <= 7; weekday++) {
+      batch.insert('schedule_ranges',
+          {'type': 'work', 'weekday': weekday, 'start_minute': 9 * 60, 'end_minute': 18 * 60});
+      batch.insert('schedule_ranges',
+          {'type': 'study', 'weekday': weekday, 'start_minute': 19 * 60, 'end_minute': 21 * 60});
+      batch.insert('schedule_ranges', {
+        'type': 'sleep',
+        'weekday': weekday,
+        'start_minute': 23 * 60 + 30,
+        'end_minute': 23 * 60 + 30,
+      });
     }
     await batch.commit(noResult: true);
   }

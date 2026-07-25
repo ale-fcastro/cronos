@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:showcaseview/showcaseview.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../features/dashboard/presentation/bloc/dashboard_cubit.dart';
 import '../../features/dashboard/presentation/pages/dashboard_page.dart';
@@ -13,6 +14,7 @@ import '../../features/tasks/presentation/pages/tasks_list_page.dart';
 import '../../shared/shared.dart';
 import '../di/service_locator.dart';
 import '../models/event_category.dart';
+import '../services/app_update_service.dart';
 import '../services/life_areas_service.dart';
 import '../services/linked_app_guard_service.dart';
 import '../services/onboarding_service.dart';
@@ -36,6 +38,7 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
   late final AnalyzeCubit _analyze = sl<AnalyzeCubit>();
   late final OnboardingService _onboarding = sl<OnboardingService>();
   late final LinkedAppGuardService _linkedAppGuard = sl<LinkedAppGuardService>();
+  late final AppUpdateService _appUpdate = sl<AppUpdateService>();
 
   final _fabKey = GlobalKey();
   final _analyzeKey = GlobalKey();
@@ -51,12 +54,25 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
       blurValue: 1,
     );
     WidgetsBinding.instance.addPostFrameCallback((_) => _maybeStartTour());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeCheckUpdate());
   }
 
   Future<void> _maybeStartTour() async {
     if (await _onboarding.hasSeenTour()) return;
     if (!mounted) return;
     ShowcaseView.get().startShowCase([_fabKey, _analyzeKey, _avatarKey]);
+  }
+
+  /// Chequea GitHub Releases al abrir la app; si hay una versión más nueva,
+  /// ofrece descargarla. Silencioso ante cualquier falla (sin red, repo
+  /// privado, rate limit): nunca debe interrumpir el arranque normal.
+  Future<void> _maybeCheckUpdate() async {
+    final update = await _appUpdate.checkForUpdate();
+    if (update == null || !mounted) return;
+    final goDownload = await showUpdateAvailableDialog(context, update);
+    if (!goDownload) return;
+    final url = update.apkDownloadUrl ?? update.htmlUrl;
+    await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
   }
 
   @override

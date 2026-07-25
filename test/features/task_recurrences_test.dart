@@ -23,17 +23,21 @@ void main() {
   tearDown(() => database.close());
 
   test('regla diaria misma hora genera una ocurrencia por día', () async {
-    await datasource.createRecurrence(const NewTaskRecurrenceInput(
+    await datasource.createRecurrence(NewTaskRecurrenceInput(
       title: 'Meditar',
       project: 'Personal',
       priority: TaskPriority.p3,
       estimateMinutes: 15,
       mode: RecurrenceMode.dailySameTime,
+      startDate: DateTime.now(),
       sameTimeMinuteOfDay: 7 * 60,
     ));
 
     await datasource.generateUpcomingOccurrences(daysAhead: 3);
-    final tasks = await datasource.fetchTasks(scope: 'week');
+    // scope: 'all' en vez de 'week' -- si "hoy" cae sábado o domingo, el
+    // tercer día generado cruza al bucket de la semana siguiente y 'week'
+    // lo excluiría sin que sea un bug real de la generación.
+    final tasks = await datasource.fetchTasks(scope: 'all');
     final meditar = tasks.where((t) => t.title == 'Meditar').toList();
 
     expect(meditar, hasLength(3));
@@ -52,6 +56,7 @@ void main() {
       priority: TaskPriority.p2,
       estimateMinutes: 60,
       mode: RecurrenceMode.dailyPerWeekday,
+      startDate: now,
       weekdayMinuteOfDay: {today: 18 * 60, tomorrow: 7 * 60},
     ));
 
@@ -63,12 +68,13 @@ void main() {
   });
 
   test('generar dos veces no duplica ocurrencias (idempotente)', () async {
-    await datasource.createRecurrence(const NewTaskRecurrenceInput(
+    await datasource.createRecurrence(NewTaskRecurrenceInput(
       title: 'Meditar',
       project: 'Personal',
       priority: TaskPriority.p3,
       estimateMinutes: 15,
       mode: RecurrenceMode.dailySameTime,
+      startDate: DateTime.now(),
       sameTimeMinuteOfDay: 7 * 60,
     ));
 
@@ -80,12 +86,13 @@ void main() {
   });
 
   test('borrar una regla no afecta las ocurrencias ya materializadas', () async {
-    await datasource.createRecurrence(const NewTaskRecurrenceInput(
+    await datasource.createRecurrence(NewTaskRecurrenceInput(
       title: 'Meditar',
       project: 'Personal',
       priority: TaskPriority.p3,
       estimateMinutes: 15,
       mode: RecurrenceMode.dailySameTime,
+      startDate: DateTime.now(),
       sameTimeMinuteOfDay: 7 * 60,
     ));
     // Solo se materializa la ocurrencia de hoy antes de borrar la regla.
@@ -102,5 +109,33 @@ void main() {
     await datasource.generateUpcomingOccurrences(daysAhead: 3);
     final week = await datasource.fetchTasks(scope: 'week');
     expect(week.where((t) => t.title == 'Meditar'), hasLength(1));
+  });
+
+  test('startDate futuro pospone la primera ocurrencia', () async {
+    final now = DateTime.now();
+    final futureStart = DateTime(now.year, now.month, now.day)
+        .add(const Duration(days: 2));
+
+    await datasource.createRecurrence(NewTaskRecurrenceInput(
+      title: 'Meditar',
+      project: 'Personal',
+      priority: TaskPriority.p3,
+      estimateMinutes: 15,
+      mode: RecurrenceMode.dailySameTime,
+      startDate: futureStart,
+      sameTimeMinuteOfDay: 7 * 60,
+    ));
+
+    // Ventana de generación cubre hoy, mañana y pasado mañana (el día de
+    // inicio): las dos primeras no deberían generar ocurrencia.
+    await datasource.generateUpcomingOccurrences(daysAhead: 3);
+    final tasks = await datasource.fetchTasks(scope: 'all');
+    final meditar = tasks.where((t) => t.title == 'Meditar').toList();
+
+    expect(meditar, hasLength(1));
+
+    // Ni hoy ni mañana se generó ocurrencia: solo el día de inicio.
+    final today = await datasource.fetchTasks(scope: 'today');
+    expect(today.where((t) => t.title == 'Meditar'), isEmpty);
   });
 }

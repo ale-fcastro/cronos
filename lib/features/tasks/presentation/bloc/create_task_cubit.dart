@@ -201,6 +201,8 @@ class CreateTaskCubit extends Cubit<CreateTaskState> {
     emit(state.copyWith(repeatWeekdayMinuteOfDay: map));
   }
 
+  void setRepeatStartDate(DateTime v) => emit(state.copyWith(repeatStartDate: v));
+
   Future<bool> hasAppUsagePermission() => _appUsage.hasPermission();
 
   Future<void> requestAppUsagePermission() => _appUsage.requestPermission();
@@ -268,6 +270,7 @@ class CreateTaskCubit extends Cubit<CreateTaskState> {
           estimateMinutes: state.estimateMinutes,
           notes: notes,
           mode: state.repeatMode!,
+          startDate: state.effectiveRepeatStartDate,
           sameTimeMinuteOfDay: state.repeatSameTimeMinuteOfDay,
           weekdayMinuteOfDay: state.repeatWeekdayMinuteOfDay,
         ));

@@ -1,0 +1,83 @@
+import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+
+import 'package:cronos/core/database/app_database.dart';
+
+/// Reproduce una actualización real desde una instalación vieja (schema v6,
+/// antes de custom_schedules/schedule_ranges) hasta la versión actual, para
+/// que un bug de migración (columna duplicada, tabla faltante) reviente acá
+/// y no en el teléfono de un usuario.
+void main() {
+  sqfliteFfiInit();
+
+  late String path;
+
+  setUp(() {
+    path = '${Directory.systemTemp.path}/cronos_migration_test_'
+        '${DateTime.now().microsecondsSinceEpoch}.db';
+  });
+
+  tearDown(() async {
+    final f = File(path);
+    if (await f.exists()) await f.delete();
+  });
+
+  test('actualizar desde v6 hasta la versión actual no revienta', () async {
+    // Simula una instalación vieja: solo lo mínimo que las migraciones
+    // posteriores (v7..) necesitan encontrar ya creado.
+    final oldDb = await databaseFactoryFfiNoIsolate.openDatabase(
+      path,
+      options: OpenDatabaseOptions(
+        version: 6,
+        onCreate: (db, version) async {
+          await db.execute('''
+            CREATE TABLE tasks(
+              id TEXT PRIMARY KEY,
+              title TEXT NOT NULL,
+              created_at INTEGER NOT NULL
+            )
+          ''');
+          await db.execute('''
+            CREATE TABLE settings(
+              key TEXT PRIMARY KEY,
+              value TEXT NOT NULL
+            )
+          ''');
+          // Un dispositivo real en v6 ya pasó por la migración v2->v3, que
+          // crea esta tabla: la incluimos para que el fixture sea realista.
+          await db.execute('''
+            CREATE TABLE task_recurrences(
+              id TEXT PRIMARY KEY,
+              title TEXT NOT NULL,
+              project TEXT,
+              area_id TEXT,
+              priority INTEGER NOT NULL DEFAULT 2,
+              estimate_min INTEGER NOT NULL DEFAULT 30,
+              notes TEXT,
+              mode TEXT NOT NULL,
+              same_time_minute INTEGER,
+              weekday_minutes TEXT,
+              created_at INTEGER NOT NULL
+            )
+          ''');
+        },
+      ),
+    );
+    await oldDb.close();
+
+    // Reabrir con AppDatabase (versión actual) dispara _onUpgrade de
+    // verdad, igual que en el teléfono del usuario.
+    final appDb = AppDatabase(factory: databaseFactoryFfiNoIsolate, path: path);
+    final db = await appDb.database;
+
+    final weekdayCol = await db.rawQuery("PRAGMA table_info('custom_schedules')");
+    expect(weekdayCol.where((r) => r['name'] == 'weekday'), hasLength(1));
+
+    final ranges = await db.query('schedule_ranges');
+    expect(ranges, isNotEmpty);
+
+    await appDb.close();
+  });
+}

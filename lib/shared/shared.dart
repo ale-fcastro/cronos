@@ -41,6 +41,7 @@ export 'widgets/dialogs/delete_dialog.dart';
 export 'widgets/dialogs/notifications_permission_dialog.dart';
 export 'widgets/dialogs/open_linked_app_dialog.dart';
 export 'widgets/dialogs/pause_reason_dialog.dart';
+export 'widgets/dialogs/update_available_dialog.dart';
 export 'widgets/dialogs/usage_permission_dialog.dart';
 
 // Feedback

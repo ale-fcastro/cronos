@@ -31,4 +31,8 @@ class SettingsRepositoryImpl implements SettingsRepository {
   Future<void> updateScheduleRange(
           String type, int weekday, int startMinute, int endMinute) =>
       _datasource.updateScheduleRange(type, weekday, startMinute, endMinute);
+
+  @override
+  Future<void> deleteScheduleRange(String type, int weekday) =>
+      _datasource.deleteScheduleRange(type, weekday);
 }

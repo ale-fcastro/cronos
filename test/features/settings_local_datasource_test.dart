@@ -64,4 +64,52 @@ void main() {
     settings = await datasource.fetchSettings();
     expect(settings.customSchedules, isEmpty);
   });
+
+  test('una instalación nueva ya trae los 7 días de horario laboral/estudio/sueño',
+      () async {
+    final settings = await datasource.fetchSettings();
+
+    expect(settings.workSchedules, hasLength(7));
+    expect(settings.studySchedules, hasLength(7));
+    expect(settings.sleepSchedules, hasLength(7));
+  });
+
+  test('editar el horario laboral de un día lo persiste de verdad', () async {
+    // Reproduce la incidencia reportada: en una base recién creada,
+    // updateScheduleRange no debe perderse por no encontrar la fila.
+    await datasource.updateScheduleRange('work', 3, 10 * 60, 19 * 60);
+
+    final settings = await datasource.fetchSettings();
+    final wednesday = settings.workSchedules.firstWhere((r) => r.weekday == 3);
+    expect(wednesday.startMinute, 10 * 60);
+    expect(wednesday.endMinute, 19 * 60);
+
+    // El resto de los días no se ve afectado.
+    final tuesday = settings.workSchedules.firstWhere((r) => r.weekday == 2);
+    expect(tuesday.startMinute, 9 * 60);
+  });
+
+  test('editar dos veces el mismo día no duplica la fila', () async {
+    await datasource.updateScheduleRange('sleep', 5, 23 * 60, 23 * 60);
+    await datasource.updateScheduleRange('sleep', 5, 22 * 60 + 30, 22 * 60 + 30);
+
+    final settings = await datasource.fetchSettings();
+    expect(settings.sleepSchedules.where((r) => r.weekday == 5), hasLength(1));
+    expect(
+      settings.sleepSchedules.firstWhere((r) => r.weekday == 5).startMinute,
+      22 * 60 + 30,
+    );
+  });
+
+  test('borrar el horario de un día lo marca como "sin horario"', () async {
+    // Reproduce: "no me deja poner que el sábado y el domingo no trabajo".
+    await datasource.deleteScheduleRange('work', 6); // sábado
+    await datasource.deleteScheduleRange('work', 7); // domingo
+
+    final settings = await datasource.fetchSettings();
+    expect(settings.workSchedules.where((r) => r.weekday == 6), isEmpty);
+    expect(settings.workSchedules.where((r) => r.weekday == 7), isEmpty);
+    // El resto de la semana sigue con su horario.
+    expect(settings.workSchedules.where((r) => r.weekday == 1), hasLength(1));
+  });
 }

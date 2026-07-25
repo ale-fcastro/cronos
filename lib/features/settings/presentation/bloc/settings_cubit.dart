@@ -14,6 +14,7 @@ class SettingsCubit extends Cubit<SettingsState> {
     this._updateCustomSchedule,
     this._deleteCustomSchedule,
     this._updateScheduleRange,
+    this._deleteScheduleRange,
   ) : super(const SettingsState()) {
     load();
   }
@@ -24,6 +25,7 @@ class SettingsCubit extends Cubit<SettingsState> {
   final UpdateCustomSchedule _updateCustomSchedule;
   final DeleteCustomSchedule _deleteCustomSchedule;
   final UpdateScheduleRange _updateScheduleRange;
+  final DeleteScheduleRange _deleteScheduleRange;
 
   Future<void> load() async {
     try {
@@ -42,16 +44,6 @@ class SettingsCubit extends Cubit<SettingsState> {
     } catch (e, st) {
       reportError('SettingsCubit.saveSetting', e, st);
     }
-  }
-
-  Future<void> toggleWorkingDay(int index) async {
-    final days = state.settings?.workingDays;
-    if (days == null || index < 0 || index >= days.length) return;
-    final mask = [
-      for (var i = 0; i < days.length; i++)
-        (i == index ? !days[i].active : days[i].active) ? '1' : '0',
-    ].join();
-    await saveSetting('working_days', mask);
   }
 
   Future<void> createCustomSchedule(
@@ -90,6 +82,16 @@ class SettingsCubit extends Cubit<SettingsState> {
       await load();
     } catch (e, st) {
       reportError('SettingsCubit.updateScheduleRange', e, st);
+    }
+  }
+
+  /// Marca el día como sin horario (p.ej. "no trabajo el sábado").
+  Future<void> deleteScheduleRange(String type, int weekday) async {
+    try {
+      await _deleteScheduleRange(type, weekday);
+      await load();
+    } catch (e, st) {
+      reportError('SettingsCubit.deleteScheduleRange', e, st);
     }
   }
 }

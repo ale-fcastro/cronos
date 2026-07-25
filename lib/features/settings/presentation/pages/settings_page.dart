@@ -62,23 +62,23 @@ class SettingsPage extends StatelessWidget {
                               children: [
                                 _row(
                                   'Horario laboral',
-                                  s.workScheduleLabel,
+                                  '',
                                   chevron: true,
-                                  onTap: () => _editScheduleRanges(context, cubit, 'work', s.workSchedules),
+                                  onTap: () => _editScheduleRanges(context, cubit, 'work'),
                                 ),
                                 const Divider(height: 1),
                                 _row(
                                   'Horario de estudio',
-                                  s.studyScheduleLabel,
+                                  '',
                                   chevron: true,
-                                  onTap: () => _editScheduleRanges(context, cubit, 'study', s.studySchedules),
+                                  onTap: () => _editScheduleRanges(context, cubit, 'study'),
                                 ),
                                 const Divider(height: 1),
                                 _row(
                                   'Hora ideal de dormir',
-                                  s.idealSleepLabel,
+                                  '',
                                   chevron: true,
-                                  onTap: () => _editScheduleRanges(context, cubit, 'sleep', s.sleepSchedules),
+                                  onTap: () => _editScheduleRanges(context, cubit, 'sleep'),
                                 ),
                                 for (final cs in s.customSchedules) ...[
                                   const Divider(height: 1),
@@ -112,21 +112,6 @@ class SettingsPage extends StatelessWidget {
                             ),
                           ),
                           Gaps.vLg,
-                          const SectionHeader(title: 'Días laborables'),
-                          AppCard(
-                            child: Row(
-                              children: [
-                                for (var i = 0; i < s.workingDays.length; i++) ...[
-                                  _DayChip(
-                                    day: s.workingDays[i],
-                                    onTap: () => cubit.toggleWorkingDay(i),
-                                  ),
-                                  if (i < s.workingDays.length - 1) Gaps.hSm,
-                                ],
-                              ],
-                            ),
-                          ),
-                          Gaps.vLg,
                           const SectionHeader(title: 'Organización'),
                           AppCard(
                             padding: EdgeInsets.zero,
@@ -149,8 +134,6 @@ class SettingsPage extends StatelessWidget {
                                       .pushNamed(AppRoutes.projects)
                                       .then((_) => cubit.load()),
                                 ),
-                                const Divider(height: 1),
-                                _row('Prioridades', s.prioritiesLabel),
                                 const Divider(height: 1),
                                 _row(
                                   'Tareas recurrentes',
@@ -231,14 +214,13 @@ class SettingsPage extends StatelessWidget {
     BuildContext context,
     SettingsCubit cubit,
     String type,
-    List<ScheduleRange> current,
   ) async {
     final title = type == 'work'
         ? 'Horario laboral'
         : type == 'study'
             ? 'Horario de estudio'
             : 'Hora ideal de dormir';
-    await _ScheduleRangesDialog.show(context, title, type, current, cubit);
+    await _ScheduleRangesDialog.show(context, title, type, cubit);
   }
 
   Future<void> _editScoreWeights(
@@ -352,39 +334,6 @@ class SettingsPage extends StatelessWidget {
               ],
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DayChip extends StatelessWidget {
-  const _DayChip({required this.day, this.onTap});
-
-  final WorkingDay day;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 36,
-        height: 36,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: day.active ? AppColors.accentSoft : AppColors.surface,
-          borderRadius: const BorderRadius.all(Radius.circular(10)),
-          border: Border.all(color: day.active ? AppColors.borderActive : AppColors.border),
-        ),
-        child: Text(
-          day.label,
-          style: TextStyle(
-            fontFamily: AppTextStyles.sans,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: day.active ? AppColors.accent : AppColors.textTertiary,
-          ),
         ),
       ),
     );
@@ -697,34 +646,29 @@ class _CustomScheduleDialogState extends State<_CustomScheduleDialog> {
 }
 
 /// Dialog para editar horarios de trabajo/estudio/sueño por día de la semana.
+/// Lee el estado en vivo del cubit (BlocBuilder) en vez de una lista fija
+/// capturada al abrir: si no, guardar un cambio no se veía reflejado acá
+/// aunque sí hubiera quedado guardado en la base.
 class _ScheduleRangesDialog extends StatefulWidget {
   const _ScheduleRangesDialog({
     required this.title,
     required this.type,
-    required this.ranges,
     required this.cubit,
   });
 
   final String title;
   final String type;
-  final List<ScheduleRange> ranges;
   final SettingsCubit cubit;
 
   static Future<void> show(
     BuildContext context,
     String title,
     String type,
-    List<ScheduleRange> ranges,
     SettingsCubit cubit,
   ) {
     return showDialog(
       context: context,
-      builder: (_) => _ScheduleRangesDialog(
-        title: title,
-        type: type,
-        ranges: ranges,
-        cubit: cubit,
-      ),
+      builder: (_) => _ScheduleRangesDialog(title: title, type: type, cubit: cubit),
     );
   }
 
@@ -737,22 +681,21 @@ class _ScheduleRangesDialogState extends State<_ScheduleRangesDialog> {
 
   String _hhmm(int m) => '${two(m ~/ 60)}:${two(m % 60)}';
 
-  Future<void> _editDay(int weekday) async {
-    final current = widget.ranges.firstWhere(
-      (r) => r.weekday == weekday,
-      orElse: () => ScheduleRange(weekday: weekday, startMinute: 9 * 60, endMinute: 18 * 60),
-    );
+  List<ScheduleRange> _rangesOf(AppSettings s) => switch (widget.type) {
+        'work' => s.workSchedules,
+        'study' => s.studySchedules,
+        _ => s.sleepSchedules,
+      };
 
+  Future<void> _editDay(int weekday, ScheduleRange? current) async {
+    final base = current ?? ScheduleRange(weekday: weekday, startMinute: 9 * 60, endMinute: 18 * 60);
     final isSleep = widget.type == 'sleep';
 
     if (isSleep) {
       // Para sleep, solo pedir una hora (la hora de dormir)
       final picked = await showTimePicker(
         context: context,
-        initialTime: TimeOfDay(
-          hour: current.startMinute ~/ 60,
-          minute: current.startMinute % 60,
-        ),
+        initialTime: TimeOfDay(hour: base.startMinute ~/ 60, minute: base.startMinute % 60),
         helpText: '${_weekdayLabels[weekday - 1]} · Hora de dormir',
       );
       if (picked == null || !mounted) return;
@@ -762,20 +705,14 @@ class _ScheduleRangesDialogState extends State<_ScheduleRangesDialog> {
       // Para work/study, pedir inicio y fin
       final pickedStart = await showTimePicker(
         context: context,
-        initialTime: TimeOfDay(
-          hour: current.startMinute ~/ 60,
-          minute: current.startMinute % 60,
-        ),
+        initialTime: TimeOfDay(hour: base.startMinute ~/ 60, minute: base.startMinute % 60),
         helpText: '${_weekdayLabels[weekday - 1]} · Inicio',
       );
       if (pickedStart == null || !mounted) return;
 
       final pickedEnd = await showTimePicker(
         context: context,
-        initialTime: TimeOfDay(
-          hour: current.endMinute ~/ 60,
-          minute: current.endMinute % 60,
-        ),
+        initialTime: TimeOfDay(hour: base.endMinute ~/ 60, minute: base.endMinute % 60),
         helpText: '${_weekdayLabels[weekday - 1]} · Fin',
       );
       if (pickedEnd == null || !mounted) return;
@@ -792,53 +729,84 @@ class _ScheduleRangesDialogState extends State<_ScheduleRangesDialog> {
       child: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.xl),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(widget.title, style: AppTextStyles.headline),
-              Gaps.vLg,
-              for (int weekday = 1; weekday <= 7; weekday++) ...[
-                InkWell(
-                  onTap: () => _editDay(weekday),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(_weekdayLabels[weekday - 1], style: AppTextStyles.body),
-                        Row(
+          child: BlocBuilder<SettingsCubit, SettingsState>(
+            bloc: widget.cubit,
+            builder: (context, state) {
+              final ranges = state.settings == null ? const <ScheduleRange>[] : _rangesOf(state.settings!);
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(widget.title, style: AppTextStyles.headline),
+                  Gaps.vLg,
+                  for (int weekday = 1; weekday <= 7; weekday++) ...[
+                    Builder(builder: (context) {
+                      ScheduleRange? current;
+                      for (final r in ranges) {
+                        if (r.weekday == weekday) current = r;
+                      }
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              widget.ranges.any((r) => r.weekday == weekday)
-                                  ? (widget.type == 'sleep'
-                                      ? _hhmm(widget.ranges.firstWhere((r) => r.weekday == weekday).startMinute)
-                                      : widget.ranges.firstWhere((r) => r.weekday == weekday).label)
-                                  : '—',
-                              style: AppTextStyles.metricCaption.copyWith(
-                                color: AppColors.accent,
-                                fontSize: 13,
+                            Expanded(
+                              child: InkWell(
+                                onTap: () => _editDay(weekday, current),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 4),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(_weekdayLabels[weekday - 1],
+                                            style: AppTextStyles.body),
+                                      ),
+                                      Text(
+                                        current == null
+                                            ? 'Sin horario'
+                                            : (widget.type == 'sleep'
+                                                ? _hhmm(current.startMinute)
+                                                : current.label),
+                                        style: AppTextStyles.metricCaption.copyWith(
+                                          color: current == null
+                                              ? AppColors.textTertiary
+                                              : AppColors.accent,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      const Icon(Icons.chevron_right_rounded,
+                                          color: AppColors.textTertiary, size: 18),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            const Icon(Icons.chevron_right_rounded, color: AppColors.textTertiary, size: 18),
+                            if (current != null)
+                              IconButton(
+                                icon: const Icon(Icons.close_rounded, size: 16),
+                                color: AppColors.textTertiary,
+                                tooltip: 'Sin horario este día',
+                                onPressed: () =>
+                                    widget.cubit.deleteScheduleRange(widget.type, weekday),
+                              ),
                           ],
                         ),
-                      ],
+                      );
+                    }),
+                    if (weekday < 7) const Divider(height: 1),
+                  ],
+                  Gaps.vXl,
+                  SizedBox(
+                    width: double.infinity,
+                    child: PrimaryButton(
+                      label: 'Cerrar',
+                      onPressed: () => Navigator.of(context).pop(),
                     ),
                   ),
-                ),
-                if (weekday < 7) const Divider(height: 1),
-              ],
-              Gaps.vXl,
-              SizedBox(
-                width: double.infinity,
-                child: PrimaryButton(
-                  label: 'Cerrar',
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ),
-            ],
+                ],
+              );
+            },
           ),
         ),
       ),
