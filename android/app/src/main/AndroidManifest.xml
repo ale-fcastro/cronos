@@ -18,6 +18,9 @@
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <!-- Chequeo de actualizaciones contra GitHub Releases. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Instalar el APK descargado dentro de la app (Android 8+ pide este
+         permiso especial para lanzar el instalador desde una app propia). -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
     <application
         android:label="Cronos"
         android:name="${applicationName}"

@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../models/app_update_info.dart';
 
@@ -51,7 +53,6 @@ class AppUpdateService {
 
       return AppUpdateInfo(
         version: latestVersion,
-        releaseNotes: (json['body'] as String?)?.trim() ?? '',
         htmlUrl: json['html_url'] as String? ??
             'https://github.com/$owner/$repo/releases/latest',
         apkDownloadUrl: apkUrl,
@@ -59,6 +60,35 @@ class AppUpdateService {
     } catch (_) {
       return null;
     }
+  }
+
+  /// Descarga el APK a un archivo temporal, reportando progreso 0..1 por
+  /// [onProgress]. A diferencia de dejar que el navegador maneje la
+  /// descarga (donde se vio quedarse "descargando" para siempre pese a
+  /// haber terminado), acá el fin de la descarga lo determina directamente
+  /// el cierre del stream HTTP, sin depender de un gestor de descargas
+  /// externo. Lanza si la descarga falla; el caller decide cómo mostrarlo.
+  Future<File> downloadApk(String url, {void Function(double progress)? onProgress}) async {
+    final response =
+        await _client.send(http.Request('GET', Uri.parse(url))).timeout(
+              const Duration(minutes: 3),
+            );
+    if (response.statusCode != 200) {
+      throw StateError('Descarga falló (HTTP ${response.statusCode})');
+    }
+    final total = response.contentLength ?? 0;
+    final dir = await getTemporaryDirectory();
+    final file = File('${dir.path}/cronos_update.apk');
+    if (await file.exists()) await file.delete();
+    final sink = file.openWrite();
+    var received = 0;
+    await for (final chunk in response.stream.timeout(const Duration(minutes: 3))) {
+      sink.add(chunk);
+      received += chunk.length;
+      if (total > 0) onProgress?.call(received / total);
+    }
+    await sink.close();
+    return file;
   }
 
   /// Compara dos versiones "x.y.z" numéricamente (no lexicográficamente:

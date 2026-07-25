@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:showcaseview/showcaseview.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../features/dashboard/presentation/bloc/dashboard_cubit.dart';
 import '../../features/dashboard/presentation/pages/dashboard_page.dart';
@@ -69,10 +68,7 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
   Future<void> _maybeCheckUpdate() async {
     final update = await _appUpdate.checkForUpdate();
     if (update == null || !mounted) return;
-    final goDownload = await showUpdateAvailableDialog(context, update);
-    if (!goDownload) return;
-    final url = update.apkDownloadUrl ?? update.htmlUrl;
-    await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    await showUpdateAvailableDialog(context, update);
   }
 
   @override
