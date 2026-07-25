@@ -132,7 +132,11 @@ class _UpdateAvailableDialogState extends State<_UpdateAvailableDialog> {
                     const SizedBox(width: AppSpacing.sm + 2),
                     Expanded(
                       child: PrimaryButton(
-                        label: _stage == _Stage.error ? 'Reintentar' : 'Descargar',
+                        label: _stage == _Stage.error
+                            ? 'Reintentar'
+                            : (widget.info.apkDownloadUrl != null
+                                ? 'Descargar'
+                                : 'Ver en GitHub'),
                         onPressed: _download,
                       ),
                     ),
