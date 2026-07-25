@@ -31,7 +31,7 @@ void nudgeCallbackDispatcher() {
       if (message != null) {
         final notifications = NotificationsService(database);
         await notifications.initialize();
-        await notifications.showNow('Cronos', message);
+        await notifications.showNow('Croni te avisa', message);
       }
     } catch (_) {
       // Un aviso perdido no es grave; nunca debe tirar la tarea en segundo plano.

@@ -13,14 +13,23 @@ class DashboardCubit extends Cubit<DashboardState> {
   DashboardCubit(this._getTodaySummary, this._timer, this._lifeAreasService)
       : super(const DashboardLoading()) {
     load();
-    // El resumen de hoy se recalcula periódicamente (cronómetros, score).
-    _ticker = Timer.periodic(const Duration(seconds: 5), (_) => load());
+    // Mientras haya una tarea o actividad corriendo, refresca cada segundo
+    // para que su cronómetro se vea avanzar en vivo (igual que el detalle
+    // de tarea y las actividades); si no hay nada corriendo, cada 5s
+    // alcanza y evita reconsultar la base sin necesidad.
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      _ticks++;
+      final running = state is DashboardLoaded &&
+          (state as DashboardLoaded).summary.currentTask != null;
+      if (running || _ticks % 5 == 0) load();
+    });
   }
 
   final GetTodaySummary _getTodaySummary;
   final TimerService _timer;
   final LifeAreasService _lifeAreasService;
   Timer? _ticker;
+  int _ticks = 0;
   List<LifeArea> _lifeAreas = const [];
 
   Future<void> load() async {

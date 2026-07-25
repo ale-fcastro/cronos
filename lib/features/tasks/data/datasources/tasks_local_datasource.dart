@@ -325,8 +325,9 @@ class TasksLocalDatasource {
     if (rows.isNotEmpty) return;
     await db.insert('settings', {'key': key, 'value': '1'});
     await _notifications.showNow(
-      'Creaste tu primera tarea',
-      '¡Vas bien! Ese es el primer paso para medir tu tiempo de verdad.',
+      'Croni te felicita',
+      'Creaste tu primera tarea. ¡Vas bien! Ese es el primer paso para medir '
+          'tu tiempo de verdad.',
     );
   }
 

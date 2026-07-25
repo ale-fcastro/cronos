@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart' show Color;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:sqflite/sqflite.dart' show ConflictAlgorithm;
@@ -23,7 +24,15 @@ class NotificationsService {
 
   static const _channelId = 'task_reminders';
   static const _channelName = 'Recordatorios de tareas';
+  static const _updatesChannelId = 'app_updates';
+  static const _updatesChannelName = 'Actualizaciones';
   static const _enabledKey = 'notifications_enabled';
+
+  /// Ícono monocromo de la barra de estado (un ícono a color, como el
+  /// launcher, se ve como un cuadrado relleno en Android 5+). Mismo acento
+  /// que el resto de la app, para que la notificación se sienta de Croni.
+  static const _smallIcon = '@drawable/ic_stat_croni';
+  static const _accentColor = Color(0xFF9DB1F5);
 
   /// Se invoca al tocar el aviso de una tarea (payload = id de la tarea).
   void Function(String taskId)? onTaskReminderTapped;
@@ -39,7 +48,7 @@ class NotificationsService {
       // Sin zona horaria resuelta, sigue en UTC: preferible avisar a una
       // hora corrida que no avisar nunca.
     }
-    const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidInit = AndroidInitializationSettings(_smallIcon);
     const darwinInit = DarwinInitializationSettings(
       requestAlertPermission: false,
       requestBadgePermission: false,
@@ -151,7 +160,7 @@ class NotificationsService {
     try {
       await _plugin.zonedSchedule(
         id: _notificationId(taskId),
-        title: 'Es hora de: $title',
+        title: 'Croni te avisa: $title',
         body: (project == null || project.isEmpty) ? 'Tocá para abrir la tarea.' : project,
         scheduledDate: tz.TZDateTime.from(at, tz.local),
         notificationDetails: const NotificationDetails(
@@ -159,6 +168,8 @@ class NotificationsService {
             _channelId,
             _channelName,
             channelDescription: 'Avisos cuando empieza una tarea planificada',
+            icon: _smallIcon,
+            color: _accentColor,
             importance: Importance.high,
             priority: Priority.high,
           ),
@@ -187,6 +198,8 @@ class NotificationsService {
           android: AndroidNotificationDetails(
             _channelId,
             _channelName,
+            icon: _smallIcon,
+            color: _accentColor,
             importance: Importance.high,
             priority: Priority.high,
           ),
@@ -196,6 +209,36 @@ class NotificationsService {
       );
     } catch (_) {
       // Un aviso perdido no debe romper el flujo que lo dispara.
+    }
+  }
+
+  /// Avisa que hay una versión nueva de Cronos, en canal propio: no depende
+  /// del interruptor de recordatorios de tareas (son cosas distintas), solo
+  /// del permiso general de notificaciones.
+  Future<void> showUpdateAvailable(String version) async {
+    if (!await hasPermission()) return;
+    await initialize();
+    try {
+      await _plugin.show(
+        id: 'app_update'.hashCode & 0x7fffffff,
+        title: 'Croni tiene novedades',
+        body: 'Ya está lista la versión $version de Cronos. Tocá para actualizar.',
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            _updatesChannelId,
+            _updatesChannelName,
+            channelDescription: 'Avisa cuando hay una nueva versión de Cronos',
+            icon: _smallIcon,
+            color: _accentColor,
+            importance: Importance.defaultImportance,
+            priority: Priority.defaultPriority,
+          ),
+          iOS: DarwinNotificationDetails(),
+          macOS: DarwinNotificationDetails(),
+        ),
+      );
+    } catch (_) {
+      // Un aviso perdido no debe romper el chequeo de actualizaciones.
     }
   }
 

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:showcaseview/showcaseview.dart';
@@ -16,6 +18,7 @@ import '../models/event_category.dart';
 import '../services/app_update_service.dart';
 import '../services/life_areas_service.dart';
 import '../services/linked_app_guard_service.dart';
+import '../services/notifications_service.dart';
 import '../services/onboarding_service.dart';
 import 'register_sheet.dart';
 
@@ -38,6 +41,7 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
   late final OnboardingService _onboarding = sl<OnboardingService>();
   late final LinkedAppGuardService _linkedAppGuard = sl<LinkedAppGuardService>();
   late final AppUpdateService _appUpdate = sl<AppUpdateService>();
+  late final NotificationsService _notifications = sl<NotificationsService>();
 
   final _fabKey = GlobalKey();
   final _analyzeKey = GlobalKey();
@@ -67,7 +71,9 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
   /// privado, rate limit): nunca debe interrumpir el arranque normal.
   Future<void> _maybeCheckUpdate() async {
     final update = await _appUpdate.checkForUpdate();
-    if (update == null || !mounted) return;
+    if (update == null) return;
+    unawaited(_notifications.showUpdateAvailable(update.version));
+    if (!mounted) return;
     await showUpdateAvailableDialog(context, update);
   }
 

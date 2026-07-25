@@ -30,7 +30,11 @@ oscuro, tipografías IBM Plex y persistencia local en SQLite.
   sistema, pesos del score, exportar/backup (CSV, JSON, PDF, backup
   completo restaurable) y una pantalla de soporte con contacto directo.
 - **Actualizaciones**: al abrir la app, chequea si hay una versión más nueva
-  publicada en GitHub Releases y la descarga e instala sin salir de Cronos.
+  publicada en GitHub Releases y la descarga e instala sin salir de Cronos;
+  también avisa por notificación.
+- **Croni**: la mascota de la app (guía de bienvenida, tour de la primera
+  vez) también firma los avisos — recordatorios, hitos y notificaciones de
+  actualización hablan como Croni, no como "Cronos" a secas.
 
 ## Arquitectura
 
@@ -90,3 +94,31 @@ más el smoke test de arranque.
 Todo se guarda solo en el teléfono (SQLite local): no hay cuenta ni
 servidor. `Exportar y backup` en Configuración permite sacar los datos
 (CSV/JSON/PDF) o hacer una copia completa restaurable.
+
+## Publicar una versión
+
+El chequeo de actualizaciones (`core/services/app_update_service.dart`)
+apunta al último release público de este repo en GitHub. Para publicar una
+nueva versión:
+
+```bash
+# 1. Subí version en pubspec.yaml (x.y.z+build)
+export PATH="$HOME/flutter/bin:$PATH" ANDROID_HOME=/opt/android-sdk ANDROID_SDK_ROOT=/opt/android-sdk
+flutter build apk --release
+
+# 2. Commit + tag (el tag debe ser "vX.Y.Z", igual al de pubspec.yaml)
+git add -A && git commit -m "..."
+git tag -a vX.Y.Z -m "vX.Y.Z" && git push origin main vX.Y.Z
+
+# 3. Publicar el release con el APK adjunto
+gh release create vX.Y.Z build/app/outputs/flutter-apk/app-release.apk \
+  --title "Cronos vX.Y.Z" --notes "..."
+```
+
+El repo tiene que estar público (o el endpoint `releases/latest` de la API
+de GitHub no responde sin autenticación, y ningún teléfono va a detectar la
+actualización).
+
+## Autor
+
+Hecho por Francisco Castro, desarrollador de software independiente.
