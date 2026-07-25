@@ -185,15 +185,27 @@ class SettingsPage extends StatelessWidget {
                           const SectionHeader(title: 'Ayuda'),
                           AppCard(
                             padding: EdgeInsets.zero,
-                            child: _row(
-                              'Ver guía de bienvenida',
-                              '',
-                              chevron: true,
-                              onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                                builder: (_) => OnboardingPage(
-                                  onDone: () => Navigator.of(context).pop(),
+                            child: Column(
+                              children: [
+                                _row(
+                                  'Ver guía de bienvenida',
+                                  '',
+                                  chevron: true,
+                                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                                    builder: (_) => OnboardingPage(
+                                      onDone: () => Navigator.of(context).pop(),
+                                    ),
+                                  )),
                                 ),
-                              )),
+                                const Divider(height: 1),
+                                _row(
+                                  'Soporte',
+                                  '',
+                                  chevron: true,
+                                  onTap: () => Navigator.of(context)
+                                      .pushNamed(AppRoutes.support),
+                                ),
+                              ],
                             ),
                           ),
                         ],

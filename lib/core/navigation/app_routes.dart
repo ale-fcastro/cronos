@@ -7,4 +7,5 @@ abstract final class AppRoutes {
   static const activityTypes = '/activity-types';
   static const taskRecurrences = '/task-recurrences';
   static const taskDetail = '/task-detail';
+  static const support = '/support';
 }
