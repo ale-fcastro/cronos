@@ -3,11 +3,6 @@
 Sistema operativo personal del tiempo. App Flutter (Android/iOS) con tema
 oscuro, tipografías IBM Plex y persistencia local en SQLite.
 
-> Si vas a trabajar en este repo con Claude Code (desde esta PC o desde
-> otra), leé primero [CLAUDE.md](CLAUDE.md): tiene las convenciones del
-> proyecto, el flujo de release y varias cosas ya resueltas que conviene
-> no reinventar.
-
 ## Qué hace
 
 - **Hoy**: score del día (cumplimiento, eficiencia, sueño, puntualidad — pesos
