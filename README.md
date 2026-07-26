@@ -11,9 +11,9 @@ oscuro, tipografías IBM Plex y persistencia local en SQLite.
 - **Agenda**: línea de tiempo del día (tareas planificadas, actividades,
   eventos y huecos libres) y mapa de calor mensual — tocando cualquier día
   del mes se abre su agenda real, no solo el score. También se puede
-  importar un calendario externo (p.ej. Google Calendar, vía su URL
-  secreta .ics) para traer eventos próximos como tareas; sincronización
-  manual y de solo lectura, no trae eventos recurrentes.
+  importar un calendario externo (p.ej. un .ics exportado de Google
+  Calendar) para traer eventos próximos como tareas; importación manual
+  desde un archivo, de solo lectura, no trae eventos recurrentes.
 - **Avisos de vencimiento**: si una tarea planificada pasa su hora sin
   arrancarse, Croni avisa una vez por notificación (chequeo periódico en
   segundo plano, cada 15 minutos).

@@ -1,6 +1,6 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
-import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'package:cronos/core/database/app_database.dart';
@@ -38,19 +38,24 @@ void main() {
 
   late AppDatabase database;
   late CalendarImportService service;
+  late Directory tempDir;
 
   setUp(() {
     database = AppDatabase(
       factory: databaseFactoryFfiNoIsolate,
       path: inMemoryDatabasePath,
     );
+    service = CalendarImportService(database);
+    tempDir = Directory.systemTemp.createTempSync('cronos_ics_test');
   });
 
-  tearDown(() => database.close());
+  tearDown(() async {
+    await database.close();
+    if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+  });
 
-  test('sin URL configurada, sync() lanza en vez de fallar en silencio', () async {
-    service = CalendarImportService(database, client: MockClient((_) async => http.Response('', 200)));
-    expect(() => service.sync(), throwsStateError);
+  test('archivo inexistente lanza en vez de fallar en silencio', () async {
+    expect(() => service.importFile('${tempDir.path}/no-existe.ics'), throwsStateError);
   });
 
   test('importa eventos próximos, salta recurrentes y pasados, y es idempotente', () async {
@@ -58,12 +63,9 @@ void main() {
     final ics = _sampleIcs
         .replaceAll('REPLACE_START', _fmt(start))
         .replaceAll('REPLACE_END', _fmt(start.add(const Duration(hours: 1))));
+    final file = File('${tempDir.path}/calendar.ics')..writeAsStringSync(ics);
 
-    service = CalendarImportService(database,
-        client: MockClient((_) async => http.Response(ics, 200)));
-    await service.setUrl('https://calendar.google.com/ical/secret.ics');
-
-    final first = await service.sync();
+    final first = await service.importFile(file.path);
     expect(first.imported, 1);
     expect(first.updated, 0);
     expect(first.skippedRecurring, 1);
@@ -75,48 +77,44 @@ void main() {
     expect(tasks.first['title'], 'Reunión de equipo');
     expect(tasks.first['ics_uid'], 'evt-1@google.com');
 
-    // Segunda sincronización: mismo evento no duplica, se actualiza.
-    final second = await service.sync();
+    // Segunda importación del mismo archivo: no duplica, se actualiza.
+    final second = await service.importFile(file.path);
     expect(second.imported, 0);
     expect(second.updated, 1);
     final tasksAfter = await db.query('tasks', where: "project = 'Calendario'");
     expect(tasksAfter, hasLength(1));
   });
 
-  test('re-sincronizar no pisa el estado que el usuario ya cambió a mano', () async {
+  test('re-importar no pisa el estado que el usuario ya cambió a mano', () async {
     final start = DateTime.now().toUtc().add(const Duration(days: 3));
     final ics = _sampleIcs
         .replaceAll('REPLACE_START', _fmt(start))
         .replaceAll('REPLACE_END', _fmt(start.add(const Duration(hours: 1))));
-    service = CalendarImportService(database,
-        client: MockClient((_) async => http.Response(ics, 200)));
-    await service.setUrl('https://calendar.google.com/ical/secret.ics');
+    final file = File('${tempDir.path}/calendar.ics')..writeAsStringSync(ics);
 
-    await service.sync();
+    await service.importFile(file.path);
     final db = await database.database;
     await db.update('tasks', {'status': 'done', 'priority': 1},
         where: "project = 'Calendario'");
 
-    await service.sync();
+    await service.importFile(file.path);
     final tasks = await db.query('tasks', where: "project = 'Calendario'");
     expect(tasks.first['status'], 'done');
     expect(tasks.first['priority'], 1);
   });
 
-  test('guarda la URL configurada y la fecha de la última sincronización', () async {
-    service = CalendarImportService(database, client: MockClient((_) async => http.Response('', 200)));
-    expect(await service.getUrl(), isNull);
-
-    await service.setUrl('https://calendar.google.com/calendar/ical/secret/basic.ics');
-    expect(await service.getUrl(),
-        'https://calendar.google.com/calendar/ical/secret/basic.ics');
+  test('guarda la fecha y el nombre del archivo de la última importación', () async {
     expect(await service.getLastSync(), isNull);
+    expect(await service.getLastFileName(), isNull);
 
     final ics = _sampleIcs
         .replaceAll('REPLACE_START', _fmt(DateTime.now().toUtc().add(const Duration(days: 1))))
-        .replaceAll('REPLACE_END', _fmt(DateTime.now().toUtc().add(const Duration(days: 1, hours: 1))));
-    service = CalendarImportService(database, client: MockClient((_) async => http.Response(ics, 200)));
-    await service.sync();
+        .replaceAll(
+            'REPLACE_END', _fmt(DateTime.now().toUtc().add(const Duration(days: 1, hours: 1))));
+    final file = File('${tempDir.path}/mi_calendario.ics')..writeAsStringSync(ics);
+
+    await service.importFile(file.path);
     expect(await service.getLastSync(), isNotNull);
+    expect(await service.getLastFileName(), 'mi_calendario.ics');
   });
 }

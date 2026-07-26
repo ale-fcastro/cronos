@@ -1,4 +1,5 @@
-import 'package:http/http.dart' as http;
+import 'dart:io';
+
 import 'package:sqflite/sqflite.dart' show ConflictAlgorithm;
 
 import '../database/app_database.dart';
@@ -26,44 +27,26 @@ class CalendarSyncResult {
   int get total => imported + updated;
 }
 
-/// Importa eventos de un calendario externo (típicamente Google Calendar,
-/// vía su "dirección secreta en formato iCal") como tareas de Cronos.
+/// Importa eventos de un archivo .ics exportado de un calendario externo
+/// (típicamente Google Calendar → Configuración → Exportar) como tareas de
+/// Cronos.
 ///
-/// Deliberadamente de solo lectura y manual: no sincroniza en segundo plano
-/// ni sin que el usuario lo pida, y solo trae eventos sueltos (no
-/// recurrentes) dentro de una ventana acotada — ver [ics_parser.dart] para
-/// las simplificaciones de zona horaria y recurrencia.
+/// Deliberadamente de solo lectura y manual: el usuario elige el archivo
+/// cada vez, nada se descarga ni sincroniza solo, y solo se traen eventos
+/// sueltos (no recurrentes) dentro de una ventana acotada — ver
+/// [ics_parser.dart] para las simplificaciones de zona horaria y
+/// recurrencia.
 class CalendarImportService {
-  CalendarImportService(this._database, {http.Client? client})
-      : _client = client ?? http.Client();
+  CalendarImportService(this._database);
 
   final AppDatabase _database;
-  final http.Client _client;
 
-  static const _urlKey = 'calendar_ics_url';
   static const _lastSyncKey = 'calendar_last_sync';
+  static const _lastFileKey = 'calendar_last_file';
 
   /// Cuántos días hacia adelante se importan (evita traer años de eventos
   /// sueltos de golpe).
   static const importWindowDays = 60;
-
-  Future<String?> getUrl() async {
-    final db = await _database.database;
-    final rows = await db.query('settings', where: 'key = ?', whereArgs: [_urlKey]);
-    final value = rows.isEmpty ? null : rows.first['value'] as String?;
-    return (value == null || value.isEmpty) ? null : value;
-  }
-
-  Future<void> setUrl(String url) async {
-    final db = await _database.database;
-    await db.insert('settings', {'key': _urlKey, 'value': url.trim()},
-        conflictAlgorithm: ConflictAlgorithm.replace);
-  }
-
-  Future<void> clearUrl() async {
-    final db = await _database.database;
-    await db.delete('settings', where: 'key = ?', whereArgs: [_urlKey]);
-  }
 
   Future<DateTime?> getLastSync() async {
     final db = await _database.database;
@@ -73,21 +56,44 @@ class CalendarImportService {
     return ms == null ? null : DateTime.fromMillisecondsSinceEpoch(ms);
   }
 
-  /// Descarga el .ics configurado y crea/actualiza tareas. Lanza si no hay
-  /// URL configurada o si la descarga falla; el caller decide cómo
-  /// mostrarlo (a diferencia de otros servicios de este core/, acá el
-  /// usuario dispara la acción a mano y necesita saber si funcionó).
-  Future<CalendarSyncResult> sync() async {
-    final url = await getUrl();
-    if (url == null) {
-      throw StateError('No hay un calendario configurado todavía.');
-    }
-    final response = await _client.get(Uri.parse(url)).timeout(const Duration(seconds: 20));
-    if (response.statusCode != 200) {
-      throw StateError('No se pudo descargar el calendario (HTTP ${response.statusCode}).');
-    }
+  Future<String?> getLastFileName() async {
+    final db = await _database.database;
+    final rows = await db.query('settings', where: 'key = ?', whereArgs: [_lastFileKey]);
+    return rows.isEmpty ? null : rows.first['value'] as String?;
+  }
 
-    final events = parseIcsEvents(response.body);
+  /// Lee y procesa el .ics en [path]. Lanza si el archivo no se puede leer;
+  /// el caller decide cómo mostrarlo (a diferencia de otros servicios de
+  /// este core/, acá el usuario dispara la acción a mano y necesita saber
+  /// si funcionó).
+  Future<CalendarSyncResult> importFile(String path) async {
+    final file = File(path);
+    if (!await file.exists()) {
+      throw StateError('No se encontró el archivo.');
+    }
+    final text = await file.readAsString();
+    final result = await importIcsText(text);
+
+    final db = await _database.database;
+    final now = DateTime.now();
+    final fileName = path.split(Platform.pathSeparator).last;
+    await db.insert(
+      'settings',
+      {'key': _lastSyncKey, 'value': '${now.millisecondsSinceEpoch}'},
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    await db.insert(
+      'settings',
+      {'key': _lastFileKey, 'value': fileName},
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    return result;
+  }
+
+  /// Núcleo puro de la importación (sin tocar el filesystem), separado de
+  /// [importFile] para poder testearlo con texto de ejemplo directo.
+  Future<CalendarSyncResult> importIcsText(String icsText) async {
+    final events = parseIcsEvents(icsText);
     final db = await _database.database;
     final now = DateTime.now();
     final todayStart = DateTime(now.year, now.month, now.day);
@@ -145,12 +151,6 @@ class CalendarImportService {
         }
       }
     });
-
-    await db.insert(
-      'settings',
-      {'key': _lastSyncKey, 'value': '${now.millisecondsSinceEpoch}'},
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
 
     return CalendarSyncResult(
       imported: imported,
