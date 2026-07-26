@@ -12,11 +12,12 @@ import 'core/diagnostics/error_banner.dart';
 import 'core/diagnostics/error_reporting.dart';
 import 'core/navigation/app_router.dart';
 import 'core/navigation/app_routes.dart';
+import 'core/services/app_update_service.dart';
 import 'core/services/app_usage_service.dart';
 import 'core/services/notifications_service.dart';
 import 'core/services/nudge_service.dart';
 import 'features/tasks/domain/usecases/task_recurrence_usecases.dart';
-import 'shared/theme/app_theme.dart';
+import 'shared/shared.dart';
 
 /// Punto de entrada que WorkManager invoca en un isolate aparte cada vez
 /// que corre la tarea periódica: no comparte el GetIt del isolate principal,
@@ -93,19 +94,33 @@ void main() {
         AppRouter.navigatorKey.currentState
             ?.pushNamed(AppRoutes.taskDetail, arguments: taskId);
       };
+      // Si tocás el aviso de actualización con la app ya abierta (no
+      // relanzada), el startup check de RootShell no vuelve a correr:
+      // sin esto, no pasaba nada hasta cerrar del todo y reabrir.
+      notifications.onUpdateNotificationTapped = () async {
+        final update = await sl<AppUpdateService>().checkForUpdate();
+        final ctx = AppRouter.navigatorKey.currentContext;
+        if (update == null || ctx == null) return;
+        // navigatorKey es global y vive con la app entera: no hay un
+        // "mounted" de State que chequear acá.
+        // ignore: use_build_context_synchronously
+        await showUpdateAvailableDialog(ctx, update);
+      };
     } catch (e, st) {
       reportError('NotificationsService.initialize', e, st);
     }
 
     runApp(const CronosApp());
 
-    // Si la app estaba cerrada y se abrió tocando un aviso, navega al
-    // detalle de esa tarea en cuanto el primer frame esté listo.
-    final launchTaskId = await notifications.consumeLaunchPayload();
-    if (launchTaskId != null) {
+    // Si la app estaba cerrada y se abrió tocando un aviso de tarea, navega
+    // a su detalle en cuanto el primer frame esté listo. El aviso de
+    // actualización no necesita este camino: el chequeo normal de arranque
+    // (RootShell) ya corre solo y muestra el diálogo si sigue vigente.
+    final launchPayload = await notifications.consumeLaunchPayload();
+    if (launchPayload != null && launchPayload != NotificationsService.updatePayload) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         AppRouter.navigatorKey.currentState
-            ?.pushNamed(AppRoutes.taskDetail, arguments: launchTaskId);
+            ?.pushNamed(AppRoutes.taskDetail, arguments: launchPayload);
       });
     }
   }, (error, stack) => reportError('Zona no capturada', error, stack));

@@ -43,6 +43,7 @@ export 'widgets/dialogs/open_linked_app_dialog.dart';
 export 'widgets/dialogs/pause_reason_dialog.dart';
 export 'widgets/dialogs/update_available_dialog.dart';
 export 'widgets/dialogs/usage_permission_dialog.dart';
+export 'widgets/dialogs/whats_new_dialog.dart';
 
 // Feedback
 export 'widgets/feedback/app_snack_bar.dart';

@@ -57,13 +57,24 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
       blurValue: 1,
     );
     WidgetsBinding.instance.addPostFrameCallback((_) => _maybeStartTour());
-    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeCheckUpdate());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowWhatsNewThenCheckUpdate());
   }
 
   Future<void> _maybeStartTour() async {
     if (await _onboarding.hasSeenTour()) return;
     if (!mounted) return;
     ShowcaseView.get().startShowCase([_fabKey, _analyzeKey, _avatarKey]);
+  }
+
+  /// Si la versión instalada acaba de cambiar (recién actualizaste), cuenta
+  /// las novedades de ese release antes de chequear si hay una todavía más
+  /// nueva — así no se pisan los dos diálogos.
+  Future<void> _maybeShowWhatsNewThenCheckUpdate() async {
+    final notes = await _appUpdate.checkWhatsNew();
+    if (notes != null && mounted) {
+      await showWhatsNewDialog(context, notes);
+    }
+    await _maybeCheckUpdate();
   }
 
   /// Chequea GitHub Releases al abrir la app; si hay una versión más nueva,

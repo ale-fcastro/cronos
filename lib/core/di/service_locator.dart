@@ -105,7 +105,7 @@ void configureDependencies({AppDatabase? database}) {
   sl.registerLazySingleton(() => ProjectsService(sl()));
   sl.registerLazySingleton(() => TimerService(sl()));
   sl.registerLazySingleton(() => AppUsageService());
-  sl.registerLazySingleton(() => AppUpdateService());
+  sl.registerLazySingleton(() => AppUpdateService(sl()));
   sl.registerLazySingleton(() => LinkedAppGuardService(sl(), sl(), sl()));
   sl.registerLazySingleton(() => ExportService(sl()));
   sl.registerLazySingleton(() => NudgeService(sl(), sl()));

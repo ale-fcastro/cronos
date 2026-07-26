@@ -4,22 +4,28 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:sqflite/sqflite.dart' show ConflictAlgorithm;
 
+import '../database/app_database.dart';
 import '../models/app_update_info.dart';
 
 /// Consulta el último release publicado en GitHub y lo compara contra la
 /// versión instalada. Nunca lanza: sin conexión, repo privado o cualquier
 /// error de red simplemente no hay actualización que ofrecer.
 class AppUpdateService {
-  AppUpdateService({
+  AppUpdateService(
+    this._database, {
     this.owner = 'ale-fcastro',
     this.repo = 'cronos',
     http.Client? client,
   }) : _client = client ?? http.Client();
 
+  final AppDatabase _database;
   final String owner;
   final String repo;
   final http.Client _client;
+
+  static const _lastSeenVersionKey = 'last_seen_app_version';
 
   /// Devuelve los datos del release si hay una versión más nueva que la
   /// instalada, o null si está al día o el chequeo falló.
@@ -57,6 +63,47 @@ class AppUpdateService {
             'https://github.com/$owner/$repo/releases/latest',
         apkDownloadUrl: apkUrl,
       );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Si la versión instalada cambió desde la última vez que se abrió la
+  /// app (típicamente, recién actualizaste), devuelve las notas de ese
+  /// release para mostrar un "Novedades". Null en la primera instalación
+  /// (nada con qué comparar), si ya se mostraron, o si falla la red.
+  /// Marca la versión actual como vista, así solo se ofrece una vez.
+  Future<String?> checkWhatsNew() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      final db = await _database.database;
+      final rows = await db
+          .query('settings', where: 'key = ?', whereArgs: [_lastSeenVersionKey]);
+      final lastSeen = rows.isEmpty ? null : rows.first['value'] as String?;
+      await db.insert(
+        'settings',
+        {'key': _lastSeenVersionKey, 'value': info.version},
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+      if (lastSeen == null || lastSeen == info.version) return null;
+      return await _fetchReleaseNotes(info.version);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<String?> _fetchReleaseNotes(String version) async {
+    try {
+      final response = await _client
+          .get(
+            Uri.parse('https://api.github.com/repos/$owner/$repo/releases/tags/v$version'),
+            headers: const {'Accept': 'application/vnd.github+json'},
+          )
+          .timeout(const Duration(seconds: 8));
+      if (response.statusCode != 200) return null;
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      final body = (json['body'] as String?)?.trim();
+      return (body == null || body.isEmpty) ? null : body;
     } catch (_) {
       return null;
     }

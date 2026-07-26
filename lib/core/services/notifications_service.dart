@@ -37,6 +37,13 @@ class NotificationsService {
   /// Se invoca al tocar el aviso de una tarea (payload = id de la tarea).
   void Function(String taskId)? onTaskReminderTapped;
 
+  /// Se invoca al tocar el aviso de actualización disponible.
+  void Function()? onUpdateNotificationTapped;
+
+  /// Payload de la notificación de actualización: distingue el tap de un
+  /// recordatorio de tarea (que manda el id de la tarea como payload).
+  static const updatePayload = 'app_update';
+
   Future<void> initialize() async {
     if (_initialized) return;
     _initialized = true;
@@ -62,8 +69,12 @@ class NotificationsService {
           macOS: darwinInit,
         ),
         onDidReceiveNotificationResponse: (response) {
-          final taskId = response.payload;
-          if (taskId != null && taskId.isNotEmpty) onTaskReminderTapped?.call(taskId);
+          final payload = response.payload;
+          if (payload == updatePayload) {
+            onUpdateNotificationTapped?.call();
+            return;
+          }
+          if (payload != null && payload.isNotEmpty) onTaskReminderTapped?.call(payload);
         },
       );
     } catch (_) {
@@ -220,9 +231,9 @@ class NotificationsService {
     await initialize();
     try {
       await _plugin.show(
-        id: 'app_update'.hashCode & 0x7fffffff,
-        title: 'Croni tiene novedades',
-        body: 'Ya está lista la versión $version de Cronos. Tocá para actualizar.',
+        id: updatePayload.hashCode & 0x7fffffff,
+        title: 'Croni te avisa',
+        body: 'Cronos $version ya está disponible. Tocá para actualizar.',
         notificationDetails: const NotificationDetails(
           android: AndroidNotificationDetails(
             _updatesChannelId,
@@ -236,6 +247,7 @@ class NotificationsService {
           iOS: DarwinNotificationDetails(),
           macOS: DarwinNotificationDetails(),
         ),
+        payload: updatePayload,
       );
     } catch (_) {
       // Un aviso perdido no debe romper el chequeo de actualizaciones.
