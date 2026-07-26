@@ -14,23 +14,25 @@ oscuro, tipografías IBM Plex y persistencia local en SQLite.
   configurables), tiempo productivo/perdido, tarea o actividad en curso con
   cronómetro vivo, siguiente bloque y score de los últimos 7 días.
 - **Agenda**: línea de tiempo del día (tareas planificadas, actividades,
-  eventos y huecos libres) y mapa de calor mensual — tocando cualquier día
-  del mes se abre su agenda real, no solo el score. También se puede
-  importar un calendario externo (p.ej. un .ics exportado de Google
-  Calendar) para traer eventos próximos como tareas; importación manual
-  desde un archivo, de solo lectura, no trae eventos recurrentes.
+  eventos y huecos libres) y mapa de calor mensual, navegable a meses
+  anteriores y siguientes — tocando cualquier día del mes se abre su agenda
+  real, no solo el score. También se puede importar un calendario externo
+  (p.ej. un .ics exportado de Google Calendar) para traer eventos próximos
+  como tareas; importación manual desde un archivo, de solo lectura, no
+  trae eventos recurrentes.
 - **Avisos de vencimiento**: si una tarea planificada pasa su hora sin
   arrancarse, Croni avisa una vez por notificación (chequeo periódico en
   segundo plano, cada 15 minutos).
 - **Tareas**: lista Hoy/Semana/Todas con prioridades P1–P3, cronómetro por
   tarea (solo uno a la vez), estimado vs real, detalle con historial de
   sesiones, subtareas (título + descripción opcional, checklist que bloquea
-  finalizar hasta completarse) y
-  tareas recurrentes (diarias o por día de semana, con fecha de inicio
-  elegible). Finalizar no es un toque sin más: Cronos pregunta si la tarea
-  se hizo de verdad — pide el horario real si nunca se usó el cronómetro,
-  o un motivo si en realidad no se hizo (queda como "no hecha", no
-  desaparece en silencio).
+  finalizar hasta completarse; se pueden agregar ya desde la creación de la
+  tarea o después desde su detalle) y tareas recurrentes (diarias o por día
+  de semana, con fecha de inicio elegible; las subtareas cargadas al crear
+  la regla se copian a cada ocurrencia generada). Finalizar no es un toque
+  sin más: Cronos pregunta si la tarea se hizo de verdad — pide el horario
+  real si nunca se usó el cronómetro, o un motivo si en realidad no se hizo
+  (queda como "no hecha", no desaparece en silencio).
 - **Registrar** (FAB): tareas con fecha/hora reales, sugerencias del
   historial, vínculo opcional con una app del teléfono para confirmar
   cumplimiento automático; actividades con cronómetro (dormir, comer,

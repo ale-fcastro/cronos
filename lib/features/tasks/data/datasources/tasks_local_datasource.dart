@@ -7,6 +7,7 @@ import '../../../../core/services/app_usage_service.dart';
 import '../../../../core/services/notifications_service.dart';
 import '../../../../core/services/timer_service.dart';
 import '../../../../core/utils/time_format.dart';
+import '../../domain/entities/new_subtask_draft.dart';
 import '../../domain/entities/new_task_input.dart';
 import '../../domain/entities/task_detail.dart';
 import '../../domain/entities/task_priority.dart';
@@ -372,6 +373,9 @@ class TasksLocalDatasource {
         at: input.plannedAt!,
       );
     }
+    for (final s in input.subtasks) {
+      await addSubtask(id, s.title, description: s.description);
+    }
     await _celebrateFirstTaskIfNeeded(db);
   }
 
@@ -449,6 +453,9 @@ class TasksLocalDatasource {
       'weekday_minutes': jsonEncode(
           input.weekdayMinuteOfDay.map((k, v) => MapEntry('$k', v))),
       'start_date': _dateKey(input.startDate),
+      'subtasks_json': jsonEncode([
+        for (final s in input.subtasks) {'title': s.title, 'description': s.description},
+      ]),
       'created_at': DateTime.now().millisecondsSinceEpoch,
     });
   }
@@ -504,6 +511,9 @@ class TasksLocalDatasource {
           'recurrence_id': recurrence.id,
           'recurrence_date': dateKey,
         });
+        for (final s in recurrence.subtasks) {
+          await addSubtask(id, s.title, description: s.description);
+        }
         await _notifications.scheduleTaskReminder(
           taskId: id,
           title: recurrence.title,
@@ -517,6 +527,8 @@ class TasksLocalDatasource {
   TaskRecurrence _recurrenceFromRow(Map<String, Object?> r) {
     final weekdayJson =
         jsonDecode(r['weekday_minutes'] as String? ?? '{}') as Map;
+    final subtasksJson =
+        jsonDecode(r['subtasks_json'] as String? ?? '[]') as List;
     return TaskRecurrence(
       id: r['id'] as String,
       title: r['title'] as String,
@@ -533,6 +545,13 @@ class TasksLocalDatasource {
       sameTimeMinuteOfDay: r['same_time_minute'] as int?,
       weekdayMinuteOfDay: weekdayJson.map(
           (k, v) => MapEntry(int.parse(k as String), (v as num).toInt())),
+      subtasks: [
+        for (final s in subtasksJson)
+          NewSubtaskDraft(
+            title: (s as Map)['title'] as String,
+            description: s['description'] as String?,
+          ),
+      ],
     );
   }
 

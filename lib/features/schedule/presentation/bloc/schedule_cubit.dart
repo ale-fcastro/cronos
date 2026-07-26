@@ -32,16 +32,43 @@ class ScheduleCubit extends Cubit<ScheduleState> {
   final LifeAreasService _lifeAreasService;
   Timer? _ticker;
 
+  /// Mes que se está navegando en la vista Mes; null = el mes actual.
+  /// _load() se dispara solo (ticker, tras start/pause) y no debe
+  /// pisar la navegación del usuario volviendo siempre al mes de hoy.
+  DateTime? _viewedMonth;
+
   Future<void> _load() async {
     try {
       final now = DateTime.now();
       final day = await _getDayAgenda(now);
-      final month = await _getMonthOverview(now);
+      final month = await _getMonthOverview(_viewedMonth ?? now);
       if (isClosed) return;
       emit(state.copyWith(day: day, month: month));
     } catch (e, st) {
       reportError('ScheduleCubit._load', e, st);
     }
+  }
+
+  Future<void> _loadMonth(DateTime month) async {
+    try {
+      final overview = await _getMonthOverview(month);
+      if (isClosed) return;
+      emit(state.copyWith(month: overview));
+    } catch (e, st) {
+      reportError('ScheduleCubit._loadMonth', e, st);
+    }
+  }
+
+  Future<void> previousMonth() async {
+    final ref = state.month?.referenceMonth ?? DateTime.now();
+    _viewedMonth = DateTime(ref.year, ref.month - 1, 1);
+    await _loadMonth(_viewedMonth!);
+  }
+
+  Future<void> nextMonth() async {
+    final ref = state.month?.referenceMonth ?? DateTime.now();
+    _viewedMonth = DateTime(ref.year, ref.month + 1, 1);
+    await _loadMonth(_viewedMonth!);
   }
 
   Future<void> _loadLifeAreas() async {

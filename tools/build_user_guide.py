@@ -307,6 +307,11 @@ steps = [
     'ejemplo, vincular "Estudiar inglés" con Duolingo). Así, cuando la marques '
     'como hecha, Cronos puede confirmar sola si de verdad usaste esa app '
     'mientras la tarea estaba corriendo.',
+    'Si ya sabés que la tarea va a tener pasos, agregale subtareas ahí mismo '
+    '(título y, opcionalmente, una descripción). Si la tarea se repite, esas '
+    'mismas subtareas se copian en cada ocurrencia que Cronos genere. Después '
+    'de creada, se pueden seguir agregando o editando desde su detalle, como '
+    'siempre.',
     'Tocá Crear tarea. Si ya tenés otra tarea planificada a esa misma hora, te '
     'avisa antes de dejarte guardar.',
 ]
@@ -349,9 +354,11 @@ story.append(bul('Día:', 'una línea de tiempo con todo lo que pasó (o va a pa
                           'Cada tarea planificada tiene un botón para arrancarla ahí mismo, sin '
                           'tener que ir a buscarla.'))
 story.append(bul('Mes:', 'un calendario donde cada día se pinta más o menos intenso según '
-                          'cuánto registraste. Tocando cualquier día se abre su agenda real '
-                          '-qué tenías planificado, qué pasó- igual que la vista Día pero '
-                          'para esa fecha.'))
+                          'cuánto registraste. Con las flechas de arriba te movés al mes '
+                          'anterior o siguiente para revisar tu historial o planificar más '
+                          'adelante. Tocando cualquier día se abre su agenda real -qué tenías '
+                          'planificado, qué pasó- igual que la vista Día pero para esa '
+                          'fecha.'))
 story.append(Spacer(1, 8))
 story.append(Paragraph('Traer eventos de Google Calendar', callout_title))
 story.append(para(
@@ -377,10 +384,11 @@ story.append(para(
 story.append(Spacer(1, 8))
 story.append(Paragraph('Subtareas', callout_title))
 story.append(para(
-    'Dentro del detalle de una tarea podés agregarle una lista de '
-    'subtareas, cada una con su título y, si querés, una descripción con '
-    'más detalle. Tocando una subtarea la editás. Una tarea no se puede '
-    'finalizar mientras le queden subtareas sin marcar.'))
+    'Podés agregarle a una tarea una lista de subtareas, cada una con su '
+    'título y, si querés, una descripción con más detalle -ya sea al '
+    'crearla, o después desde su detalle. Tocando una subtarea la editás. '
+    'Una tarea no se puede finalizar mientras le queden subtareas sin '
+    'marcar.'))
 story.append(Spacer(1, 4))
 story.append(Paragraph('Finalizar no es automático', callout_title))
 story.append(para(

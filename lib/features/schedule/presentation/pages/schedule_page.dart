@@ -44,9 +44,13 @@ class SchedulePage extends StatelessWidget {
                   children: [
                     AppSegmentedButton(
                       segments: const ['Día', 'Mes'],
-                      selectedIndex: state.viewMode == ScheduleViewMode.day ? 0 : 1,
-                      onChanged: (i) => context.read<ScheduleCubit>().setViewMode(
-                          i == 0 ? ScheduleViewMode.day : ScheduleViewMode.month),
+                      selectedIndex:
+                          state.viewMode == ScheduleViewMode.day ? 0 : 1,
+                      onChanged: (i) => context
+                          .read<ScheduleCubit>()
+                          .setViewMode(i == 0
+                              ? ScheduleViewMode.day
+                              : ScheduleViewMode.month),
                     ),
                     Gaps.hSm,
                     const ProfileAvatar(),
@@ -57,7 +61,8 @@ class SchedulePage extends StatelessWidget {
             Gaps.vLg,
             Expanded(
               child: state.viewMode == ScheduleViewMode.day
-                  ? _DayTimeline(entries: state.day!.entries, lifeAreas: state.lifeAreas)
+                  ? _DayTimeline(
+                      entries: state.day!.entries, lifeAreas: state.lifeAreas)
                   : _MonthView(
                       month: state.month!,
                       lifeAreas: state.lifeAreas,
@@ -78,7 +83,8 @@ class _DayTimeline extends StatelessWidget {
 
   Future<void> _openTaskDetail(BuildContext context, String? taskId) async {
     if (taskId == null) return;
-    await Navigator.of(context).pushNamed(AppRoutes.taskDetail, arguments: taskId);
+    await Navigator.of(context)
+        .pushNamed(AppRoutes.taskDetail, arguments: taskId);
     if (!context.mounted) return;
     context.read<ScheduleCubit>().reload();
   }
@@ -122,24 +128,29 @@ class _DayTimeline extends StatelessWidget {
     switch (e.kind) {
       case TimelineEntryKind.lateMarker:
         return InkWell(
-          onTap: e.taskId == null ? null : () => _openTaskDetail(context, e.taskId),
+          onTap: e.taskId == null
+              ? null
+              : () => _openTaskDetail(context, e.taskId),
           borderRadius: BorderRadius.circular(8),
           child: Padding(
             padding: const EdgeInsets.only(left: 50),
             child: Row(
               children: [
-                const Expanded(child: Divider(color: AppColors.danger, height: 1)),
+                const Expanded(
+                    child: Divider(color: AppColors.danger, height: 1)),
                 const SizedBox(width: 8),
                 Text(e.time,
-                    style:
-                        AppTextStyles.metricCaption.copyWith(color: AppColors.danger, fontSize: 10)),
+                    style: AppTextStyles.metricCaption
+                        .copyWith(color: AppColors.danger, fontSize: 10)),
               ],
             ),
           ),
         );
       case TimelineEntryKind.sessionMarker:
         return InkWell(
-          onTap: e.taskId == null ? null : () => _openTaskDetail(context, e.taskId),
+          onTap: e.taskId == null
+              ? null
+              : () => _openTaskDetail(context, e.taskId),
           borderRadius: BorderRadius.circular(8),
           child: Padding(
             padding: const EdgeInsets.only(left: 50),
@@ -147,13 +158,15 @@ class _DayTimeline extends StatelessWidget {
               children: [
                 Expanded(
                   child: Divider(
-                      color: (e.accentColor ?? AppColors.textTertiary).withValues(alpha: 0.35),
+                      color: (e.accentColor ?? AppColors.textTertiary)
+                          .withValues(alpha: 0.35),
                       height: 1),
                 ),
                 const SizedBox(width: 8),
                 Text('${e.subtitle} · ${e.time}',
-                    style: AppTextStyles.metricCaption
-                        .copyWith(color: e.accentColor ?? AppColors.textTertiary, fontSize: 10)),
+                    style: AppTextStyles.metricCaption.copyWith(
+                        color: e.accentColor ?? AppColors.textTertiary,
+                        fontSize: 10)),
               ],
             ),
           ),
@@ -177,7 +190,9 @@ class _DayTimeline extends StatelessWidget {
           timeColor: AppColors.accent,
           emphasized: true,
           child: HighlightSurface(
-            onTap: e.taskId == null ? null : () => _openTaskDetail(context, e.taskId),
+            onTap: e.taskId == null
+                ? null
+                : () => _openTaskDetail(context, e.taskId),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -186,13 +201,15 @@ class _DayTimeline extends StatelessWidget {
                     Container(
                       width: 7,
                       height: 7,
-                      decoration:
-                          const BoxDecoration(color: AppColors.accent, shape: BoxShape.circle),
+                      decoration: const BoxDecoration(
+                          color: AppColors.accent, shape: BoxShape.circle),
                     ),
                     Gaps.hSm,
                     Expanded(
                       child: Text(e.title ?? '',
-                          style: AppTextStyles.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                          style: AppTextStyles.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
                     ),
                   ],
                 ),
@@ -204,10 +221,13 @@ class _DayTimeline extends StatelessWidget {
                 Row(
                   children: [
                     if (e.elapsedLabel != null)
-                      MetricLabel(e.elapsedLabel!, color: AppColors.accent, size: 17),
+                      MetricLabel(e.elapsedLabel!,
+                          color: AppColors.accent, size: 17),
                     Gaps.hMd,
                     if (e.progress != null)
-                      Expanded(child: LinearProgressCard(label: '', progress: e.progress!)),
+                      Expanded(
+                          child: LinearProgressCard(
+                              label: '', progress: e.progress!)),
                     Gaps.hMd,
                     SecondaryButton(
                       label: 'Pausar',
@@ -237,8 +257,11 @@ class _DayTimeline extends StatelessWidget {
           timeColor: e.late ? AppColors.danger : null,
           child: AppCard(
             padding: AppSpacing.cardDense,
-            borderColor: e.late ? AppColors.danger.withValues(alpha: 0.35) : null,
-            onTap: e.taskId == null ? null : () => _openTaskDetail(context, e.taskId),
+            borderColor:
+                e.late ? AppColors.danger.withValues(alpha: 0.35) : null,
+            onTap: e.taskId == null
+                ? null
+                : () => _openTaskDetail(context, e.taskId),
             child: Row(
               children: [
                 Container(
@@ -254,11 +277,12 @@ class _DayTimeline extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(e.title ?? '', style: AppTextStyles.title.copyWith(fontSize: 13)),
+                      Text(e.title ?? '',
+                          style: AppTextStyles.title.copyWith(fontSize: 13)),
                       if (e.subtitle != null)
                         Text(e.subtitle!,
-                            style: AppTextStyles.caption
-                                .copyWith(color: e.late ? AppColors.danger : null)),
+                            style: AppTextStyles.caption.copyWith(
+                                color: e.late ? AppColors.danger : null)),
                     ],
                   ),
                 ),
@@ -266,7 +290,9 @@ class _DayTimeline extends StatelessWidget {
                 if (e.showPlay) ...[
                   Gaps.hSm,
                   _PlayCircle(
-                    onTap: e.taskId == null ? null : () => _startTask(context, e.taskId!),
+                    onTap: e.taskId == null
+                        ? null
+                        : () => _startTask(context, e.taskId!),
                   ),
                 ],
               ],
@@ -292,9 +318,11 @@ class _PlayCircle extends StatelessWidget {
         height: 26,
         decoration: const BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.fromBorderSide(BorderSide(color: AppColors.borderStrong, width: 1.5)),
+          border: Border.fromBorderSide(
+              BorderSide(color: AppColors.borderStrong, width: 1.5)),
         ),
-        child: const Icon(Icons.play_arrow_rounded, size: 16, color: AppColors.textSecondary),
+        child: const Icon(Icons.play_arrow_rounded,
+            size: 16, color: AppColors.textSecondary),
       ),
     );
   }
@@ -311,25 +339,34 @@ class _MonthView extends StatelessWidget {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      builder: (sheetContext) => FractionallySizedBox(
-        heightFactor: 0.75,
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(fmtDayChip(date), style: AppTextStyles.headline),
-              Gaps.vMd,
-              Expanded(
-                child: FutureBuilder<AgendaDay>(
-                  future: cubit.loadDayDetail(date),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) return const LoadingView();
-                    return _DayTimeline(entries: snapshot.data!.entries, lifeAreas: lifeAreas);
-                  },
+      // showModalBottomSheet monta el contenido en el Overlay de la raíz,
+      // fuera del árbol donde RootShell provee ScheduleCubit — sin este
+      // BlocProvider.value, cualquier acción adentro de la hoja (arrancar,
+      // pausar, abrir el detalle) explota con "Provider no encontrado".
+      builder: (sheetContext) => BlocProvider<ScheduleCubit>.value(
+        value: cubit,
+        child: FractionallySizedBox(
+          heightFactor: 0.75,
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(fmtDayChip(date), style: AppTextStyles.headline),
+                Gaps.vMd,
+                Expanded(
+                  child: FutureBuilder<AgendaDay>(
+                    future: cubit.loadDayDetail(date),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) return const LoadingView();
+                      return _DayTimeline(
+                          entries: snapshot.data!.entries,
+                          lifeAreas: lifeAreas);
+                    },
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -339,6 +376,7 @@ class _MonthView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const weekdayLabels = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+    final cubit = context.read<ScheduleCubit>();
     return ListView(
       padding: const EdgeInsets.only(bottom: 96),
       children: [
@@ -346,11 +384,28 @@ class _MonthView extends StatelessWidget {
           child: Column(
             children: [
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  AppIconButton(
+                    icon: Icons.chevron_left_rounded,
+                    onPressed: cubit.previousMonth,
+                  ),
+                  Text(month.monthLabel, style: AppTextStyles.title),
+                  AppIconButton(
+                    icon: Icons.chevron_right_rounded,
+                    onPressed: cubit.nextMonth,
+                  ),
+                ],
+              ),
+              Gaps.vSm,
+              Row(
                 children: [
                   for (final l in weekdayLabels)
                     Expanded(
                       child: Center(
-                        child: Text(l, style: AppTextStyles.caption.copyWith(fontSize: 10)),
+                        child: Text(l,
+                            style:
+                                AppTextStyles.caption.copyWith(fontSize: 10)),
                       ),
                     ),
                 ],
@@ -363,7 +418,8 @@ class _MonthView extends StatelessWidget {
                 mainAxisSpacing: 6,
                 crossAxisSpacing: 6,
                 children: [
-                  for (var i = 0; i < month.leadingBlankCells; i++) const SizedBox.shrink(),
+                  for (var i = 0; i < month.leadingBlankCells; i++)
+                    const SizedBox.shrink(),
                   for (final d in month.days)
                     HeatmapCell(
                       label: '${d.day}',
@@ -371,7 +427,8 @@ class _MonthView extends StatelessWidget {
                       selected: d.selected,
                       onTap: () => _showDayDetail(
                         context,
-                        DateTime(month.referenceMonth.year, month.referenceMonth.month, d.day),
+                        DateTime(month.referenceMonth.year,
+                            month.referenceMonth.month, d.day),
                       ),
                     ),
                 ],
@@ -411,7 +468,8 @@ class _MonthView extends StatelessWidget {
               DistributionBar(
                 segments: [
                   for (final s in month.selectedDaySegments)
-                    DistributionSegment(value: s.fraction, color: s.color, label: s.label),
+                    DistributionSegment(
+                        value: s.fraction, color: s.color, label: s.label),
                 ],
               ),
               Gaps.vMd,

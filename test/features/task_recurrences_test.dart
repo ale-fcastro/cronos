@@ -3,6 +3,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'package:cronos/core/database/app_database.dart';
 import 'package:cronos/features/tasks/data/datasources/tasks_local_datasource.dart';
+import 'package:cronos/features/tasks/domain/entities/new_subtask_draft.dart';
 import 'package:cronos/features/tasks/domain/entities/task_priority.dart';
 import 'package:cronos/features/tasks/domain/entities/task_recurrence.dart';
 
@@ -140,5 +141,32 @@ void main() {
     // Ni hoy ni mañana se generó ocurrencia: solo el día de inicio.
     final today = await datasource.fetchTasks(scope: 'today');
     expect(today.where((t) => t.title == 'Meditar'), isEmpty);
+  });
+
+  test('las subtareas de la regla se copian a cada ocurrencia generada', () async {
+    await datasource.createRecurrence(NewTaskRecurrenceInput(
+      title: 'Meditar',
+      project: 'Personal',
+      priority: TaskPriority.p3,
+      estimateMinutes: 15,
+      mode: RecurrenceMode.dailySameTime,
+      startDate: DateTime.now(),
+      sameTimeMinuteOfDay: 7 * 60,
+      subtasks: const [
+        NewSubtaskDraft(title: 'Respirar'),
+        NewSubtaskDraft(title: 'Estirar', description: '5 minutos'),
+      ],
+    ));
+
+    await datasource.generateUpcomingOccurrences(daysAhead: 3);
+    final tasks = await datasource.fetchTasks(scope: 'all');
+    final meditar = tasks.where((t) => t.title == 'Meditar').toList();
+    expect(meditar, hasLength(3));
+
+    for (final t in meditar) {
+      final detail = await datasource.fetchDetail(t.id);
+      expect(detail.subtasks, hasLength(2));
+      expect(detail.subtasks.map((s) => s.title), containsAll(['Respirar', 'Estirar']));
+    }
   });
 }

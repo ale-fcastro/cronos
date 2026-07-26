@@ -14,7 +14,7 @@ class AppDatabase {
   final String? _pathOverride;
   Database? _db;
 
-  static const _version = 15;
+  static const _version = 16;
 
   Future<Database> get database async {
     final cached = _db;
@@ -157,6 +157,7 @@ class AppDatabase {
         same_time_minute INTEGER,
         weekday_minutes TEXT,
         start_date TEXT,
+        subtasks_json TEXT,
         created_at INTEGER NOT NULL
       )
     ''');
@@ -360,6 +361,11 @@ class AppDatabase {
     if (oldVersion < 15) {
       if (!await _columnExists(db, 'subtasks', 'description')) {
         await db.execute('ALTER TABLE subtasks ADD COLUMN description TEXT');
+      }
+    }
+    if (oldVersion < 16) {
+      if (!await _columnExists(db, 'task_recurrences', 'subtasks_json')) {
+        await db.execute('ALTER TABLE task_recurrences ADD COLUMN subtasks_json TEXT');
       }
     }
   }

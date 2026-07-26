@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import '../../../../core/models/life_area.dart';
 import '../../../../core/utils/time_format.dart';
+import '../../domain/entities/new_subtask_draft.dart';
 import '../../domain/entities/task_priority.dart';
 import '../../domain/entities/task_recurrence.dart';
 import '../../domain/entities/task_suggestion.dart';
@@ -27,6 +28,7 @@ class CreateTaskState extends Equatable {
     this.submitting = false,
     this.submitted = false,
     this.timeConflict = false,
+    this.draftSubtasks = const [],
   });
 
   final String title;
@@ -72,6 +74,10 @@ class CreateTaskState extends Equatable {
   /// true si ya hay otra tarea planificada exactamente a esta fecha y hora
   /// (solo aplica a tareas sueltas, no a reglas de repetición).
   final bool timeConflict;
+
+  /// Subtareas agregadas en el formulario, antes de que la tarea exista.
+  /// Si es una regla de repetición, se copian a cada ocurrencia generada.
+  final List<NewSubtaskDraft> draftSubtasks;
 
   DateTime get effectiveDate => plannedDate ?? DateTime.now();
 
@@ -141,6 +147,7 @@ class CreateTaskState extends Equatable {
     bool? submitting,
     bool? submitted,
     bool? timeConflict,
+    List<NewSubtaskDraft>? draftSubtasks,
   }) {
     return CreateTaskState(
       title: title ?? this.title,
@@ -165,6 +172,7 @@ class CreateTaskState extends Equatable {
       submitting: submitting ?? this.submitting,
       submitted: submitted ?? this.submitted,
       timeConflict: timeConflict ?? this.timeConflict,
+      draftSubtasks: draftSubtasks ?? this.draftSubtasks,
     );
   }
 
@@ -190,5 +198,6 @@ class CreateTaskState extends Equatable {
         submitting,
         submitted,
         timeConflict,
+        draftSubtasks,
       ];
 }

@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'new_subtask_draft.dart';
 import 'task_priority.dart';
 
 enum RecurrenceMode {
@@ -25,6 +26,7 @@ class TaskRecurrence extends Equatable {
     this.notes,
     this.sameTimeMinuteOfDay,
     this.weekdayMinuteOfDay = const {},
+    this.subtasks = const [],
   });
 
   final String id;
@@ -46,6 +48,9 @@ class TaskRecurrence extends Equatable {
   /// Día de semana (1=lunes..7=domingo) -> minuto del día;
   /// usado cuando [mode] es [RecurrenceMode.dailyPerWeekday].
   final Map<int, int> weekdayMinuteOfDay;
+
+  /// Subtareas que se copian a cada ocurrencia generada por esta regla.
+  final List<NewSubtaskDraft> subtasks;
 
   static const _weekdayShort = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
@@ -77,6 +82,7 @@ class TaskRecurrence extends Equatable {
         startDate,
         sameTimeMinuteOfDay,
         weekdayMinuteOfDay,
+        subtasks,
       ];
 }
 
@@ -93,6 +99,7 @@ class NewTaskRecurrenceInput {
     this.notes,
     this.sameTimeMinuteOfDay,
     this.weekdayMinuteOfDay = const {},
+    this.subtasks = const [],
   });
 
   final String title;
@@ -107,4 +114,7 @@ class NewTaskRecurrenceInput {
   final DateTime startDate;
   final int? sameTimeMinuteOfDay;
   final Map<int, int> weekdayMinuteOfDay;
+
+  /// Subtareas a copiar en cada ocurrencia que se genere de esta regla.
+  final List<NewSubtaskDraft> subtasks;
 }

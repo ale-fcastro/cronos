@@ -3,6 +3,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'package:cronos/core/database/app_database.dart';
 import 'package:cronos/features/tasks/data/datasources/tasks_local_datasource.dart';
+import 'package:cronos/features/tasks/domain/entities/new_subtask_draft.dart';
 import 'package:cronos/features/tasks/domain/entities/new_task_input.dart';
 import 'package:cronos/features/tasks/domain/entities/task_priority.dart';
 import 'package:cronos/features/tasks/domain/entities/task_summary.dart';
@@ -76,6 +77,27 @@ void main() {
     expect(detail.sessionsCount, 1);
     expect(detail.history, hasLength(1));
     expect(detail.notes, 'nota de prueba');
+  });
+
+  test('subtareas agregadas en la creación quedan guardadas con la tarea', () async {
+    await datasource.createTask(NewTaskInput(
+      title: 'Preparar viaje',
+      project: 'Personal',
+      priority: TaskPriority.p2,
+      estimateMinutes: 30,
+      subtasks: const [
+        NewSubtaskDraft(title: 'Hacer valija'),
+        NewSubtaskDraft(title: 'Comprar pasajes', description: 'ida y vuelta'),
+      ],
+    ));
+    final tasks = await datasource.fetchTasks(scope: 'all');
+    final detail = await datasource.fetchDetail(tasks.first.id);
+
+    expect(detail.subtasks, hasLength(2));
+    expect(detail.subtasks.map((s) => s.title), containsAll(['Hacer valija', 'Comprar pasajes']));
+    expect(
+        detail.subtasks.firstWhere((s) => s.title == 'Comprar pasajes').description,
+        'ida y vuelta');
   });
 
   test('solo un cronómetro de tarea corre a la vez', () async {

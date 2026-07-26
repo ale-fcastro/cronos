@@ -1,3 +1,4 @@
+import 'new_subtask_draft.dart';
 import 'task_priority.dart';
 
 /// Datos capturados por el formulario "Nueva tarea".
@@ -13,6 +14,7 @@ class NewTaskInput {
     this.linkedPackage,
     this.linkedAppName,
     this.recurrenceId,
+    this.subtasks = const [],
   });
 
   final String title;
@@ -36,4 +38,8 @@ class NewTaskInput {
   /// No se persiste al editar; sirve para saber si hay que preguntar por
   /// propagar un cambio de horario a la regla.
   final String? recurrenceId;
+
+  /// Subtareas a crear junto con la tarea (vacío = ninguna todavía; se
+  /// pueden seguir agregando después desde el detalle).
+  final List<NewSubtaskDraft> subtasks;
 }

@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/models/linked_app_option.dart';
 import '../../../../core/utils/time_format.dart';
 import '../../../../shared/shared.dart';
+import '../../domain/entities/new_subtask_draft.dart';
 import '../../domain/entities/task_priority.dart' as domain;
 import '../../domain/entities/task_recurrence.dart';
 import '../../domain/entities/task_suggestion.dart';
@@ -233,6 +234,14 @@ class _CreateTaskFormState extends State<CreateTaskForm> {
               onDecrement: cubit.decrementEstimate,
               onIncrement: cubit.incrementEstimate,
             ),
+            if (!cubit.isEditing) ...[
+              Gaps.vMd,
+              _DraftSubtasksSection(
+                subtasks: state.draftSubtasks,
+                onAdd: cubit.addDraftSubtask,
+                onRemove: cubit.removeDraftSubtask,
+              ),
+            ],
             if (state.repeatMode == null && cubit.appLinkSupported) ...[
               Gaps.vMd,
               DropdownField(
@@ -390,6 +399,114 @@ class _DayToggle extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Subtareas agregadas al crear la tarea (o regla de repetición). Si es una
+/// regla, cada ocurrencia generada nace con esta misma lista; después de
+/// creada, se siguen agregando desde el detalle de la tarea como siempre.
+class _DraftSubtasksSection extends StatefulWidget {
+  const _DraftSubtasksSection({
+    required this.subtasks,
+    required this.onAdd,
+    required this.onRemove,
+  });
+
+  final List<NewSubtaskDraft> subtasks;
+  final void Function(String title, {String? description}) onAdd;
+  final void Function(int index) onRemove;
+
+  @override
+  State<_DraftSubtasksSection> createState() => _DraftSubtasksSectionState();
+}
+
+class _DraftSubtasksSectionState extends State<_DraftSubtasksSection> {
+  final _titleController = TextEditingController();
+  final _descController = TextEditingController();
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descController.dispose();
+    super.dispose();
+  }
+
+  void _add() {
+    if (_titleController.text.trim().isEmpty) return;
+    widget.onAdd(_titleController.text, description: _descController.text);
+    _titleController.clear();
+    _descController.clear();
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SummaryCard(
+      title: 'Subtareas',
+      trailing: widget.subtasks.isEmpty ? null : AppCaption('${widget.subtasks.length}'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (var i = 0; i < widget.subtasks.length; i++)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(widget.subtasks[i].title,
+                              style: AppTextStyles.body.copyWith(fontSize: 13)),
+                          if ((widget.subtasks[i].description ?? '').isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(widget.subtasks[i].description!,
+                                  style: AppTextStyles.caption
+                                      .copyWith(color: AppColors.textSecondary)),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  AppIconButton(
+                    icon: Icons.close_rounded,
+                    size: 26,
+                    color: AppColors.textTertiary,
+                    onPressed: () => widget.onRemove(i),
+                  ),
+                ],
+              ),
+            ),
+          if (widget.subtasks.isNotEmpty) Gaps.vSm,
+          AppTextField(
+            hint: 'Título de la subtarea…',
+            controller: _titleController,
+            onChanged: (_) => setState(() {}),
+          ),
+          Gaps.vSm,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: AppTextField(
+                  hint: 'Descripción (opcional)',
+                  controller: _descController,
+                ),
+              ),
+              Gaps.hSm,
+              AppIconButton(
+                icon: Icons.add_rounded,
+                onPressed: _titleController.text.trim().isEmpty ? null : _add,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

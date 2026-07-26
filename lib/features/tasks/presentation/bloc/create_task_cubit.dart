@@ -4,6 +4,7 @@ import '../../../../core/models/linked_app_option.dart';
 import '../../../../core/services/app_usage_service.dart';
 import '../../../../core/services/life_areas_service.dart';
 import '../../../../core/services/projects_service.dart';
+import '../../domain/entities/new_subtask_draft.dart';
 import '../../domain/entities/new_task_input.dart';
 import '../../domain/entities/task_priority.dart';
 import '../../domain/entities/task_recurrence.dart';
@@ -217,6 +218,22 @@ class CreateTaskCubit extends Cubit<CreateTaskState> {
       ? state.copyWith(clearLinkedApp: true)
       : state.copyWith(linkedPackage: app.packageName, linkedAppName: app.appName));
 
+  /// Agrega una subtarea al borrador, antes de que la tarea exista. Si es
+  /// una regla de repetición, se copiará a cada ocurrencia generada.
+  void addDraftSubtask(String title, {String? description}) {
+    final t = title.trim();
+    if (t.isEmpty) return;
+    emit(state.copyWith(draftSubtasks: [
+      ...state.draftSubtasks,
+      NewSubtaskDraft(title: t, description: description?.trim().isEmpty ?? true ? null : description!.trim()),
+    ]));
+  }
+
+  void removeDraftSubtask(int index) {
+    final list = List<NewSubtaskDraft>.from(state.draftSubtasks)..removeAt(index);
+    emit(state.copyWith(draftSubtasks: list));
+  }
+
   /// [alsoUpdateRecurrence] solo importa si [changesRecurrenceTime]: true
   /// propaga la nueva hora a la regla (para ese día de semana), false deja
   /// la regla como está y el cambio queda solo en esta ocurrencia.
@@ -260,6 +277,7 @@ class CreateTaskCubit extends Cubit<CreateTaskState> {
           notes: notes,
           linkedPackage: state.linkedPackage,
           linkedAppName: state.linkedAppName,
+          subtasks: state.draftSubtasks,
         ));
       } else {
         await _createRecurrence(NewTaskRecurrenceInput(
@@ -273,6 +291,7 @@ class CreateTaskCubit extends Cubit<CreateTaskState> {
           startDate: state.effectiveRepeatStartDate,
           sameTimeMinuteOfDay: state.repeatSameTimeMinuteOfDay,
           weekdayMinuteOfDay: state.repeatWeekdayMinuteOfDay,
+          subtasks: state.draftSubtasks,
         ));
         await _generateRecurringTasks();
       }
