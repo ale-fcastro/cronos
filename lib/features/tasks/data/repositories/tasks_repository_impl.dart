@@ -41,8 +41,12 @@ class TasksRepositoryImpl implements TasksRepository {
   Future<void> createTask(NewTaskInput input) => _datasource.createTask(input);
 
   @override
-  Future<void> addSubtask(String taskId, String title) =>
-      _datasource.addSubtask(taskId, title);
+  Future<void> addSubtask(String taskId, String title, {String? description}) =>
+      _datasource.addSubtask(taskId, title, description: description);
+
+  @override
+  Future<void> updateSubtask(String subtaskId, {required String title, String? description}) =>
+      _datasource.updateSubtask(subtaskId, title: title, description: description);
 
   @override
   Future<void> toggleSubtask(String subtaskId, bool done) =>

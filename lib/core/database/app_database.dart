@@ -14,7 +14,7 @@ class AppDatabase {
   final String? _pathOverride;
   Database? _db;
 
-  static const _version = 14;
+  static const _version = 15;
 
   Future<Database> get database async {
     final cached = _db;
@@ -86,6 +86,7 @@ class AppDatabase {
         id TEXT PRIMARY KEY,
         task_id TEXT NOT NULL,
         title TEXT NOT NULL,
+        description TEXT,
         done INTEGER NOT NULL DEFAULT 0,
         sort INTEGER NOT NULL DEFAULT 0,
         created_at INTEGER NOT NULL
@@ -347,12 +348,18 @@ class AppDatabase {
             id TEXT PRIMARY KEY,
             task_id TEXT NOT NULL,
             title TEXT NOT NULL,
+            description TEXT,
             done INTEGER NOT NULL DEFAULT 0,
             sort INTEGER NOT NULL DEFAULT 0,
             created_at INTEGER NOT NULL
           )
         ''');
         await db.execute('CREATE INDEX idx_subtasks_task ON subtasks(task_id)');
+      }
+    }
+    if (oldVersion < 15) {
+      if (!await _columnExists(db, 'subtasks', 'description')) {
+        await db.execute('ALTER TABLE subtasks ADD COLUMN description TEXT');
       }
     }
   }

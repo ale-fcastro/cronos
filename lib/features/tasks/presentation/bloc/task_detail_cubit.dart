@@ -17,6 +17,7 @@ class TaskDetailCubit extends Cubit<TaskDetailState> {
     this._completeTask,
     this._markTaskNotDone,
     this._addSubtask,
+    this._updateSubtask,
     this._toggleSubtask,
     this._deleteSubtask,
     this._deleteTask,
@@ -42,6 +43,7 @@ class TaskDetailCubit extends Cubit<TaskDetailState> {
   final CompleteTask _completeTask;
   final MarkTaskNotDone _markTaskNotDone;
   final AddSubtask _addSubtask;
+  final UpdateSubtask _updateSubtask;
   final ToggleSubtask _toggleSubtask;
   final DeleteSubtask _deleteSubtask;
   final DeleteTask _deleteTask;
@@ -89,9 +91,18 @@ class TaskDetailCubit extends Cubit<TaskDetailState> {
     await load();
   }
 
-  Future<void> addSubtask(String title) async {
+  Future<void> addSubtask(String title, {String? description}) async {
     if (title.trim().isEmpty) return;
-    await _addSubtask(taskId, title.trim());
+    final desc = description?.trim();
+    await _addSubtask(taskId, title.trim(), description: (desc == null || desc.isEmpty) ? null : desc);
+    await load();
+  }
+
+  Future<void> updateSubtask(String subtaskId, {required String title, String? description}) async {
+    if (title.trim().isEmpty) return;
+    final desc = description?.trim();
+    await _updateSubtask(subtaskId,
+        title: title.trim(), description: (desc == null || desc.isEmpty) ? null : desc);
     await load();
   }
 

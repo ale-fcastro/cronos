@@ -406,18 +406,22 @@ class _SubtasksCard extends StatefulWidget {
 }
 
 class _SubtasksCardState extends State<_SubtasksCard> {
-  final _controller = TextEditingController();
+  final _titleController = TextEditingController();
+  final _descController = TextEditingController();
 
   @override
   void dispose() {
-    _controller.dispose();
+    _titleController.dispose();
+    _descController.dispose();
     super.dispose();
   }
 
   void _add(TaskDetailCubit cubit) {
-    if (_controller.text.trim().isEmpty) return;
-    cubit.addSubtask(_controller.text);
-    _controller.clear();
+    if (_titleController.text.trim().isEmpty) return;
+    cubit.addSubtask(_titleController.text, description: _descController.text);
+    _titleController.clear();
+    _descController.clear();
+    setState(() {});
   }
 
   @override
@@ -436,6 +440,7 @@ class _SubtasksCardState extends State<_SubtasksCard> {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 2),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SizedBox(
                     width: 22,
@@ -448,12 +453,35 @@ class _SubtasksCardState extends State<_SubtasksCard> {
                   ),
                   Gaps.hSm,
                   Expanded(
-                    child: Text(
-                      s.title,
-                      style: AppTextStyles.body.copyWith(
-                        fontSize: 13,
-                        color: s.done ? AppColors.textTertiary : AppColors.textPrimary,
-                        decoration: s.done ? TextDecoration.lineThrough : null,
+                    child: InkWell(
+                      onTap: () => _editSubtask(context, cubit, s),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 3),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              s.title,
+                              style: AppTextStyles.body.copyWith(
+                                fontSize: 13,
+                                color: s.done ? AppColors.textTertiary : AppColors.textPrimary,
+                                decoration: s.done ? TextDecoration.lineThrough : null,
+                              ),
+                            ),
+                            if (s.description != null && s.description!.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: Text(
+                                  s.description!,
+                                  style: AppTextStyles.caption.copyWith(
+                                    color: s.done
+                                        ? AppColors.textTertiary
+                                        : AppColors.textSecondary,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -467,24 +495,80 @@ class _SubtasksCardState extends State<_SubtasksCard> {
               ),
             ),
           if (widget.subtasks.isNotEmpty) Gaps.vSm,
+          AppTextField(
+            hint: 'Título de la subtarea…',
+            controller: _titleController,
+            onChanged: (_) => setState(() {}),
+          ),
+          Gaps.vSm,
           Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Expanded(
                 child: AppTextField(
-                  hint: 'Agregar subtarea…',
-                  controller: _controller,
-                  onChanged: (_) => setState(() {}),
+                  hint: 'Descripción (opcional)',
+                  controller: _descController,
                 ),
               ),
               Gaps.hSm,
               AppIconButton(
                 icon: Icons.add_rounded,
-                onPressed: _controller.text.trim().isEmpty ? null : () => _add(cubit),
+                onPressed: _titleController.text.trim().isEmpty ? null : () => _add(cubit),
               ),
             ],
           ),
         ],
       ),
     );
+  }
+}
+
+Future<void> _editSubtask(BuildContext context, TaskDetailCubit cubit, Subtask s) async {
+  final titleController = TextEditingController(text: s.title);
+  final descController = TextEditingController(text: s.description ?? '');
+  final result = await showDialog<bool>(
+    context: context,
+    builder: (_) => Dialog(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Editar subtarea', style: AppTextStyles.headline),
+            Gaps.vLg,
+            AppTextField(label: 'Título', controller: titleController, autofocus: true),
+            Gaps.vMd,
+            AppTextField(
+              label: 'Descripción',
+              hint: 'Opcional',
+              controller: descController,
+              maxLines: 3,
+            ),
+            Gaps.vXl,
+            Row(
+              children: [
+                Expanded(
+                  child: SecondaryButton(
+                    label: 'Cancelar',
+                    onPressed: () => Navigator.of(context).pop(false),
+                  ),
+                ),
+                Gaps.hSm,
+                Expanded(
+                  child: PrimaryButton(
+                    label: 'Guardar',
+                    onPressed: () => Navigator.of(context).pop(true),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+  if (result == true) {
+    cubit.updateSubtask(s.id, title: titleController.text, description: descController.text);
   }
 }

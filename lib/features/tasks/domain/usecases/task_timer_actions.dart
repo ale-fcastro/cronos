@@ -29,7 +29,15 @@ class MarkTaskNotDone {
 class AddSubtask {
   const AddSubtask(this._repository);
   final TasksRepository _repository;
-  Future<void> call(String taskId, String title) => _repository.addSubtask(taskId, title);
+  Future<void> call(String taskId, String title, {String? description}) =>
+      _repository.addSubtask(taskId, title, description: description);
+}
+
+class UpdateSubtask {
+  const UpdateSubtask(this._repository);
+  final TasksRepository _repository;
+  Future<void> call(String subtaskId, {required String title, String? description}) =>
+      _repository.updateSubtask(subtaskId, title: title, description: description);
 }
 
 class ToggleSubtask {

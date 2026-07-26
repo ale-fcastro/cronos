@@ -14,7 +14,8 @@ abstract interface class TasksRepository {
   Future<void> markTaskNotDone(String id, String reason);
   Future<void> createTask(NewTaskInput input);
 
-  Future<void> addSubtask(String taskId, String title);
+  Future<void> addSubtask(String taskId, String title, {String? description});
+  Future<void> updateSubtask(String subtaskId, {required String title, String? description});
   Future<void> toggleSubtask(String subtaskId, bool done);
   Future<void> deleteSubtask(String subtaskId);
 

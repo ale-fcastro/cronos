@@ -299,6 +299,23 @@ void main() {
     expect(detail.subtasks, hasLength(1));
   });
 
+  test('subtareas guardan y actualizan una descripción opcional', () async {
+    await datasource.createTask(input());
+    final id = (await datasource.fetchTasks(scope: 'today')).first.id;
+
+    await datasource.addSubtask(id, 'Parte 1', description: 'Detalle inicial');
+    await datasource.addSubtask(id, 'Parte 2');
+    var detail = await datasource.fetchDetail(id);
+    expect(detail.subtasks[0].description, 'Detalle inicial');
+    expect(detail.subtasks[1].description, isNull);
+
+    await datasource.updateSubtask(detail.subtasks[0].id,
+        title: 'Parte 1 (editada)', description: 'Detalle nuevo');
+    detail = await datasource.fetchDetail(id);
+    expect(detail.subtasks[0].title, 'Parte 1 (editada)');
+    expect(detail.subtasks[0].description, 'Detalle nuevo');
+  });
+
   test('borrar una tarea borra también sus subtareas', () async {
     final db = await database.database;
     await datasource.createTask(input());

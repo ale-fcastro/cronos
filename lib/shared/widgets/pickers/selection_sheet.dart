@@ -19,6 +19,7 @@ Future<T?> showSelectionSheet<T>({
   return showModalBottomSheet<T>(
     context: context,
     backgroundColor: Colors.transparent,
+    isScrollControlled: true,
     builder: (_) => _SelectionSheet<T>(
       title: title,
       options: options,
@@ -50,6 +51,7 @@ class _SelectionSheet<T> extends StatelessWidget {
       top: false,
       child: Container(
         margin: const EdgeInsets.all(AppSpacing.md),
+        constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.7),
         decoration: BoxDecoration(
           color: AppColors.surfaceContainer,
           borderRadius: AppRadius.card,
@@ -63,27 +65,35 @@ class _SelectionSheet<T> extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: Text(title, style: AppTextStyles.label),
             ),
-            for (final o in options)
-              InkWell(
-                onTap: () => Navigator.of(context).pop(o),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-                  child: Row(
-                    children: [
-                      if (leadingBuilder != null) ...[
-                        leadingBuilder!(o),
-                        const SizedBox(width: 12),
-                      ],
-                      Expanded(
-                        child: Text(labelBuilder(o), style: AppTextStyles.body),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                children: [
+                  for (final o in options)
+                    InkWell(
+                      onTap: () => Navigator.of(context).pop(o),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+                        child: Row(
+                          children: [
+                            if (leadingBuilder != null) ...[
+                              leadingBuilder!(o),
+                              const SizedBox(width: 12),
+                            ],
+                            Expanded(
+                              child: Text(labelBuilder(o), style: AppTextStyles.body),
+                            ),
+                            if (o == selected)
+                              const Icon(Icons.check_rounded,
+                                  color: AppColors.accent, size: 18),
+                          ],
+                        ),
                       ),
-                      if (o == selected)
-                        const Icon(Icons.check_rounded, color: AppColors.accent, size: 18),
-                    ],
-                  ),
-                ),
+                    ),
+                ],
               ),
-            const SizedBox(height: AppSpacing.sm),
+            ),
           ],
         ),
       ),

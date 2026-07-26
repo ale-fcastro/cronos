@@ -16,14 +16,15 @@ class TaskSession extends Equatable {
 /// Ítem de una lista de verificación adentro de una tarea. La tarea no
 /// puede finalizarse mientras tenga subtareas sin terminar.
 class Subtask extends Equatable {
-  const Subtask({required this.id, required this.title, required this.done});
+  const Subtask({required this.id, required this.title, this.description, required this.done});
 
   final String id;
   final String title;
+  final String? description;
   final bool done;
 
   @override
-  List<Object?> get props => [id, title, done];
+  List<Object?> get props => [id, title, description, done];
 }
 
 class TaskDetail extends Equatable {

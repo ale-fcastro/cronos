@@ -203,12 +203,13 @@ class TasksLocalDatasource {
         Subtask(
           id: r['id'] as String,
           title: r['title'] as String,
+          description: r['description'] as String?,
           done: (r['done'] as int) == 1,
         ),
     ];
   }
 
-  Future<void> addSubtask(String taskId, String title) async {
+  Future<void> addSubtask(String taskId, String title, {String? description}) async {
     final db = await _database.database;
     final maxSortRows = await db.rawQuery(
         'SELECT MAX(sort) AS m FROM subtasks WHERE task_id = ?', [taskId]);
@@ -217,10 +218,17 @@ class TasksLocalDatasource {
       'id': 'sub${DateTime.now().microsecondsSinceEpoch}',
       'task_id': taskId,
       'title': title,
+      'description': description,
       'done': 0,
       'sort': nextSort,
       'created_at': DateTime.now().millisecondsSinceEpoch,
     });
+  }
+
+  Future<void> updateSubtask(String subtaskId, {required String title, String? description}) async {
+    final db = await _database.database;
+    await db.update('subtasks', {'title': title, 'description': description},
+        where: 'id = ?', whereArgs: [subtaskId]);
   }
 
   Future<void> toggleSubtask(String subtaskId, bool done) async {

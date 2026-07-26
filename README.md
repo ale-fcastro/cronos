@@ -19,7 +19,8 @@ oscuro, tipografías IBM Plex y persistencia local en SQLite.
   segundo plano, cada 15 minutos).
 - **Tareas**: lista Hoy/Semana/Todas con prioridades P1–P3, cronómetro por
   tarea (solo uno a la vez), estimado vs real, detalle con historial de
-  sesiones, subtareas (checklist que bloquea finalizar hasta completarse) y
+  sesiones, subtareas (título + descripción opcional, checklist que bloquea
+  finalizar hasta completarse) y
   tareas recurrentes (diarias o por día de semana, con fecha de inicio
   elegible). Finalizar no es un toque sin más: Cronos pregunta si la tarea
   se hizo de verdad — pide el horario real si nunca se usó el cronómetro,
