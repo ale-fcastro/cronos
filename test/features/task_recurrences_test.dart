@@ -61,7 +61,10 @@ void main() {
     ));
 
     await datasource.generateUpcomingOccurrences(daysAhead: 2);
-    final tasks = await datasource.fetchTasks(scope: 'week');
+    // scope: 'all' en vez de 'week' -- si "hoy" cae sábado o domingo, la
+    // ocurrencia de "mañana" cruza al bucket de la semana siguiente y
+    // 'week' la excluiría sin que sea un bug real de la generación.
+    final tasks = await datasource.fetchTasks(scope: 'all');
     final gym = tasks.where((t) => t.title == 'Gimnasio').toList();
 
     expect(gym, hasLength(2));

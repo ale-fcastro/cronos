@@ -36,6 +36,7 @@ import '../../features/events/presentation/bloc/event_register_cubit.dart';
 import '../../features/metrics/data/datasources/metrics_local_datasource.dart';
 import '../../features/metrics/data/repositories/metrics_repository_impl.dart';
 import '../../features/metrics/domain/repositories/metrics_repository.dart';
+import '../../features/metrics/domain/services/ai_summary_service.dart';
 import '../../features/metrics/domain/usecases/metrics_usecases.dart';
 import '../../features/metrics/presentation/bloc/analyze_cubit.dart';
 
@@ -192,6 +193,7 @@ void configureDependencies({AppDatabase? database}) {
   sl.registerLazySingleton(() => GetTaskStatistics(sl()));
   sl.registerLazySingleton(() => GetPhoneUsage(sl()));
   sl.registerLazySingleton(() => GetEventsStatistics(sl()));
+  sl.registerLazySingleton(() => AiSummaryService(sl(), sl(), sl(), sl()));
   sl.registerFactory(() => AnalyzeCubit(sl(), sl(), sl(), sl()));
 
   // Projects

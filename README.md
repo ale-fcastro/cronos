@@ -37,6 +37,11 @@ oscuro, tipografías IBM Plex y persistencia local en SQLite.
   presionada una tarjeta al registrar.
 - **Analizar**: métricas, tareas, eventos y uso real del teléfono (requiere
   el permiso "Acceso al uso" de Android) sobre la última semana o mes.
+  Incluye un botón discreto para compartir un resumen de texto de tus
+  datos con la IA que ya tengas instalada (Gemini, ChatGPT...) vía el
+  selector de compartir de Android — Cronos no tiene IA propia ni llama a
+  ninguna API: arma el contexto, el usuario elige a quién dárselo. Ver
+  `features/metrics/domain/services/ai_summary_service.dart`.
 - **Configuración**: horarios editables por día (laboral/estudio/sueño +
   horarios propios), notificaciones de tareas planificadas, aviso opcional
   si te distraés de la tarea en curso, bloqueo con huella/cara/PIN del

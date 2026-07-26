@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/di/service_locator.dart';
 import '../../../../core/navigation/profile_avatar.dart';
 import '../../../../shared/shared.dart';
 import '../../domain/entities/metrics_entities.dart';
+import '../../domain/services/ai_summary_service.dart';
 import '../bloc/analyze_cubit.dart';
 import '../bloc/analyze_state.dart';
+import '../widgets/ai_summary_hint_banner.dart';
 
 const _tabLabels = ['Métricas', 'Tareas', 'Teléfono', 'Eventos'];
 const _periodOptions = [
@@ -39,6 +42,15 @@ class AnalyzePage extends StatelessWidget {
                       segments: _periodOptions[state.tabIndex],
                       selectedIndex: state.periodIndex,
                       onChanged: cubit.setPeriod,
+                    ),
+                    Gaps.hSm,
+                    Tooltip(
+                      message: 'Compartir un resumen con tu IA',
+                      child: AppIconButton(
+                        icon: Icons.auto_awesome_outlined,
+                        onPressed: () =>
+                            shareAiSummary(context, sl<AiSummaryService>()),
+                      ),
                     ),
                     Gaps.hSm,
                     const ProfileAvatar(),
@@ -84,6 +96,7 @@ class AnalyzePage extends StatelessWidget {
             ),
             const Divider(height: 1),
             Gaps.vMd,
+            const AiSummaryHintBanner(),
             Expanded(
               child: switch (state.tabIndex) {
                 0 => _MetricsTab(snapshot: state.snapshot!),
