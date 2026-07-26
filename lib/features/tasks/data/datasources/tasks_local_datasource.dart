@@ -69,6 +69,7 @@ class TasksLocalDatasource {
               TaskStatus.late => 1,
               TaskStatus.normal => 2,
               TaskStatus.done => 3,
+              TaskStatus.notDone => 4,
             };
         final r = rank(a).compareTo(rank(b));
         if (r != 0) return r;
@@ -142,6 +143,7 @@ class TasksLocalDatasource {
     final pausedElapsedLabel = (pauseReason != null && pausedAtMs != null)
         ? fmtClock(now.difference(DateTime.fromMillisecondsSinceEpoch(pausedAtMs)))
         : null;
+    final subtasks = await _fetchSubtasks(db, id);
 
     // Verificación: ¿la app vinculada estuvo en primer plano al menos la
     // mitad del tiempo real trabajado en esta tarea? Señal informativa, no
@@ -168,11 +170,13 @@ class TasksLocalDatasource {
       startedTime: firstStart == null ? '—' : fmtTime(firstStart),
       sessionsCount: sessions.length,
       history: history,
+      subtasks: subtasks,
       notes: row['notes'] as String?,
       linkedAppName: linkedAppName,
       appVerified: appVerified,
       pauseReason: pauseReason,
       pausedElapsedLabel: pausedElapsedLabel,
+      notDoneReason: row['not_done_reason'] as String?,
     );
   }
 
@@ -181,9 +185,53 @@ class TasksLocalDatasource {
   Future<void> pauseTimer(String id, {String? reason, String? areaId}) =>
       _timer.pauseTask(id, reason: reason, areaId: areaId);
 
-  Future<void> completeTask(String id) async {
-    await _timer.completeTask(id);
+  Future<void> completeTask(String id, {DateTime? manualStart, DateTime? manualEnd}) async {
+    await _timer.completeTask(id, manualStart: manualStart, manualEnd: manualEnd);
     await _notifications.cancelTaskReminder(id);
+  }
+
+  Future<void> markTaskNotDone(String id, String reason) async {
+    await _timer.markTaskNotDone(id, reason);
+    await _notifications.cancelTaskReminder(id);
+  }
+
+  Future<List<Subtask>> _fetchSubtasks(Database db, String taskId) async {
+    final rows = await db.query('subtasks',
+        where: 'task_id = ?', whereArgs: [taskId], orderBy: 'sort ASC, created_at ASC');
+    return [
+      for (final r in rows)
+        Subtask(
+          id: r['id'] as String,
+          title: r['title'] as String,
+          done: (r['done'] as int) == 1,
+        ),
+    ];
+  }
+
+  Future<void> addSubtask(String taskId, String title) async {
+    final db = await _database.database;
+    final maxSortRows = await db.rawQuery(
+        'SELECT MAX(sort) AS m FROM subtasks WHERE task_id = ?', [taskId]);
+    final nextSort = ((maxSortRows.first['m'] as int?) ?? -1) + 1;
+    await db.insert('subtasks', {
+      'id': 'sub${DateTime.now().microsecondsSinceEpoch}',
+      'task_id': taskId,
+      'title': title,
+      'done': 0,
+      'sort': nextSort,
+      'created_at': DateTime.now().millisecondsSinceEpoch,
+    });
+  }
+
+  Future<void> toggleSubtask(String subtaskId, bool done) async {
+    final db = await _database.database;
+    await db.update('subtasks', {'done': done ? 1 : 0},
+        where: 'id = ?', whereArgs: [subtaskId]);
+  }
+
+  Future<void> deleteSubtask(String subtaskId) async {
+    final db = await _database.database;
+    await db.delete('subtasks', where: 'id = ?', whereArgs: [subtaskId]);
   }
 
   /// Datos crudos de [id] para precargar el formulario de edición.
@@ -284,6 +332,7 @@ class TasksLocalDatasource {
     final db = await _database.database;
     await db.transaction((txn) async {
       await txn.delete('task_sessions', where: 'task_id = ?', whereArgs: [id]);
+      await txn.delete('subtasks', where: 'task_id = ?', whereArgs: [id]);
       await txn.delete('tasks', where: 'id = ?', whereArgs: [id]);
     });
     await _notifications.cancelTaskReminder(id);
@@ -529,6 +578,8 @@ class _TaskRow {
     TaskStatus status;
     if (storedStatus == 'done') {
       status = TaskStatus.done;
+    } else if (storedStatus == 'not_done') {
+      status = TaskStatus.notDone;
     } else if (storedStatus == 'running') {
       status = TaskStatus.running;
     } else if (plannedAt != null && plannedAt.isBefore(now) && realMin == 0) {

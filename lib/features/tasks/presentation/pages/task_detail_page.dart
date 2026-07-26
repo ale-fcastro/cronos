@@ -13,6 +13,7 @@ import '../../domain/entities/task_summary.dart';
 import '../bloc/create_task_cubit.dart';
 import '../bloc/task_detail_cubit.dart';
 import '../bloc/task_detail_state.dart';
+import '../widgets/complete_task_dialog.dart';
 import '../widgets/create_task_form.dart';
 
 /// Pantalla empujada con el detalle de una tarea: estimado vs real e historial.
@@ -84,9 +85,16 @@ class TaskDetailPage extends StatelessWidget {
                         if (d.status == TaskStatus.running)
                           StatusBadge(label: 'En curso', color: AppColors.accent)
                         else if (d.status == TaskStatus.done)
-                          StatusBadge(label: 'Hecha', color: AppColors.success),
+                          StatusBadge(label: 'Hecha', color: AppColors.success)
+                        else if (d.status == TaskStatus.notDone)
+                          StatusBadge(label: 'No hecha', color: AppColors.danger),
                       ],
                     ),
+                    if (d.notDoneReason != null) ...[
+                      Gaps.vSm,
+                      Text('No hecha: ${d.notDoneReason}',
+                          style: AppTextStyles.caption.copyWith(color: AppColors.danger)),
+                    ],
                     if (d.linkedAppName != null) ...[
                       Gaps.vSm,
                       Row(
@@ -141,6 +149,8 @@ class TaskDetailPage extends StatelessWidget {
                               ),
                             ],
                           ),
+                          Gaps.vMd,
+                          _SubtasksCard(taskId: d.id, subtasks: d.subtasks),
                           Gaps.vMd,
                           SummaryCard(
                             title: 'Historial',
@@ -339,7 +349,7 @@ class _TimerCard extends StatelessWidget {
               Expanded(
                 child: PrimaryButton(
                   label: 'Finalizar',
-                  onPressed: () => context.read<TaskDetailCubit>().finish(),
+                  onPressed: () => _finalize(context, detail),
                 ),
               ),
             ],
@@ -355,3 +365,126 @@ ds.TaskPriority _mapPriority(domain.TaskPriority p) => switch (p) {
       domain.TaskPriority.p2 => ds.TaskPriority.p2,
       domain.TaskPriority.p3 => ds.TaskPriority.p3,
     };
+
+/// No deja finalizar con subtareas pendientes; si no hay ninguna pendiente,
+/// pregunta antes de completar (ver [showCompleteTaskDialog]) en vez de
+/// cerrarla en un solo toque.
+Future<void> _finalize(BuildContext context, TaskDetail detail) async {
+  final pending = detail.subtasks.where((s) => !s.done).length;
+  if (pending > 0) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(pending == 1
+          ? 'Todavía tenés 1 subtarea sin terminar.'
+          : 'Todavía tenés $pending subtareas sin terminar.'),
+    ));
+    return;
+  }
+  final cubit = context.read<TaskDetailCubit>();
+  final result = await showCompleteTaskDialog(
+    context,
+    title: detail.title,
+    hasTrackedTime: detail.sessionsCount > 0,
+  );
+  switch (result) {
+    case CompleteTaskDone(:final start, :final end):
+      cubit.finish(manualStart: start, manualEnd: end);
+    case CompleteTaskFailed(:final reason):
+      cubit.markNotDone(reason);
+    case null:
+      break;
+  }
+}
+
+class _SubtasksCard extends StatefulWidget {
+  const _SubtasksCard({required this.taskId, required this.subtasks});
+
+  final String taskId;
+  final List<Subtask> subtasks;
+
+  @override
+  State<_SubtasksCard> createState() => _SubtasksCardState();
+}
+
+class _SubtasksCardState extends State<_SubtasksCard> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _add(TaskDetailCubit cubit) {
+    if (_controller.text.trim().isEmpty) return;
+    cubit.addSubtask(_controller.text);
+    _controller.clear();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cubit = context.read<TaskDetailCubit>();
+    final done = widget.subtasks.where((s) => s.done).length;
+    return SummaryCard(
+      title: 'Subtareas',
+      trailing: widget.subtasks.isEmpty
+          ? null
+          : AppCaption('$done/${widget.subtasks.length}'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final s in widget.subtasks)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: Checkbox(
+                      value: s.done,
+                      onChanged: (v) => cubit.toggleSubtask(s.id, v ?? false),
+                      activeColor: AppColors.accent,
+                    ),
+                  ),
+                  Gaps.hSm,
+                  Expanded(
+                    child: Text(
+                      s.title,
+                      style: AppTextStyles.body.copyWith(
+                        fontSize: 13,
+                        color: s.done ? AppColors.textTertiary : AppColors.textPrimary,
+                        decoration: s.done ? TextDecoration.lineThrough : null,
+                      ),
+                    ),
+                  ),
+                  AppIconButton(
+                    icon: Icons.close_rounded,
+                    size: 26,
+                    color: AppColors.textTertiary,
+                    onPressed: () => cubit.deleteSubtask(s.id),
+                  ),
+                ],
+              ),
+            ),
+          if (widget.subtasks.isNotEmpty) Gaps.vSm,
+          Row(
+            children: [
+              Expanded(
+                child: AppTextField(
+                  hint: 'Agregar subtarea…',
+                  controller: _controller,
+                  onChanged: (_) => setState(() {}),
+                ),
+              ),
+              Gaps.hSm,
+              AppIconButton(
+                icon: Icons.add_rounded,
+                onPressed: _controller.text.trim().isEmpty ? null : () => _add(cubit),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}

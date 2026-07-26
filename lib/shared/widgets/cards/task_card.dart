@@ -20,6 +20,7 @@ class TaskCard extends StatelessWidget {
     this.statusColor,
     this.late = false,
     this.done = false,
+    this.notDone = false,
     this.highlighted = false,
     this.trailing,
     this.onTap,
@@ -40,6 +41,7 @@ class TaskCard extends StatelessWidget {
   final Color? statusColor;
   final bool late;
   final bool done;
+  final bool notDone;
   final bool highlighted;
   final Widget? trailing;
   final VoidCallback? onTap;
@@ -53,11 +55,11 @@ class TaskCard extends StatelessWidget {
             fontWeight: FontWeight.w500)
         : AppTextStyles.title;
     return Opacity(
-      opacity: done ? 0.55 : 1,
+      opacity: (done || notDone) ? 0.55 : 1,
       child: AppCard(
         padding: AppSpacing.cardDense,
         highlighted: highlighted,
-        borderColor: late ? AppColors.danger.withValues(alpha: 0.35) : null,
+        borderColor: (late || notDone) ? AppColors.danger.withValues(alpha: 0.35) : null,
         onTap: onTap,
         child: Row(
           children: [

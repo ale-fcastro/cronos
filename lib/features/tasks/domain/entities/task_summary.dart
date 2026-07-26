@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'task_priority.dart';
 
-enum TaskStatus { normal, running, late, done }
+enum TaskStatus { normal, running, late, done, notDone }
 
 /// Fila de tarea tal como aparece en la lista Hoy/Semana/Todas.
 class TaskSummary extends Equatable {

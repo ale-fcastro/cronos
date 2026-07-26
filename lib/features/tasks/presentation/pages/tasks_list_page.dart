@@ -85,6 +85,9 @@ class TasksListPage extends StatelessWidget {
     } else if (t.status == TaskStatus.late) {
       status = 'RETRASADA';
       statusColor = AppColors.danger;
+    } else if (t.status == TaskStatus.notDone) {
+      status = 'NO HECHA';
+      statusColor = AppColors.danger;
     }
     return TaskCard(
       title: t.title,
@@ -96,6 +99,7 @@ class TasksListPage extends StatelessWidget {
       statusColor: statusColor,
       late: t.status == TaskStatus.late,
       done: t.status == TaskStatus.done,
+      notDone: t.status == TaskStatus.notDone,
       highlighted: t.status == TaskStatus.running,
       onTap: () async {
         final cubit = context.read<TasksListCubit>();

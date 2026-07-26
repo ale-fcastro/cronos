@@ -237,4 +237,77 @@ void main() {
     final after = await datasource.fetchTasks(scope: 'today');
     expect(after.where((t) => t.id == id), isEmpty);
   });
+
+  test('marcar una tarea como no hecha guarda el motivo y el estado', () async {
+    await datasource.createTask(input());
+    final id = (await datasource.fetchTasks(scope: 'today')).first.id;
+
+    await datasource.markTaskNotDone(id, 'Me quedé sin tiempo');
+
+    final detail = await datasource.fetchDetail(id);
+    expect(detail.status, TaskStatus.notDone);
+    expect(detail.notDoneReason, 'Me quedé sin tiempo');
+
+    final list = await datasource.fetchTasks(scope: 'today');
+    expect(list.first.status, TaskStatus.notDone);
+  });
+
+  test('completar con horario manual registra una sesión aunque nunca se haya arrancado',
+      () async {
+    await datasource.createTask(input());
+    final id = (await datasource.fetchTasks(scope: 'today')).first.id;
+    final detailBefore = await datasource.fetchDetail(id);
+    expect(detailBefore.sessionsCount, 0);
+
+    final now = DateTime.now();
+    await datasource.completeTask(id,
+        manualStart: now.subtract(const Duration(hours: 1)), manualEnd: now);
+
+    final detail = await datasource.fetchDetail(id);
+    expect(detail.status, TaskStatus.done);
+    expect(detail.sessionsCount, 1);
+  });
+
+  test('completar sin horario manual no inventa una sesión', () async {
+    await datasource.createTask(input());
+    final id = (await datasource.fetchTasks(scope: 'today')).first.id;
+
+    await datasource.completeTask(id);
+
+    final detail = await datasource.fetchDetail(id);
+    expect(detail.status, TaskStatus.done);
+    expect(detail.sessionsCount, 0);
+  });
+
+  test('subtareas: agregar, marcar y borrar', () async {
+    await datasource.createTask(input());
+    final id = (await datasource.fetchTasks(scope: 'today')).first.id;
+
+    await datasource.addSubtask(id, 'Parte 1');
+    await datasource.addSubtask(id, 'Parte 2');
+    var detail = await datasource.fetchDetail(id);
+    expect(detail.subtasks, hasLength(2));
+    expect(detail.subtasks.every((s) => !s.done), isTrue);
+
+    await datasource.toggleSubtask(detail.subtasks.first.id, true);
+    detail = await datasource.fetchDetail(id);
+    expect(detail.subtasks.first.done, isTrue);
+    expect(detail.subtasks.last.done, isFalse);
+
+    await datasource.deleteSubtask(detail.subtasks.last.id);
+    detail = await datasource.fetchDetail(id);
+    expect(detail.subtasks, hasLength(1));
+  });
+
+  test('borrar una tarea borra también sus subtareas', () async {
+    final db = await database.database;
+    await datasource.createTask(input());
+    final id = (await datasource.fetchTasks(scope: 'today')).first.id;
+    await datasource.addSubtask(id, 'Parte 1');
+
+    await datasource.deleteTask(id);
+
+    final rows = await db.query('subtasks', where: 'task_id = ?', whereArgs: [id]);
+    expect(rows, isEmpty);
+  });
 }

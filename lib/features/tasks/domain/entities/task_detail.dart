@@ -13,6 +13,19 @@ class TaskSession extends Equatable {
   List<Object?> get props => [rangeLabel, durationLabel, running];
 }
 
+/// Ítem de una lista de verificación adentro de una tarea. La tarea no
+/// puede finalizarse mientras tenga subtareas sin terminar.
+class Subtask extends Equatable {
+  const Subtask({required this.id, required this.title, required this.done});
+
+  final String id;
+  final String title;
+  final bool done;
+
+  @override
+  List<Object?> get props => [id, title, done];
+}
+
 class TaskDetail extends Equatable {
   const TaskDetail({
     required this.id,
@@ -27,11 +40,13 @@ class TaskDetail extends Equatable {
     required this.startedTime,
     required this.sessionsCount,
     required this.history,
+    this.subtasks = const [],
     this.notes,
     this.linkedAppName,
     this.appVerified,
     this.pauseReason,
     this.pausedElapsedLabel,
+    this.notDoneReason,
   });
 
   final String id;
@@ -48,6 +63,7 @@ class TaskDetail extends Equatable {
   final String startedTime;
   final int sessionsCount;
   final List<TaskSession> history;
+  final List<Subtask> subtasks;
   final String? notes;
 
   /// Nombre de la app vinculada (null = sin vincular).
@@ -64,6 +80,9 @@ class TaskDetail extends Equatable {
   /// Tiempo transcurrido desde que se pausó, ya formateado ("00:04:12").
   final String? pausedElapsedLabel;
 
+  /// Motivo dado al marcar la tarea como no hecha; null si no aplica.
+  final String? notDoneReason;
+
   @override
   List<Object?> get props => [
         id,
@@ -78,10 +97,12 @@ class TaskDetail extends Equatable {
         startedTime,
         sessionsCount,
         history,
+        subtasks,
         notes,
         linkedAppName,
         appVerified,
         pauseReason,
         pausedElapsedLabel,
+        notDoneReason,
       ];
 }

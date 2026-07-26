@@ -14,7 +14,7 @@ class AppDatabase {
   final String? _pathOverride;
   Database? _db;
 
-  static const _version = 13;
+  static const _version = 14;
 
   Future<Database> get database async {
     final cached = _db;
@@ -67,7 +67,8 @@ class AppDatabase {
         paused_at INTEGER,
         pause_area_id TEXT,
         ics_uid TEXT,
-        overdue_notified_at INTEGER
+        overdue_notified_at INTEGER,
+        not_done_reason TEXT
       )
     ''');
     await db.execute(
@@ -80,6 +81,17 @@ class AppDatabase {
         ended_at INTEGER
       )
     ''');
+    await db.execute('''
+      CREATE TABLE subtasks(
+        id TEXT PRIMARY KEY,
+        task_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        done INTEGER NOT NULL DEFAULT 0,
+        sort INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL
+      )
+    ''');
+    await db.execute('CREATE INDEX idx_subtasks_task ON subtasks(task_id)');
     await db.execute('''
       CREATE TABLE activity_types(
         id TEXT PRIMARY KEY,
@@ -321,6 +333,26 @@ class AppDatabase {
       if (!indexes.any((r) => r['name'] == 'idx_tasks_ics_uid')) {
         await db.execute(
             'CREATE UNIQUE INDEX idx_tasks_ics_uid ON tasks(ics_uid) WHERE ics_uid IS NOT NULL');
+      }
+    }
+    if (oldVersion < 14) {
+      if (!await _columnExists(db, 'tasks', 'not_done_reason')) {
+        await db.execute('ALTER TABLE tasks ADD COLUMN not_done_reason TEXT');
+      }
+      final tables = await db
+          .rawQuery("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'subtasks'");
+      if (tables.isEmpty) {
+        await db.execute('''
+          CREATE TABLE subtasks(
+            id TEXT PRIMARY KEY,
+            task_id TEXT NOT NULL,
+            title TEXT NOT NULL,
+            done INTEGER NOT NULL DEFAULT 0,
+            sort INTEGER NOT NULL DEFAULT 0,
+            created_at INTEGER NOT NULL
+          )
+        ''');
+        await db.execute('CREATE INDEX idx_subtasks_task ON subtasks(task_id)');
       }
     }
   }

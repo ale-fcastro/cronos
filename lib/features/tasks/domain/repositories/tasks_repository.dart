@@ -10,8 +10,13 @@ abstract interface class TasksRepository {
   Future<TaskDetail> getTaskDetail(String id);
   Future<void> startTimer(String id);
   Future<void> pauseTimer(String id, {String? reason, String? areaId});
-  Future<void> completeTask(String id);
+  Future<void> completeTask(String id, {DateTime? manualStart, DateTime? manualEnd});
+  Future<void> markTaskNotDone(String id, String reason);
   Future<void> createTask(NewTaskInput input);
+
+  Future<void> addSubtask(String taskId, String title);
+  Future<void> toggleSubtask(String subtaskId, bool done);
+  Future<void> deleteSubtask(String subtaskId);
 
   /// Datos crudos de [id] para precargar el formulario de edición.
   Future<NewTaskInput> getTaskEditData(String id);

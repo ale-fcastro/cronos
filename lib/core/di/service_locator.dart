@@ -137,6 +137,10 @@ void configureDependencies({AppDatabase? database}) {
   sl.registerLazySingleton(() => StartTaskTimer(sl()));
   sl.registerLazySingleton(() => PauseTaskTimer(sl()));
   sl.registerLazySingleton(() => CompleteTask(sl()));
+  sl.registerLazySingleton(() => MarkTaskNotDone(sl()));
+  sl.registerLazySingleton(() => AddSubtask(sl()));
+  sl.registerLazySingleton(() => ToggleSubtask(sl()));
+  sl.registerLazySingleton(() => DeleteSubtask(sl()));
   sl.registerLazySingleton(() => CreateTask(sl()));
   sl.registerLazySingleton(() => GetTaskEditData(sl()));
   sl.registerLazySingleton(() => UpdateTask(sl()));
@@ -149,8 +153,8 @@ void configureDependencies({AppDatabase? database}) {
   sl.registerLazySingleton(() => CheckScheduleConflict(sl()));
   sl.registerLazySingleton(() => UpdateTaskRecurrenceTime(sl()));
   sl.registerFactory(() => TasksListCubit(sl(), sl(), sl()));
-  sl.registerFactoryParam<TaskDetailCubit, String, void>(
-      (taskId, _) => TaskDetailCubit(sl(), sl(), sl(), sl(), sl(), sl(), taskId));
+  sl.registerFactoryParam<TaskDetailCubit, String, void>((taskId, _) => TaskDetailCubit(
+      sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), taskId));
   sl.registerFactoryParam<CreateTaskCubit, String?, void>(
       (editingTaskId, _) => CreateTaskCubit(sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(),
           sl(), sl(), editingTaskId));

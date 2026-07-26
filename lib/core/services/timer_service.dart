@@ -58,14 +58,40 @@ class TimerService {
     });
   }
 
-  Future<void> completeTask(String id) async {
+  /// Finaliza [id] como hecha. Si [manualStart]/[manualEnd] vienen (el
+  /// usuario confirmó en qué horario hizo la tarea al no haber cronómetro
+  /// de por medio), se registra esa sesión antes de cerrar — para que el
+  /// tiempo real quede reflejado aunque nunca se haya tocado "Reanudar".
+  Future<void> completeTask(String id, {DateTime? manualStart, DateTime? manualEnd}) async {
     final db = await _database.database;
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     await db.transaction((txn) async {
       await _resolvePendingPause(txn, id, nowMs);
       await txn.update('task_sessions', {'ended_at': nowMs},
           where: 'task_id = ? AND ended_at IS NULL', whereArgs: [id]);
-      await txn.update('tasks', {'status': 'done', 'completed_at': nowMs},
+      if (manualStart != null && manualEnd != null && manualEnd.isAfter(manualStart)) {
+        await txn.insert('task_sessions', {
+          'task_id': id,
+          'started_at': manualStart.millisecondsSinceEpoch,
+          'ended_at': manualEnd.millisecondsSinceEpoch,
+        });
+      }
+      await txn.update(
+          'tasks', {'status': 'done', 'completed_at': nowMs, 'not_done_reason': null},
+          where: 'id = ?', whereArgs: [id]);
+    });
+  }
+
+  /// Marca [id] como NO hecha, con [reason] obligatorio: la tarea vencida
+  /// no se puede cerrar en silencio, hay que decir por qué no se cumplió.
+  Future<void> markTaskNotDone(String id, String reason) async {
+    final db = await _database.database;
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    await db.transaction((txn) async {
+      await _resolvePendingPause(txn, id, nowMs);
+      await txn.update('task_sessions', {'ended_at': nowMs},
+          where: 'task_id = ? AND ended_at IS NULL', whereArgs: [id]);
+      await txn.update('tasks', {'status': 'not_done', 'not_done_reason': reason},
           where: 'id = ?', whereArgs: [id]);
     });
   }

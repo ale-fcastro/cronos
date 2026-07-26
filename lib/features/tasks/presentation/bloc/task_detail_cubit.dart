@@ -15,6 +15,10 @@ class TaskDetailCubit extends Cubit<TaskDetailState> {
     this._startTimer,
     this._pauseTimer,
     this._completeTask,
+    this._markTaskNotDone,
+    this._addSubtask,
+    this._toggleSubtask,
+    this._deleteSubtask,
     this._deleteTask,
     this._lifeAreasService,
     this.taskId,
@@ -36,6 +40,10 @@ class TaskDetailCubit extends Cubit<TaskDetailState> {
   final StartTaskTimer _startTimer;
   final PauseTaskTimer _pauseTimer;
   final CompleteTask _completeTask;
+  final MarkTaskNotDone _markTaskNotDone;
+  final AddSubtask _addSubtask;
+  final ToggleSubtask _toggleSubtask;
+  final DeleteSubtask _deleteSubtask;
   final DeleteTask _deleteTask;
   final LifeAreasService _lifeAreasService;
   final String taskId;
@@ -71,8 +79,29 @@ class TaskDetailCubit extends Cubit<TaskDetailState> {
     await load();
   }
 
-  Future<void> finish() async {
-    await _completeTask(taskId);
+  Future<void> finish({DateTime? manualStart, DateTime? manualEnd}) async {
+    await _completeTask(taskId, manualStart: manualStart, manualEnd: manualEnd);
+    await load();
+  }
+
+  Future<void> markNotDone(String reason) async {
+    await _markTaskNotDone(taskId, reason);
+    await load();
+  }
+
+  Future<void> addSubtask(String title) async {
+    if (title.trim().isEmpty) return;
+    await _addSubtask(taskId, title.trim());
+    await load();
+  }
+
+  Future<void> toggleSubtask(String subtaskId, bool done) async {
+    await _toggleSubtask(subtaskId, done);
+    await load();
+  }
+
+  Future<void> deleteSubtask(String subtaskId) async {
+    await _deleteSubtask(subtaskId);
     await load();
   }
 
