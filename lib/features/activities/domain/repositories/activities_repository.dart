@@ -8,5 +8,6 @@ abstract interface class ActivitiesRepository {
   Future<void> startActivity(String activityId);
   Future<void> stopRunningActivity({String? reason, String? areaId});
   Future<void> createActivityType(NewActivityTypeInput input);
+  Future<void> updateActivityType(String id, NewActivityTypeInput input);
   Future<void> deleteActivityType(String id);
 }

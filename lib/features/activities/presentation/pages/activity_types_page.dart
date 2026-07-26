@@ -5,6 +5,7 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../shared/shared.dart';
 import '../bloc/activities_cubit.dart';
 import '../bloc/activities_state.dart';
+import '../widgets/create_activity_type_dialog.dart';
 
 /// Pantalla "Categorías": gestiona los tipos de actividad (crear se hace
 /// desde el registro con el FAB; acá se ven y se borran).
@@ -38,7 +39,8 @@ class ActivityTypesPage extends StatelessWidget {
                     ),
                     Gaps.vSm,
                     const AppCaption(
-                      'Para agregar una nueva, tocá "Nueva actividad" al registrar.',
+                      'Para agregar una nueva, tocá "Nueva actividad" al registrar. '
+                      'Tocá una categoría para editarla.',
                     ),
                     Gaps.vLg,
                     if (state.isLoading)
@@ -52,6 +54,16 @@ class ActivityTypesPage extends StatelessWidget {
                             final a = state.activities![i];
                             return AppCard(
                               padding: AppSpacing.cardDense,
+                              onTap: () async {
+                                final input = await showEditActivityTypeDialog(
+                                  context,
+                                  activity: a,
+                                  lifeAreas: state.lifeAreas,
+                                );
+                                if (input != null) {
+                                  cubit.updateActivityType(a.id, input);
+                                }
+                              },
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
@@ -68,6 +80,10 @@ class ActivityTypesPage extends StatelessWidget {
                                       ),
                                       Gaps.hSm,
                                       Text(a.name, style: AppTextStyles.body),
+                                      Gaps.hSm,
+                                      Text(a.impact.label,
+                                          style: AppTextStyles.metricCaption.copyWith(
+                                              color: AppColors.textTertiary, fontSize: 12)),
                                     ],
                                   ),
                                   AppIconButton(

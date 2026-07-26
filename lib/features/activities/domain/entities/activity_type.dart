@@ -1,12 +1,42 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart' show Color;
 
+/// Qué aporta una actividad al cálculo de tiempo productivo/perdido.
+/// Independiente de [ActivityType.warn] (ese solo controla si avisa cuando
+/// se le dedica demasiado tiempo en el día).
+enum ActivityImpact {
+  productive,
+  leisure,
+  neutral;
+
+  String toDb() => switch (this) {
+        ActivityImpact.productive => 'productive',
+        ActivityImpact.leisure => 'leisure',
+        ActivityImpact.neutral => 'neutral',
+      };
+
+  static ActivityImpact fromDb(String value) => switch (value) {
+        'productive' => ActivityImpact.productive,
+        'leisure' => ActivityImpact.leisure,
+        _ => ActivityImpact.neutral,
+      };
+
+  String get label => switch (this) {
+        ActivityImpact.productive => 'Productiva',
+        ActivityImpact.leisure => 'Ocio',
+        ActivityImpact.neutral => 'Neutra',
+      };
+}
+
 /// Actividad frecuente del usuario (celda de la cuadricula de registro).
 class ActivityType extends Equatable {
   const ActivityType({
     required this.id,
     required this.name,
     required this.color,
+    this.areaId,
+    this.warn = false,
+    this.impact = ActivityImpact.neutral,
     this.lastUsedLabel,
     this.lastUsedWarn = false,
   });
@@ -14,11 +44,21 @@ class ActivityType extends Equatable {
   final String id;
   final String name;
   final Color color;
+
+  /// Área de vida asignada; null = sin clasificar.
+  final String? areaId;
+
+  /// Si true, avisa cuando el uso diario supera el umbral.
+  final bool warn;
+
+  /// Si suma a tiempo productivo, a tiempo perdido, o a ninguno.
+  final ActivityImpact impact;
   final String? lastUsedLabel;
   final bool lastUsedWarn;
 
   @override
-  List<Object?> get props => [id, name, color, lastUsedLabel, lastUsedWarn];
+  List<Object?> get props =>
+      [id, name, color, areaId, warn, impact, lastUsedLabel, lastUsedWarn];
 }
 
 /// Entrada del registro de hoy.

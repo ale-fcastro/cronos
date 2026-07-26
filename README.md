@@ -20,8 +20,14 @@ oscuro, tipografías IBM Plex y persistencia local en SQLite.
   ejercicio, redes…) y tipos personalizados; eventos imprevistos con
   sugerencias de tu historial.
 - **Áreas de vida y proyectos**: clasificación transversal (trabajo, salud,
-  finanzas, etc.) y proyectos propios, usados en tareas, actividades y
-  eventos para ver en qué invertís el tiempo.
+  finanzas, etc., editable por completo — crear, renombrar/recolorear y
+  borrar) y proyectos propios, usadas en tareas, actividades y eventos
+  para ver en qué invertís el tiempo.
+- **Categorías de actividad**: cada una se marca como productiva, de ocio
+  o neutra — así el cálculo de tiempo productivo/perdido y el score saben
+  qué hacer con cualquier actividad, no solo con las que trae la app de
+  fábrica. Se editan desde Configuración → Categorías o manteniendo
+  presionada una tarjeta al registrar.
 - **Analizar**: métricas, tareas, eventos y uso real del teléfono (requiere
   el permiso "Acceso al uso" de Android) sobre la última semana o mes.
 - **Configuración**: horarios editables por día (laboral/estudio/sueño +

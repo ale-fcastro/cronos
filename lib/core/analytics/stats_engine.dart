@@ -19,6 +19,7 @@ class DayStats {
     required this.taskMin,
     required this.sleepMin,
     required this.lostMin,
+    required this.productiveActivityMin,
     required this.categoryMin,
     required this.tasksDone,
     required this.tasksTotal,
@@ -33,8 +34,11 @@ class DayStats {
   /// Minutos de la categoría sueño.
   final int sleepMin;
 
-  /// Minutos en actividades marcadas como "warn" (redes, videojuegos...).
+  /// Minutos en actividades con impact == "leisure".
   final int lostMin;
+
+  /// Minutos en actividades con impact == "productive" (sin contar tareas).
+  final int productiveActivityMin;
 
   /// Minutos por categoría de actividad (`sueno`, `ocio`, `estudio`...).
   final Map<String, int> categoryMin;
@@ -90,14 +94,15 @@ class StatsEngine {
       taskMin += overlapMinutes(s, e, start, end);
     }
 
-    // --- Sesiones de actividades por categoría ---
+    // --- Sesiones de actividades por categoría e impacto ---
     final actSessions = await db.rawQuery('''
-      SELECT s.started_at, s.ended_at, t.category, t.warn
+      SELECT s.started_at, s.ended_at, t.category, t.impact
       FROM activity_sessions s JOIN activity_types t ON t.id = s.activity_id
       WHERE s.started_at < ? AND COALESCE(s.ended_at, ?) > ?
     ''', [endMs, nowMs, startMs]);
     final categoryMin = <String, int>{};
     var lostMin = 0;
+    var productiveActivityMin = 0;
     for (final row in actSessions) {
       final s = DateTime.fromMillisecondsSinceEpoch(row['started_at'] as int);
       final e = DateTime.fromMillisecondsSinceEpoch(
@@ -106,7 +111,12 @@ class StatsEngine {
       if (min == 0) continue;
       final cat = row['category'] as String;
       categoryMin[cat] = (categoryMin[cat] ?? 0) + min;
-      if ((row['warn'] as int) == 1) lostMin += min;
+      switch (row['impact'] as String) {
+        case 'leisure':
+          lostMin += min;
+        case 'productive':
+          productiveActivityMin += min;
+      }
     }
     final sleepMin = categoryMin['sueno'] ?? 0;
 
@@ -141,7 +151,7 @@ class StatsEngine {
         ? -1
         : (punctual * 100 ~/ punctualityCandidates);
 
-    final productive = taskMin + (categoryMin['estudio'] ?? 0);
+    final productive = taskMin + productiveActivityMin;
     final efficiencyPct = (productive + lostMin) == 0
         ? -1
         : (productive * 100 ~/ (productive + lostMin));
@@ -166,6 +176,7 @@ class StatsEngine {
       taskMin: taskMin,
       sleepMin: sleepMin,
       lostMin: lostMin,
+      productiveActivityMin: productiveActivityMin,
       categoryMin: categoryMin,
       tasksDone: tasksDone,
       tasksTotal: tasksTotal,

@@ -8,4 +8,5 @@ abstract final class AppRoutes {
   static const taskRecurrences = '/task-recurrences';
   static const taskDetail = '/task-detail';
   static const support = '/support';
+  static const lifeAreas = '/life-areas';
 }

@@ -15,6 +15,7 @@ class ActivitiesCubit extends Cubit<ActivitiesState> {
     this._startActivity,
     this._stopRunning,
     this._createActivityType,
+    this._updateActivityType,
     this._deleteActivityType,
     this._lifeAreasService,
   ) : super(const ActivitiesState()) {
@@ -35,6 +36,7 @@ class ActivitiesCubit extends Cubit<ActivitiesState> {
   final StartActivity _startActivity;
   final StopRunningActivity _stopRunning;
   final CreateActivityType _createActivityType;
+  final UpdateActivityType _updateActivityType;
   final DeleteActivityType _deleteActivityType;
   final LifeAreasService _lifeAreasService;
   Timer? _ticker;
@@ -80,6 +82,15 @@ class ActivitiesCubit extends Cubit<ActivitiesState> {
       await _load();
     } catch (e, st) {
       reportError('ActivitiesCubit.createActivityType', e, st);
+    }
+  }
+
+  Future<void> updateActivityType(String id, NewActivityTypeInput input) async {
+    try {
+      await _updateActivityType(id, input);
+      await _load();
+    } catch (e, st) {
+      reportError('ActivitiesCubit.updateActivityType', e, st);
     }
   }
 

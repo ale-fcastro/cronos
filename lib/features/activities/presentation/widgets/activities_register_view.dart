@@ -78,6 +78,14 @@ class ActivitiesRegisterView extends StatelessWidget {
                     lastUsed: a.lastUsedLabel,
                     lastUsedColor: a.lastUsedWarn ? AppColors.danger : null,
                     onTap: () => cubit.start(a.id),
+                    onLongPress: () async {
+                      final input = await showEditActivityTypeDialog(
+                        context,
+                        activity: a,
+                        lifeAreas: state.lifeAreas,
+                      );
+                      if (input != null) cubit.updateActivityType(a.id, input);
+                    },
                   ),
                 DashedSurface(
                   onTap: () async {

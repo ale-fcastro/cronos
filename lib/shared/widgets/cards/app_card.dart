@@ -15,6 +15,7 @@ class AppCard extends StatelessWidget {
     this.borderColor,
     this.borderRadius = AppRadius.card,
     this.onTap,
+    this.onLongPress,
   });
 
   final Widget child;
@@ -25,6 +26,7 @@ class AppCard extends StatelessWidget {
   final Color? borderColor;
   final BorderRadius borderRadius;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -41,11 +43,12 @@ class AppCard extends StatelessWidget {
       ),
       child: child,
     );
-    if (onTap == null) return card;
+    if (onTap == null && onLongPress == null) return card;
     return Material(
       color: Colors.transparent,
       borderRadius: borderRadius,
-      child: InkWell(onTap: onTap, borderRadius: borderRadius, child: card),
+      child: InkWell(
+          onTap: onTap, onLongPress: onLongPress, borderRadius: borderRadius, child: card),
     );
   }
 }

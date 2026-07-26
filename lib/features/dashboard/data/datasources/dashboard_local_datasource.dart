@@ -89,7 +89,7 @@ class DashboardLocalDatasource {
       );
     }
 
-    final productiveMin = today.taskMin + (today.categoryMin['estudio'] ?? 0);
+    final productiveMin = today.taskMin + today.productiveActivityMin;
     final sleepDelta = today.sleepMin - StatsEngine.sleepTargetMin;
 
     return DashboardSummary(

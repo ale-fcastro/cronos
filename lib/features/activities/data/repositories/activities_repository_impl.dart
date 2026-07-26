@@ -29,5 +29,9 @@ class ActivitiesRepositoryImpl implements ActivitiesRepository {
       _datasource.createActivityType(input);
 
   @override
+  Future<void> updateActivityType(String id, NewActivityTypeInput input) =>
+      _datasource.updateActivityType(id, input);
+
+  @override
   Future<void> deleteActivityType(String id) => _datasource.deleteActivityType(id);
 }

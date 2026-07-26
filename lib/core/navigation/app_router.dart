@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../features/activities/presentation/pages/activity_types_page.dart';
 import '../../features/projects/presentation/pages/projects_page.dart';
+import '../../features/settings/presentation/pages/life_areas_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/settings/presentation/pages/support_info_page.dart';
 import '../../features/tasks/presentation/pages/task_detail_page.dart';
@@ -33,6 +34,9 @@ abstract final class AppRouter {
       case AppRoutes.support:
         return AppPageRoute(
             builder: (_) => const SupportInfoPage(), settings: settings);
+      case AppRoutes.lifeAreas:
+        return AppPageRoute(
+            builder: (_) => const LifeAreasPage(), settings: settings);
       case AppRoutes.taskDetail:
         final taskId = settings.arguments! as String;
         return AppPageRoute(

@@ -63,6 +63,9 @@ class ActivitiesLocalDatasource {
         id: id,
         name: t['name'] as String,
         color: Color(t['color'] as int),
+        areaId: t['area_id'] as String?,
+        warn: warn,
+        impact: ActivityImpact.fromDb(t['impact'] as String),
         lastUsedLabel: label,
         lastUsedWarn: warnLabel,
       ));
@@ -128,7 +131,24 @@ class ActivitiesLocalDatasource {
       'area_id': input.areaId,
       'warn': input.warn ? 1 : 0,
       'sort': nextSort,
+      'impact': input.impact.toDb(),
     });
+  }
+
+  Future<void> updateActivityType(String id, NewActivityTypeInput input) async {
+    final db = await _database.database;
+    await db.update(
+      'activity_types',
+      {
+        'name': input.name,
+        'color': input.color.toARGB32(),
+        'area_id': input.areaId,
+        'warn': input.warn ? 1 : 0,
+        'impact': input.impact.toDb(),
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
   }
 
   Future<void> deleteActivityType(String id) async {

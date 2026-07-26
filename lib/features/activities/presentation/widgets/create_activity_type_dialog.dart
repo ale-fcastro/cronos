@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/models/life_area.dart';
 import '../../../../shared/shared.dart';
+import '../../domain/entities/activity_type.dart';
 import '../../domain/entities/new_activity_type_input.dart';
 
 /// Paleta reducida y distinguible para actividades personalizadas.
@@ -27,10 +28,26 @@ Future<NewActivityTypeInput?> showCreateActivityTypeDialog(
   );
 }
 
+/// Abre el mismo diálogo precargado con los datos de [activity] para
+/// editarla. Devuelve el input actualizado si se confirma.
+Future<NewActivityTypeInput?> showEditActivityTypeDialog(
+  BuildContext context, {
+  required ActivityType activity,
+  required List<LifeArea> lifeAreas,
+}) {
+  return showDialog<NewActivityTypeInput>(
+    context: context,
+    builder: (_) => _CreateActivityTypeDialog(lifeAreas: lifeAreas, initial: activity),
+  );
+}
+
 class _CreateActivityTypeDialog extends StatefulWidget {
-  const _CreateActivityTypeDialog({required this.lifeAreas});
+  const _CreateActivityTypeDialog({required this.lifeAreas, this.initial});
 
   final List<LifeArea> lifeAreas;
+
+  /// Si no es null, el diálogo edita esta actividad en vez de crear una.
+  final ActivityType? initial;
 
   @override
   State<_CreateActivityTypeDialog> createState() =>
@@ -38,10 +55,13 @@ class _CreateActivityTypeDialog extends StatefulWidget {
 }
 
 class _CreateActivityTypeDialogState extends State<_CreateActivityTypeDialog> {
-  final _nameController = TextEditingController();
-  Color _color = _palette.first;
-  String? _areaId;
-  bool _warn = false;
+  late final _nameController = TextEditingController(text: widget.initial?.name);
+  late Color _color = widget.initial?.color ?? _palette.first;
+  late String? _areaId = widget.initial?.areaId;
+  late bool _warn = widget.initial?.warn ?? false;
+  late ActivityImpact _impact = widget.initial?.impact ?? ActivityImpact.neutral;
+
+  bool get _editing => widget.initial != null;
 
   @override
   void dispose() {
@@ -62,12 +82,13 @@ class _CreateActivityTypeDialogState extends State<_CreateActivityTypeDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Nueva actividad', style: AppTextStyles.headline),
+              Text(_editing ? 'Editar actividad' : 'Nueva actividad',
+                  style: AppTextStyles.headline),
               Gaps.vLg,
               AppTextField(
                 label: 'Nombre',
                 hint: 'Lectura, limpieza, gimnasio…',
-                autofocus: true,
+                autofocus: !_editing,
                 onChanged: (v) => setState(() {}),
                 controller: _nameController,
               ),
@@ -95,6 +116,30 @@ class _CreateActivityTypeDialogState extends State<_CreateActivityTypeDialog> {
                       ),
                     ),
                 ],
+              ),
+              Gaps.vMd,
+              Text('Impacto en tu tiempo', style: AppTextStyles.label),
+              Gaps.vSm,
+              AppSegmentedButton(
+                expanded: true,
+                segments: const ['Productiva', 'Ocio', 'Neutra'],
+                selectedIndex: switch (_impact) {
+                  ActivityImpact.productive => 0,
+                  ActivityImpact.leisure => 1,
+                  ActivityImpact.neutral => 2,
+                },
+                selectedColor: AppColors.accent,
+                selectedBackground: AppColors.accentSoft,
+                onChanged: (i) => setState(() => _impact = switch (i) {
+                      0 => ActivityImpact.productive,
+                      1 => ActivityImpact.leisure,
+                      _ => ActivityImpact.neutral,
+                    }),
+              ),
+              Gaps.vSm,
+              const AppCaption(
+                'Define qué suma: productiva cuenta como tiempo bien usado, '
+                'ocio como tiempo perdido, neutra no afecta el puntaje.',
               ),
               if (widget.lifeAreas.isNotEmpty) ...[
                 Gaps.vMd,
@@ -140,7 +185,7 @@ class _CreateActivityTypeDialogState extends State<_CreateActivityTypeDialog> {
                   Gaps.hSm,
                   Expanded(
                     child: PrimaryButton(
-                      label: 'Crear',
+                      label: _editing ? 'Guardar' : 'Crear',
                       onPressed: _nameController.text.trim().isEmpty
                           ? null
                           : () =>
@@ -149,6 +194,7 @@ class _CreateActivityTypeDialogState extends State<_CreateActivityTypeDialog> {
                                 color: _color,
                                 areaId: _areaId,
                                 warn: _warn,
+                                impact: _impact,
                               )),
                     ),
                   ),

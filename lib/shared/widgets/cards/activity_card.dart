@@ -30,6 +30,7 @@ class ActivityCard extends StatelessWidget {
     return AppCard(
       borderRadius: AppRadius.cardLarge,
       onTap: onTap,
+      onLongPress: onLongPress,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,

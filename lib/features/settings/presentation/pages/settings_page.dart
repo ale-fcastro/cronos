@@ -142,6 +142,14 @@ class SettingsPage extends StatelessWidget {
                                   onTap: () => Navigator.of(context)
                                       .pushNamed(AppRoutes.taskRecurrences),
                                 ),
+                                const Divider(height: 1),
+                                _row(
+                                  'Áreas de vida',
+                                  '',
+                                  chevron: true,
+                                  onTap: () => Navigator.of(context)
+                                      .pushNamed(AppRoutes.lifeAreas),
+                                ),
                               ],
                             ),
                           ),

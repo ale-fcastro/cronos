@@ -105,11 +105,11 @@ class MetricsLocalDatasource {
       task += d.taskMin;
       sleep += d.sleepMin;
       study += d.categoryMin['estudio'] ?? 0;
-      leisure += d.categoryMin['ocio'] ?? 0;
+      leisure += d.lostMin;
       other += d.activityMin -
           d.sleepMin -
           (d.categoryMin['estudio'] ?? 0) -
-          (d.categoryMin['ocio'] ?? 0);
+          d.lostMin;
     }
     final total = task + sleep + study + leisure + other;
     if (total == 0) {

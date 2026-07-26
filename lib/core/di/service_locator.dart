@@ -71,6 +71,7 @@ import '../../features/settings/domain/usecases/custom_schedule_usecases.dart';
 import '../../features/settings/domain/usecases/schedule_range_usecases.dart';
 import '../../features/settings/domain/usecases/get_settings.dart';
 import '../../features/settings/domain/usecases/update_setting.dart';
+import '../../features/settings/presentation/bloc/life_areas_cubit.dart';
 import '../../features/settings/presentation/bloc/settings_cubit.dart';
 
 import '../../features/tasks/data/datasources/tasks_local_datasource.dart';
@@ -161,8 +162,10 @@ void configureDependencies({AppDatabase? database}) {
   sl.registerLazySingleton(() => StartActivity(sl()));
   sl.registerLazySingleton(() => StopRunningActivity(sl()));
   sl.registerLazySingleton(() => CreateActivityType(sl()));
+  sl.registerLazySingleton(() => UpdateActivityType(sl()));
   sl.registerLazySingleton(() => DeleteActivityType(sl()));
-  sl.registerFactory(() => ActivitiesCubit(sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl()));
+  sl.registerFactory(
+      () => ActivitiesCubit(sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl()));
 
   // Events
   sl.registerLazySingleton(() => EventsLocalDatasource(sl()));
@@ -218,4 +221,5 @@ void configureDependencies({AppDatabase? database}) {
   sl.registerLazySingleton(() => UpdateScheduleRange(sl()));
   sl.registerLazySingleton(() => DeleteScheduleRange(sl()));
   sl.registerFactory(() => SettingsCubit(sl(), sl(), sl(), sl(), sl(), sl(), sl()));
+  sl.registerFactory(() => LifeAreasCubit(sl()));
 }

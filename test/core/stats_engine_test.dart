@@ -68,6 +68,48 @@ void main() {
     expect(s.hasData, isTrue);
   });
 
+  test(
+      'una actividad personalizada marcada como productiva o de ocio suma '
+      'al cálculo aunque no sea "estudio" ni tenga warn activado', () async {
+    final db = await database.database;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    int ms(DateTime d) => d.millisecondsSinceEpoch;
+
+    await db.insert('activity_types', {
+      'id': 'act_gym',
+      'name': 'Gimnasio',
+      'color': 0,
+      'category': 'personalizada',
+      'warn': 0,
+      'impact': 'productive',
+    });
+    await db.insert('activity_types', {
+      'id': 'act_series',
+      'name': 'Series',
+      'color': 0,
+      'category': 'personalizada',
+      'warn': 0,
+      'impact': 'leisure',
+    });
+    await db.insert('activity_sessions', {
+      'activity_id': 'act_gym',
+      'started_at': ms(today.add(const Duration(hours: 7))),
+      'ended_at': ms(today.add(const Duration(hours: 8))),
+    });
+    await db.insert('activity_sessions', {
+      'activity_id': 'act_series',
+      'started_at': ms(today.add(const Duration(hours: 20))),
+      'ended_at': ms(today.add(const Duration(hours: 20, minutes: 30))),
+    });
+
+    final s = await engine.statsForDay(today);
+    expect(s.productiveActivityMin, 60);
+    expect(s.lostMin, 30);
+    // productivo 60 / (60 + 30) = 66%
+    expect(s.efficiencyPct, 66);
+  });
+
   test('sesión de sueño que cruza medianoche cuenta el solape', () async {
     final db = await database.database;
     final now = DateTime.now();

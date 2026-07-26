@@ -14,7 +14,7 @@ class AppDatabase {
   final String? _pathOverride;
   Database? _db;
 
-  static const _version = 11;
+  static const _version = 12;
 
   Future<Database> get database async {
     final cached = _db;
@@ -84,7 +84,8 @@ class AppDatabase {
         category TEXT NOT NULL,
         area_id TEXT,
         warn INTEGER NOT NULL DEFAULT 0,
-        sort INTEGER NOT NULL DEFAULT 0
+        sort INTEGER NOT NULL DEFAULT 0,
+        impact TEXT NOT NULL DEFAULT 'neutral'
       )
     ''');
     await db.execute('''
@@ -292,6 +293,19 @@ class AppDatabase {
         await db.execute('ALTER TABLE task_recurrences ADD COLUMN start_date TEXT');
       }
     }
+    if (oldVersion < 12) {
+      // Antes, "productivo"/"perdido" salían de casos especiales (category
+      // == 'estudio', warn == 1): ninguna actividad personalizada podía
+      // contar para ninguno de los dos. impact lo hace explícito y editable.
+      // El backfill preserva el cálculo que ya venía haciendo la app.
+      if (!await _columnExists(db, 'activity_types', 'impact')) {
+        await db.execute(
+            "ALTER TABLE activity_types ADD COLUMN impact TEXT NOT NULL DEFAULT 'neutral'");
+      }
+      await db.execute(
+          "UPDATE activity_types SET impact = 'productive' WHERE category = 'estudio'");
+      await db.execute("UPDATE activity_types SET impact = 'leisure' WHERE warn = 1");
+    }
   }
 
   Future<bool> _columnExists(Database db, String table, String column) async {
@@ -358,15 +372,16 @@ class AppDatabase {
   }
 
   Future<void> _seed(Database db) async {
+    // (id, nombre, color, categoria, warn, sort, impact)
     const types = [
-      ('dormir', 'Dormir', 0xFF3A3D45, 'sueno', 0, 0),
-      ('comer', 'Comer', 0xFFDDB168, 'alimentacion', 0, 1),
-      ('ejercicio', 'Ejercicio', 0xFF7EC9A2, 'ejercicio', 0, 2),
-      ('descanso', 'Descanso', 0xFF9DB1F5, 'descanso', 0, 3),
-      ('redes', 'Redes sociales', 0xFFE0837A, 'ocio', 1, 4),
-      ('videojuegos', 'Videojuegos', 0xFFE0837A, 'ocio', 1, 5),
-      ('transporte', 'Transporte', 0xFF6A6F79, 'neutro', 0, 6),
-      ('estudio', 'Estudio', 0xFF7EC9A2, 'estudio', 0, 7),
+      ('dormir', 'Dormir', 0xFF3A3D45, 'sueno', 0, 0, 'neutral'),
+      ('comer', 'Comer', 0xFFDDB168, 'alimentacion', 0, 1, 'neutral'),
+      ('ejercicio', 'Ejercicio', 0xFF7EC9A2, 'ejercicio', 0, 2, 'neutral'),
+      ('descanso', 'Descanso', 0xFF9DB1F5, 'descanso', 0, 3, 'neutral'),
+      ('redes', 'Redes sociales', 0xFFE0837A, 'ocio', 1, 4, 'leisure'),
+      ('videojuegos', 'Videojuegos', 0xFFE0837A, 'ocio', 1, 5, 'leisure'),
+      ('transporte', 'Transporte', 0xFF6A6F79, 'neutro', 0, 6, 'neutral'),
+      ('estudio', 'Estudio', 0xFF7EC9A2, 'estudio', 0, 7, 'productive'),
     ];
     final batch = db.batch();
     for (final t in types) {
@@ -378,6 +393,7 @@ class AppDatabase {
         'area_id': _activityAreaMap[t.$1],
         'warn': t.$5,
         'sort': t.$6,
+        'impact': t.$7,
       });
     }
     const defaults = {

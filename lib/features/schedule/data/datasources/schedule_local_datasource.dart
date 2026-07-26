@@ -312,7 +312,7 @@ class ScheduleLocalDatasource {
       ('Sueño', s.sleepMin, DataColors.neutralBar),
       ('Tareas', s.taskMin, DataColors.accent),
       ('Estudio', s.categoryMin['estudio'] ?? 0, DataColors.success),
-      ('Ocio', s.categoryMin['ocio'] ?? 0, DataColors.warning),
+      ('Ocio', s.lostMin, DataColors.warning),
     ];
     final used = buckets.fold(0, (a, b) => a + b.$2);
     final other = total - used;

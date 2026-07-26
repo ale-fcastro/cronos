@@ -62,6 +62,28 @@ void main() {
               created_at INTEGER NOT NULL
             )
           ''');
+          // activity_types existe desde siempre (schema original): un
+          // dispositivo real en v6 ya la tiene.
+          await db.execute('''
+            CREATE TABLE activity_types(
+              id TEXT PRIMARY KEY,
+              name TEXT NOT NULL,
+              color INTEGER NOT NULL,
+              category TEXT NOT NULL,
+              area_id TEXT,
+              warn INTEGER NOT NULL DEFAULT 0,
+              sort INTEGER NOT NULL DEFAULT 0
+            )
+          ''');
+          await db.insert('activity_types',
+              {'id': 'estudio', 'name': 'Estudio', 'color': 0, 'category': 'estudio'});
+          await db.insert('activity_types', {
+            'id': 'redes',
+            'name': 'Redes',
+            'color': 0,
+            'category': 'ocio',
+            'warn': 1
+          });
         },
       ),
     );
@@ -77,6 +99,14 @@ void main() {
 
     final ranges = await db.query('schedule_ranges');
     expect(ranges, isNotEmpty);
+
+    // El backfill de "impact" preserva lo que la app ya calculaba antes de
+    // que la columna existiera (category == 'estudio' -> productive,
+    // warn == 1 -> leisure).
+    final estudio = await db.query('activity_types', where: "id = 'estudio'");
+    expect(estudio.first['impact'], 'productive');
+    final redes = await db.query('activity_types', where: "id = 'redes'");
+    expect(redes.first['impact'], 'leisure');
 
     await appDb.close();
   });

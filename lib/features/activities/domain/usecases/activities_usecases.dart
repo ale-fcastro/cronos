@@ -39,6 +39,13 @@ class CreateActivityType {
   Future<void> call(NewActivityTypeInput input) => _repository.createActivityType(input);
 }
 
+class UpdateActivityType {
+  const UpdateActivityType(this._repository);
+  final ActivitiesRepository _repository;
+  Future<void> call(String id, NewActivityTypeInput input) =>
+      _repository.updateActivityType(id, input);
+}
+
 class DeleteActivityType {
   const DeleteActivityType(this._repository);
   final ActivitiesRepository _repository;
