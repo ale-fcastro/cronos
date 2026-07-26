@@ -3,6 +3,11 @@
 Sistema operativo personal del tiempo. App Flutter (Android/iOS) con tema
 oscuro, tipografías IBM Plex y persistencia local en SQLite.
 
+> Si vas a trabajar en este repo con Claude Code (desde esta PC o desde
+> otra), leé primero [CLAUDE.md](CLAUDE.md): tiene las convenciones del
+> proyecto, el flujo de release y varias cosas ya resueltas que conviene
+> no reinventar.
+
 ## Qué hace
 
 - **Hoy**: score del día (cumplimiento, eficiencia, sueño, puntualidad — pesos
@@ -153,6 +158,8 @@ de desarrollo tipo "build de prueba"), no como un changelog de commits.
 **Esto hay que actualizarlo con cada versión que se publica**, sin excepción.
 Además, actualizá siempre `Guia_de_Uso_Cronos.pdf` con lo que haya cambiado
 antes de compilar el release (ver el PDF para más detalle de cada pantalla).
+Se genera con [tools/build_user_guide.py](tools/build_user_guide.py)
+(reportlab) — ver CLAUDE.md para el detalle de cómo correrlo.
 
 ## Autor
 
