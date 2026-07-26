@@ -27,6 +27,13 @@ void main() {
 
   tearDown(() => database.close());
 
+  test('el resumen del mes expone el primer día para poder calcular la fecha de cada celda',
+      () async {
+    final overview = await schedule.fetchMonthOverview(DateTime(2026, 3, 15));
+    expect(overview.referenceMonth, DateTime(2026, 3, 1));
+    expect(overview.days, hasLength(31));
+  });
+
   test('una tarea con pausa y reanudación produce marcadores de sesión', () async {
     final now = DateTime.now();
     await tasks.createTask(NewTaskInput(

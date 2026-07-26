@@ -16,6 +16,7 @@ import 'core/services/app_update_service.dart';
 import 'core/services/app_usage_service.dart';
 import 'core/services/notifications_service.dart';
 import 'core/services/nudge_service.dart';
+import 'core/services/overdue_task_service.dart';
 import 'features/tasks/domain/usecases/task_recurrence_usecases.dart';
 import 'shared/shared.dart';
 
@@ -25,17 +26,28 @@ import 'shared/shared.dart';
 @pragma('vm:entry-point')
 void nudgeCallbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
+    final database = AppDatabase();
+    final notifications = NotificationsService(database);
     try {
-      final database = AppDatabase();
       final nudge = NudgeService(database, AppUsageService());
       final message = await nudge.checkForNudge();
       if (message != null) {
-        final notifications = NotificationsService(database);
         await notifications.initialize();
         await notifications.showNow('Croni te avisa', message);
       }
     } catch (_) {
       // Un aviso perdido no es grave; nunca debe tirar la tarea en segundo plano.
+    }
+    try {
+      final overdue = await OverdueTaskService(database).collectNewlyOverdue();
+      if (overdue.isNotEmpty) {
+        await notifications.initialize();
+        for (final (id, title) in overdue) {
+          await notifications.showTaskOverdue(id, title);
+        }
+      }
+    } catch (_) {
+      // Idem: un aviso de vencimiento perdido no debe tirar la tarea.
     }
     return true;
   });
@@ -70,12 +82,18 @@ void main() {
     }
 
     // WorkManager solo existe en Android/iOS; en escritorio no hay
-    // background scheduling real, así que los avisos de uso quedan
-    // ausentes ahí sin romper nada más.
+    // background scheduling real, así que los avisos de uso y de tareas
+    // vencidas quedan ausentes ahí sin romper nada más.
     if (Platform.isAndroid || Platform.isIOS) {
       try {
         await Workmanager().initialize(nudgeCallbackDispatcher);
-        if (await sl<NudgeService>().isEnabled()) {
+        // La tarea periódica hace dos chequeos independientes (distracción
+        // y tareas vencidas); se registra si cualquiera de los dos puede
+        // tener algo que avisar — cada chequeo respeta su propio apagado
+        // adentro del dispatcher.
+        final nudgeEnabled = await sl<NudgeService>().isEnabled();
+        final notificationsEnabled = await sl<NotificationsService>().isEnabled();
+        if (nudgeEnabled || notificationsEnabled) {
           await Workmanager().registerPeriodicTask(
             NudgeService.taskName,
             NudgeService.taskName,

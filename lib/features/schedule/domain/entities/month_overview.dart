@@ -31,6 +31,7 @@ class DaySegment extends Equatable {
 class MonthOverview extends Equatable {
   const MonthOverview({
     required this.monthLabel,
+    required this.referenceMonth,
     required this.averageScore,
     required this.leadingBlankCells,
     required this.days,
@@ -43,6 +44,10 @@ class MonthOverview extends Equatable {
   });
 
   final String monthLabel;
+
+  /// Primer día del mes mostrado; junto con [MonthDay.day] arma la fecha
+  /// real de cada celda (para saber qué día se tocó en el calendario).
+  final DateTime referenceMonth;
   final int averageScore;
   final int leadingBlankCells;
   final List<MonthDay> days;
@@ -56,6 +61,7 @@ class MonthOverview extends Equatable {
   @override
   List<Object?> get props => [
         monthLabel,
+        referenceMonth,
         averageScore,
         leadingBlankCells,
         days,

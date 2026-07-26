@@ -7,6 +7,7 @@ import '../../../../core/models/life_area.dart';
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/navigation/profile_avatar.dart';
 import '../../../../core/services/linked_app_guard_service.dart';
+import '../../../../core/utils/time_format.dart';
 import '../../../../shared/shared.dart';
 import '../../domain/entities/month_overview.dart';
 import '../../domain/entities/timeline_entry.dart';
@@ -57,7 +58,10 @@ class SchedulePage extends StatelessWidget {
             Expanded(
               child: state.viewMode == ScheduleViewMode.day
                   ? _DayTimeline(entries: state.day!.entries, lifeAreas: state.lifeAreas)
-                  : _MonthView(month: state.month!),
+                  : _MonthView(
+                      month: state.month!,
+                      lifeAreas: state.lifeAreas,
+                    ),
             ),
           ],
         );
@@ -297,9 +301,40 @@ class _PlayCircle extends StatelessWidget {
 }
 
 class _MonthView extends StatelessWidget {
-  const _MonthView({required this.month});
+  const _MonthView({required this.month, this.lifeAreas = const []});
 
   final MonthOverview month;
+  final List<LifeArea> lifeAreas;
+
+  Future<void> _showDayDetail(BuildContext context, DateTime date) async {
+    final cubit = context.read<ScheduleCubit>();
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) => FractionallySizedBox(
+        heightFactor: 0.75,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(fmtDayChip(date), style: AppTextStyles.headline),
+              Gaps.vMd,
+              Expanded(
+                child: FutureBuilder<AgendaDay>(
+                  future: cubit.loadDayDetail(date),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) return const LoadingView();
+                    return _DayTimeline(entries: snapshot.data!.entries, lifeAreas: lifeAreas);
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -334,6 +369,10 @@ class _MonthView extends StatelessWidget {
                       label: '${d.day}',
                       intensity: d.intensity,
                       selected: d.selected,
+                      onTap: () => _showDayDetail(
+                        context,
+                        DateTime(month.referenceMonth.year, month.referenceMonth.month, d.day),
+                      ),
                     ),
                 ],
               ),

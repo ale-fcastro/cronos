@@ -286,6 +286,7 @@ class ScheduleLocalDatasource {
 
     return MonthOverview(
       monthLabel: fmtMonthYear(month),
+      referenceMonth: first,
       averageScore: avgScore,
       leadingBlankCells: first.weekday - 1,
       days: days,

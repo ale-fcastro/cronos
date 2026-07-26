@@ -223,6 +223,37 @@ class NotificationsService {
     }
   }
 
+  /// Avisa que una tarea planificada venció sin arrancarse. Mismo gate que
+  /// los recordatorios de "empieza ahora" (isEnabled/hasPermission) y mismo
+  /// canal; el payload es el id de la tarea para poder abrir su detalle al
+  /// tocar el aviso, igual que [scheduleTaskReminder].
+  Future<void> showTaskOverdue(String taskId, String title) async {
+    if (!await isEnabled() || !await hasPermission()) return;
+    await initialize();
+    try {
+      await _plugin.show(
+        id: _notificationId('overdue_$taskId'),
+        title: 'Croni te avisa',
+        body: 'Se te venció "$title" y todavía no la arrancaste.',
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            _channelId,
+            _channelName,
+            icon: _smallIcon,
+            color: _accentColor,
+            importance: Importance.high,
+            priority: Priority.high,
+          ),
+          iOS: DarwinNotificationDetails(),
+          macOS: DarwinNotificationDetails(),
+        ),
+        payload: taskId,
+      );
+    } catch (_) {
+      // Un aviso perdido no debe romper el chequeo periódico.
+    }
+  }
+
   /// Avisa que hay una versión nueva de Cronos, en canal propio: no depende
   /// del interruptor de recordatorios de tareas (son cosas distintas), solo
   /// del permiso general de notificaciones.

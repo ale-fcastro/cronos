@@ -4,6 +4,7 @@ import '../analytics/stats_engine.dart';
 import '../database/app_database.dart';
 import '../services/app_update_service.dart';
 import '../services/app_usage_service.dart';
+import '../services/calendar_import_service.dart';
 import '../services/export_service.dart';
 import '../services/life_areas_service.dart';
 import '../services/linked_app_guard_service.dart';
@@ -106,6 +107,7 @@ void configureDependencies({AppDatabase? database}) {
   sl.registerLazySingleton(() => TimerService(sl()));
   sl.registerLazySingleton(() => AppUsageService());
   sl.registerLazySingleton(() => AppUpdateService(sl()));
+  sl.registerLazySingleton(() => CalendarImportService(sl()));
   sl.registerLazySingleton(() => LinkedAppGuardService(sl(), sl(), sl()));
   sl.registerLazySingleton(() => ExportService(sl()));
   sl.registerLazySingleton(() => NudgeService(sl(), sl()));

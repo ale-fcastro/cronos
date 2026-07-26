@@ -14,7 +14,7 @@ class AppDatabase {
   final String? _pathOverride;
   Database? _db;
 
-  static const _version = 12;
+  static const _version = 13;
 
   Future<Database> get database async {
     final cached = _db;
@@ -65,9 +65,13 @@ class AppDatabase {
         linked_app_name TEXT,
         pause_reason TEXT,
         paused_at INTEGER,
-        pause_area_id TEXT
+        pause_area_id TEXT,
+        ics_uid TEXT,
+        overdue_notified_at INTEGER
       )
     ''');
+    await db.execute(
+        'CREATE UNIQUE INDEX idx_tasks_ics_uid ON tasks(ics_uid) WHERE ics_uid IS NOT NULL');
     await db.execute('''
       CREATE TABLE task_sessions(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -305,6 +309,19 @@ class AppDatabase {
       await db.execute(
           "UPDATE activity_types SET impact = 'productive' WHERE category = 'estudio'");
       await db.execute("UPDATE activity_types SET impact = 'leisure' WHERE warn = 1");
+    }
+    if (oldVersion < 13) {
+      if (!await _columnExists(db, 'tasks', 'ics_uid')) {
+        await db.execute('ALTER TABLE tasks ADD COLUMN ics_uid TEXT');
+      }
+      if (!await _columnExists(db, 'tasks', 'overdue_notified_at')) {
+        await db.execute('ALTER TABLE tasks ADD COLUMN overdue_notified_at INTEGER');
+      }
+      final indexes = await db.rawQuery("PRAGMA index_list('tasks')");
+      if (!indexes.any((r) => r['name'] == 'idx_tasks_ics_uid')) {
+        await db.execute(
+            'CREATE UNIQUE INDEX idx_tasks_ics_uid ON tasks(ics_uid) WHERE ics_uid IS NOT NULL');
+      }
     }
   }
 

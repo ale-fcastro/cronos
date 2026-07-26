@@ -12,6 +12,7 @@ import '../../../security/presentation/widgets/app_lock_tile.dart';
 import '../../domain/entities/app_settings.dart';
 import '../bloc/settings_cubit.dart';
 import '../bloc/settings_state.dart';
+import '../widgets/calendar_import_tile.dart';
 import '../widgets/export_backup_tile.dart';
 import '../widgets/nudge_settings_tile.dart';
 import '../widgets/profile_photo_tile.dart';
@@ -153,6 +154,9 @@ class SettingsPage extends StatelessWidget {
                               ],
                             ),
                           ),
+                          Gaps.vLg,
+                          const SectionHeader(title: 'Calendario'),
+                          const CalendarImportTile(),
                           Gaps.vLg,
                           const SectionHeader(title: 'Notificaciones'),
                           const NotificationsSettingsTile(),

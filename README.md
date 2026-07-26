@@ -9,7 +9,14 @@ oscuro, tipografías IBM Plex y persistencia local en SQLite.
   configurables), tiempo productivo/perdido, tarea o actividad en curso con
   cronómetro vivo, siguiente bloque y score de los últimos 7 días.
 - **Agenda**: línea de tiempo del día (tareas planificadas, actividades,
-  eventos y huecos libres) y mapa de calor mensual.
+  eventos y huecos libres) y mapa de calor mensual — tocando cualquier día
+  del mes se abre su agenda real, no solo el score. También se puede
+  importar un calendario externo (p.ej. Google Calendar, vía su URL
+  secreta .ics) para traer eventos próximos como tareas; sincronización
+  manual y de solo lectura, no trae eventos recurrentes.
+- **Avisos de vencimiento**: si una tarea planificada pasa su hora sin
+  arrancarse, Croni avisa una vez por notificación (chequeo periódico en
+  segundo plano, cada 15 minutos).
 - **Tareas**: lista Hoy/Semana/Todas con prioridades P1–P3, cronómetro por
   tarea (solo uno a la vez), estimado vs real, detalle con historial de
   sesiones y tareas recurrentes (diarias o por día de semana, con fecha de
@@ -124,6 +131,18 @@ gh release create vX.Y.Z build/app/outputs/flutter-apk/app-release.apk \
 El repo tiene que estar público (o el endpoint `releases/latest` de la API
 de GitHub no responde sin autenticación, y ningún teléfono va a detectar la
 actualización).
+
+**Las notas del release (`--notes`) no son solo para GitHub**: son
+exactamente lo que `AppUpdateService.checkWhatsNew()` muestra en el cartel
+"Croni te cuenta las novedades" la primera vez que alguien abre la app
+después de actualizar (ver [whats_new_dialog.dart](lib/shared/widgets/dialogs/whats_new_dialog.dart)).
+Ese cartel sale una sola vez por versión instalada — nunca se repite ni se
+puede volver a abrir a mano — así que las notas tienen que estar escritas
+para el usuario final (qué cambió, en criollo, sin jerga técnica ni notas
+de desarrollo tipo "build de prueba"), no como un changelog de commits.
+**Esto hay que actualizarlo con cada versión que se publica**, sin excepción.
+Además, actualizá siempre `Guia_de_Uso_Cronos.pdf` con lo que haya cambiado
+antes de compilar el release (ver el PDF para más detalle de cada pantalla).
 
 ## Autor
 

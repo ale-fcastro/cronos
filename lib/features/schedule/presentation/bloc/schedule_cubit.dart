@@ -56,6 +56,11 @@ class ScheduleCubit extends Cubit<ScheduleState> {
 
   Future<void> reload() => _load();
 
+  /// Agenda de un día puntual (p.ej. al tocar una celda del calendario de
+  /// Mes) sin tocar el estado principal — es una consulta de una vez, no
+  /// cambia qué muestra la vista Día.
+  Future<AgendaDay> loadDayDetail(DateTime date) => _getDayAgenda(date);
+
   @override
   Future<void> close() {
     _ticker?.cancel();
