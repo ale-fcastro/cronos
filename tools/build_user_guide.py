@@ -177,7 +177,7 @@ index_items = [
     ('2', 'Antes de empezar'),
     ('3', 'Cómo se mueve la app'),
     ('4', 'La pantalla Hoy'),
-    ('5', 'El botón + : registrar en dos toques'),
+    ('5', 'El botón + : registrar rápido, sin vueltas'),
     ('6', 'La Agenda'),
     ('7', 'La pantalla Tareas'),
     ('8', 'Analizar: entender tus números'),
@@ -258,7 +258,7 @@ story.append(para('Abajo de la pantalla siempre vas a tener estos cinco botones:
 for label, desc in [
     ('Hoy', 'El resumen de tu día: cómo vas, qué tenés encima, qué sigue.'),
     ('Agenda', 'La línea de tiempo del día, y un calendario del mes.'),
-    ('+ (centro)', 'El botón para anotar algo nuevo: tarea, actividad o evento, en dos toques.'),
+    ('+ (centro)', 'El botón para anotar algo nuevo: tarea, actividad o evento, sin vueltas.'),
     ('Tareas', 'La lista completa de tus tareas: hoy, esta semana, o todas.'),
     ('Analizar', 'Gráficos y números sobre cómo estás usando tu tiempo.'),
 ]:
@@ -282,10 +282,30 @@ story.append(bul('', 'Si tenés una tarea o actividad en curso, aparece arriba c
                       'cronómetro corriendo. Podés pausarla desde ahí mismo.'))
 story.append(bul('', 'La próxima tarea planificada, para que sepas qué sigue.'))
 story.append(bul('', 'Un gráfico chico con tu puntaje de los últimos 7 días.'))
+story.append(Spacer(1, 8))
+story.append(callout(
+    'Cómo se calcula el puntaje',
+    'Cada uno de los cuatro factores se mide por separado, de 0 a 100, y '
+    'después se promedian según el peso que les diste en Configuración → '
+    'Score (por defecto 40/30/20/10):<br/><br/>'
+    '&bull;&nbsp;&nbsp;<b>Cumplimiento:</b> qué porcentaje de las tareas '
+    'planificadas para hoy terminaste.<br/>'
+    '&bull;&nbsp;&nbsp;<b>Eficiencia:</b> qué porcentaje de tu tiempo '
+    'registrado fue productivo (tareas y actividades marcadas como '
+    'productivas) en vez de tiempo perdido.<br/>'
+    '&bull;&nbsp;&nbsp;<b>Sueño:</b> cuánto dormiste comparado con tu meta '
+    'de horas de sueño.<br/>'
+    '&bull;&nbsp;&nbsp;<b>Puntualidad:</b> de las tareas que ya deberían '
+    'haber empezado, cuántas arrancaste con el cronómetro dentro de los 15 '
+    'minutos de su horario planificado.<br/><br/>'
+    'Si un día te falta algún dato (por ejemplo, no registraste sueño), ese '
+    'factor no cuenta y el resto se reparte su peso -no te penaliza por lo '
+    'que todavía no cargaste.',
+))
 story.append(PageBreak())
 
 # ---------- 5. El botón + ----------
-story += section_heading(5, 'El botón + : registrar en dos toques')
+story += section_heading(5, 'El botón + : registrar rápido, sin vueltas')
 story.append(para(
     'Es el corazón de la app. Al tocarlo se abre una hoja con tres pestañas: '
     'Tarea, Actividad y Evento. Elegís una y completás el formulario '
@@ -369,6 +389,13 @@ story.append(para(
     'cada vez que querés actualizar- y de una sola dirección: crea o '
     'actualiza tareas en Cronos, nunca toca tu calendario de Google. Por '
     'ahora no trae eventos que se repiten (diarios, semanales, etc.).'))
+story.append(Spacer(1, 4))
+story.append(para(
+    'Es manual a propósito, no por una limitación de apuro: una sincronización '
+    'automática necesitaría que le des a Cronos acceso permanente a tu cuenta '
+    'de Google, algo que preferimos no pedir. Elegir el archivo vos mismo es '
+    'un paso más, pero no le entrega a la app ningún permiso de tu calendario '
+    'que no le diste explícitamente en ese momento.'))
 story.append(PageBreak())
 
 # ---------- 7. La pantalla Tareas ----------
