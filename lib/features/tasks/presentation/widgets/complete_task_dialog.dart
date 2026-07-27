@@ -13,8 +13,13 @@ class CompleteTaskDone extends CompleteTaskResult {
 }
 
 class CompleteTaskFailed extends CompleteTaskResult {
-  CompleteTaskFailed(this.reason);
+  CompleteTaskFailed(this.reason, {this.openSubstituteTab});
   final String reason;
+
+  /// Pestaña del registro rápido a abrir después de marcar como no hecha
+  /// (1 = Actividad, 2 = Evento); null = el usuario no quiso registrar nada
+  /// en su lugar.
+  final int? openSubstituteTab;
 }
 
 /// Pregunta si la tarea [title] realmente se hizo antes de dejarla
@@ -33,7 +38,7 @@ Future<CompleteTaskResult?> showCompleteTaskDialog(
   );
 }
 
-enum _Step { ask, whenDone, whyNot }
+enum _Step { ask, whenDone, whyNot, substitute }
 
 class _CompleteTaskDialog extends StatefulWidget {
   const _CompleteTaskDialog({required this.title, required this.hasTrackedTime});
@@ -81,6 +86,7 @@ class _CompleteTaskDialogState extends State<_CompleteTaskDialog> {
           _Step.ask => _askView(),
           _Step.whenDone => _whenDoneView(),
           _Step.whyNot => _whyNotView(),
+          _Step.substitute => _substituteView(),
         },
       ),
     );
@@ -212,12 +218,55 @@ class _CompleteTaskDialogState extends State<_CompleteTaskDialog> {
             Expanded(
               child: PrimaryButton(
                 label: 'Marcar como no hecha',
-                onPressed: reason.isEmpty
-                    ? null
-                    : () => Navigator.of(context).pop(CompleteTaskFailed(reason)),
+                onPressed:
+                    reason.isEmpty ? null : () => setState(() => _step = _Step.substitute),
               ),
             ),
           ],
+        ),
+      ],
+    );
+  }
+
+  Widget _substituteView() {
+    final reason = _reasonController.text.trim();
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('¿Qué pasó en su lugar?', style: AppTextStyles.headline.copyWith(fontSize: 18)),
+        Gaps.vSm,
+        const AppCaption(
+          'Si hiciste otra cosa en ese rato, registrala ahora para que quede en tu día.',
+        ),
+        Gaps.vXl,
+        Row(
+          children: [
+            Expanded(
+              child: SecondaryButton(
+                label: 'Fue un evento',
+                icon: Icons.bolt_outlined,
+                onPressed: () => Navigator.of(context)
+                    .pop(CompleteTaskFailed(reason, openSubstituteTab: 2)),
+              ),
+            ),
+            Gaps.hSm,
+            Expanded(
+              child: SecondaryButton(
+                label: 'Hice otra cosa',
+                icon: Icons.local_activity_outlined,
+                onPressed: () => Navigator.of(context)
+                    .pop(CompleteTaskFailed(reason, openSubstituteTab: 1)),
+              ),
+            ),
+          ],
+        ),
+        Gaps.vMd,
+        Center(
+          child: GestureDetector(
+            onTap: () => Navigator.of(context).pop(CompleteTaskFailed(reason)),
+            child: const AppCaption('No, gracias'),
+          ),
         ),
       ],
     );

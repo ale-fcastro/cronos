@@ -38,9 +38,12 @@ abstract final class AppRouter {
         return AppPageRoute(
             builder: (_) => const LifeAreasPage(), settings: settings);
       case AppRoutes.taskDetail:
-        final taskId = settings.arguments! as String;
+        final args = settings.arguments!;
+        final taskId = args is TaskDetailArgs ? args.taskId : args as String;
+        final askIfDone = args is TaskDetailArgs ? args.askIfDone : false;
         return AppPageRoute(
-            builder: (_) => TaskDetailPage(taskId: taskId), settings: settings);
+            builder: (_) => TaskDetailPage(taskId: taskId, askIfDone: askIfDone),
+            settings: settings);
       case AppRoutes.root:
       default:
         return AppPageRoute(

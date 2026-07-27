@@ -1,7 +1,7 @@
 name: cronos
 description: Sistema operativo personal del tiempo.
 publish_to: 'none'
-version: 0.10.0+18
+version: 0.11.0+19
 
 environment:
   sdk: '>=3.6.0 <4.0.0'

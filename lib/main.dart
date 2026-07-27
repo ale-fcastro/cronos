@@ -112,6 +112,12 @@ void main() {
         AppRouter.navigatorKey.currentState
             ?.pushNamed(AppRoutes.taskDetail, arguments: taskId);
       };
+      notifications.onTaskOverdueTapped = (taskId) {
+        AppRouter.navigatorKey.currentState?.pushNamed(
+          AppRoutes.taskDetail,
+          arguments: TaskDetailArgs(taskId, askIfDone: true),
+        );
+      };
       // Si tocás el aviso de actualización con la app ya abierta (no
       // relanzada), el startup check de RootShell no vuelve a correr:
       // sin esto, no pasaba nada hasta cerrar del todo y reabrir.
@@ -136,9 +142,15 @@ void main() {
     // (RootShell) ya corre solo y muestra el diálogo si sigue vigente.
     final launchPayload = await notifications.consumeLaunchPayload();
     if (launchPayload != null && launchPayload != NotificationsService.updatePayload) {
+      final isOverdue = launchPayload.startsWith(NotificationsService.overduePayloadPrefix);
+      final taskId = isOverdue
+          ? launchPayload.substring(NotificationsService.overduePayloadPrefix.length)
+          : launchPayload;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        AppRouter.navigatorKey.currentState
-            ?.pushNamed(AppRoutes.taskDetail, arguments: launchPayload);
+        AppRouter.navigatorKey.currentState?.pushNamed(
+          AppRoutes.taskDetail,
+          arguments: TaskDetailArgs(taskId, askIfDone: isOverdue),
+        );
       });
     }
   }, (error, stack) => reportError('Zona no capturada', error, stack));

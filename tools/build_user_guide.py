@@ -426,6 +426,25 @@ story.append(para(
     'quede algún registro real. Si en realidad no la hiciste, te deja '
     'marcarla como "no hecha" pidiéndote un motivo, en vez de dejarla '
     'como si nada hubiera pasado.'))
+story.append(Spacer(1, 4))
+story.append(Paragraph('Croni te pregunta si se venció una tarea', callout_title))
+story.append(para(
+    'Si una tarea planificada pasa su hora sin que la hayas arrancado, el '
+    'aviso que te llega no es solo un recordatorio: te pregunta directo '
+    '"¿Hiciste [tarea]?". Tocándolo se abre la misma pregunta de siempre, '
+    'lista para responder -sirve tanto para un "Terminar el informe" como '
+    'para un "Cumpleaños de Juan": no hace falta haberte movido de lugar '
+    'para "hacer" algo.'))
+story.append(Spacer(1, 4))
+story.append(Paragraph('¿Qué hiciste en su lugar?', callout_title))
+story.append(para(
+    'Si respondés que no la hiciste, después de contar el motivo Cronos te '
+    'ofrece registrar qué pasó en su lugar: un Evento si fue algo '
+    'imprevisto (un corte de luz, un trámite que se alargó) o una '
+    'Actividad si decidiste hacer otra cosa (quedarte charlando, dormir '
+    'una siesta). Elegís una, se abre el registro rápido ya con esa '
+    'pestaña puesta, y listo -o simplemente tocás "No, gracias" si no '
+    'hace falta anotar nada más.'))
 story.append(PageBreak())
 
 # ---------- 8. Analizar ----------

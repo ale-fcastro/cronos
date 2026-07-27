@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/models/event_category.dart';
 import '../../../../core/models/life_area.dart';
+import '../../../../core/navigation/register_sheet.dart';
 import '../../../../core/services/linked_app_guard_service.dart';
 import '../../../../shared/shared.dart';
 import '../../../../shared/shared.dart' as ds show TaskPriority;
@@ -17,15 +18,27 @@ import '../widgets/complete_task_dialog.dart';
 import '../widgets/create_task_form.dart';
 
 /// Pantalla empujada con el detalle de una tarea: estimado vs real e historial.
-class TaskDetailPage extends StatelessWidget {
-  const TaskDetailPage({super.key, required this.taskId});
+class TaskDetailPage extends StatefulWidget {
+  const TaskDetailPage({super.key, required this.taskId, this.askIfDone = false});
 
   final String taskId;
+
+  /// true si viene de tocar el aviso de "se venció esta tarea": abre
+  /// automáticamente el mismo flujo de "¿Hiciste [tarea]?" que dispara el
+  /// botón Finalizar, en vez de dejar la pantalla pasiva a la espera.
+  final bool askIfDone;
+
+  @override
+  State<TaskDetailPage> createState() => _TaskDetailPageState();
+}
+
+class _TaskDetailPageState extends State<TaskDetailPage> {
+  bool _asked = false;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => sl<TaskDetailCubit>(param1: taskId),
+      create: (_) => sl<TaskDetailCubit>(param1: widget.taskId),
       child: Scaffold(
         backgroundColor: AppColors.background,
         body: SafeArea(
@@ -34,6 +47,15 @@ class TaskDetailPage extends StatelessWidget {
             child: BlocConsumer<TaskDetailCubit, TaskDetailState>(
               listener: (context, state) {
                 if (state.deleted) Navigator.of(context).pop();
+                if (widget.askIfDone &&
+                    !_asked &&
+                    !state.isLoading &&
+                    (state.detail!.status == TaskStatus.normal ||
+                        state.detail!.status == TaskStatus.late)) {
+                  _asked = true;
+                  WidgetsBinding.instance
+                      .addPostFrameCallback((_) => _finalize(context, state.detail!));
+                }
               },
               builder: (context, state) {
                 if (state.isLoading) return const LoadingView();
@@ -394,8 +416,11 @@ Future<void> _finalize(BuildContext context, TaskDetail detail) async {
   switch (result) {
     case CompleteTaskDone(:final start, :final end):
       cubit.finish(manualStart: start, manualEnd: end);
-    case CompleteTaskFailed(:final reason):
+    case CompleteTaskFailed(:final reason, :final openSubstituteTab):
       cubit.markNotDone(reason);
+      if (openSubstituteTab != null && context.mounted) {
+        await showRegisterSheet(context, initialTab: openSubstituteTab);
+      }
     case null:
       break;
   }

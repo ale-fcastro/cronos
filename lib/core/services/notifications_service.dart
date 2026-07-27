@@ -34,8 +34,14 @@ class NotificationsService {
   static const _smallIcon = '@drawable/ic_stat_croni';
   static const _accentColor = Color(0xFF9DB1F5);
 
-  /// Se invoca al tocar el aviso de una tarea (payload = id de la tarea).
+  /// Se invoca al tocar el aviso de que una tarea planificada está por
+  /// empezar (payload = id de la tarea).
   void Function(String taskId)? onTaskReminderTapped;
+
+  /// Se invoca al tocar el aviso de que una tarea se venció sin arrancarse.
+  /// Distinto de [onTaskReminderTapped]: acá conviene preguntar directo
+  /// "¿Hiciste [tarea]?" en vez de solo abrir el detalle a esperar.
+  void Function(String taskId)? onTaskOverdueTapped;
 
   /// Se invoca al tocar el aviso de actualización disponible.
   void Function()? onUpdateNotificationTapped;
@@ -43,6 +49,10 @@ class NotificationsService {
   /// Payload de la notificación de actualización: distingue el tap de un
   /// recordatorio de tarea (que manda el id de la tarea como payload).
   static const updatePayload = 'app_update';
+
+  /// Prefijo del payload de un aviso de tarea vencida, para distinguirlo
+  /// del payload de un recordatorio normal (que es el id de tarea a secas).
+  static const overduePayloadPrefix = 'overdue:';
 
   Future<void> initialize() async {
     if (_initialized) return;
@@ -74,7 +84,12 @@ class NotificationsService {
             onUpdateNotificationTapped?.call();
             return;
           }
-          if (payload != null && payload.isNotEmpty) onTaskReminderTapped?.call(payload);
+          if (payload == null || payload.isEmpty) return;
+          if (payload.startsWith(overduePayloadPrefix)) {
+            onTaskOverdueTapped?.call(payload.substring(overduePayloadPrefix.length));
+            return;
+          }
+          onTaskReminderTapped?.call(payload);
         },
       );
     } catch (_) {
@@ -225,16 +240,17 @@ class NotificationsService {
 
   /// Avisa que una tarea planificada venció sin arrancarse. Mismo gate que
   /// los recordatorios de "empieza ahora" (isEnabled/hasPermission) y mismo
-  /// canal; el payload es el id de la tarea para poder abrir su detalle al
-  /// tocar el aviso, igual que [scheduleTaskReminder].
+  /// canal. El payload lleva [overduePayloadPrefix] para que, al tocarlo,
+  /// [onTaskOverdueTapped] pregunte directo "¿Hiciste [tarea]?" en vez de
+  /// solo abrir el detalle a esperar (a diferencia de [scheduleTaskReminder]).
   Future<void> showTaskOverdue(String taskId, String title) async {
     if (!await isEnabled() || !await hasPermission()) return;
     await initialize();
     try {
       await _plugin.show(
         id: _notificationId('overdue_$taskId'),
-        title: 'Croni te avisa',
-        body: 'Se te venció "$title" y todavía no la arrancaste.',
+        title: 'Croni te pregunta',
+        body: '¿Hiciste "$title"? Tocá para contarme.',
         notificationDetails: const NotificationDetails(
           android: AndroidNotificationDetails(
             _channelId,
@@ -247,7 +263,7 @@ class NotificationsService {
           iOS: DarwinNotificationDetails(),
           macOS: DarwinNotificationDetails(),
         ),
-        payload: taskId,
+        payload: '$overduePayloadPrefix$taskId',
       );
     } catch (_) {
       // Un aviso perdido no debe romper el chequeo periódico.

@@ -17,8 +17,9 @@ oscuro, tipografías IBM Plex y persistencia local en SQLite.
   como tareas; importación manual desde un archivo, de solo lectura, no
   trae eventos recurrentes.
 - **Avisos de vencimiento**: si una tarea planificada pasa su hora sin
-  arrancarse, Croni avisa una vez por notificación (chequeo periódico en
-  segundo plano, cada 15 minutos).
+  arrancarse, Croni pregunta directo "¿Hiciste [tarea]?" por notificación
+  (chequeo periódico en segundo plano, cada 15 minutos) — tocarla abre ese
+  mismo flujo de confirmación en vez de solo llevar al detalle a esperar.
 - **Tareas**: lista Hoy/Semana/Todas con prioridades P1–P3, cronómetro por
   tarea (solo uno a la vez), estimado vs real, detalle con historial de
   sesiones (las dos más recientes, para no alargar la pantalla), subtareas
@@ -29,7 +30,8 @@ oscuro, tipografías IBM Plex y persistencia local en SQLite.
   la regla se copian a cada ocurrencia generada). Finalizar no es un toque
   sin más: Cronos pregunta si la tarea se hizo de verdad — pide el horario
   real si nunca se usó el cronómetro, o un motivo si en realidad no se hizo
-  (queda como "no hecha", no desaparece en silencio).
+  (queda como "no hecha", no desaparece en silencio) y ofrece registrar qué
+  pasó en su lugar (un Evento imprevisto o una Actividad) sin salir del flujo.
 - **Registrar** (FAB): tareas con fecha/hora reales, sugerencias del
   historial, vínculo opcional con una app del teléfono para confirmar
   cumplimiento automático; actividades con cronómetro (dormir, comer,
