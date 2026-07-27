@@ -16,8 +16,12 @@ import '../widgets/calendar_import_tile.dart';
 import '../widgets/export_backup_tile.dart';
 import '../widgets/nudge_settings_tile.dart';
 import '../widgets/profile_photo_tile.dart';
+import '../widgets/user_name_tile.dart';
 
-/// Pantalla Configuración: accesible desde el avatar del dashboard.
+/// Pantalla Configuración: accesible desde el avatar del dashboard. Es un
+/// menú de categorías -- cada una abre su propia pantalla -- en vez de una
+/// sola lista larga, para no tener que scrollear entre secciones que no
+/// tienen nada que ver entre sí.
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
@@ -38,187 +42,74 @@ class SettingsPage extends StatelessWidget {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        AppIconButton(
-                          icon: Icons.chevron_left_rounded,
-                          onPressed: () => Navigator.of(context).pop(),
-                        ),
-                        Gaps.hSm,
-                        const Text('Configuración', style: AppTextStyles.headline),
-                      ],
-                    ),
+                    _pageHeader(context, 'Configuración'),
                     Gaps.vLg,
                     Expanded(
                       child: ListView(
                         padding: const EdgeInsets.only(bottom: 32),
                         children: [
-                          const SectionHeader(title: 'Perfil'),
-                          const ProfilePhotoTile(),
-                          Gaps.vLg,
-                          const SectionHeader(title: 'Horarios'),
-                          AppCard(
-                            padding: EdgeInsets.zero,
-                            child: Column(
-                              children: [
-                                _row(
-                                  'Horario laboral',
-                                  '',
-                                  chevron: true,
-                                  onTap: () => _editScheduleRanges(context, cubit, 'work'),
-                                ),
-                                const Divider(height: 1),
-                                _row(
-                                  'Horario de estudio',
-                                  '',
-                                  chevron: true,
-                                  onTap: () => _editScheduleRanges(context, cubit, 'study'),
-                                ),
-                                const Divider(height: 1),
-                                _row(
-                                  'Hora ideal de dormir',
-                                  '',
-                                  chevron: true,
-                                  onTap: () => _editScheduleRanges(context, cubit, 'sleep'),
-                                ),
-                                for (final cs in s.customSchedules) ...[
-                                  const Divider(height: 1),
-                                  _customScheduleRow(context, cubit, cs),
-                                ],
-                                const Divider(height: 1),
-                                InkWell(
-                                  onTap: () => _addCustomSchedule(context, cubit),
-                                  child: const Padding(
-                                    padding:
-                                        EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.add_rounded,
-                                            color: AppColors.accent, size: 18),
-                                        SizedBox(width: 8),
-                                        Text(
-                                          'Agregar horario',
-                                          style: TextStyle(
-                                            color: AppColors.accent,
-                                            fontFamily: AppTextStyles.sans,
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                          _CategoryTile(
+                            icon: Icons.person_outline_rounded,
+                            title: 'Perfil',
+                            subtitle: 'Foto y nombre',
+                            onTap: () => _open(context, cubit, const _PerfilPage()),
                           ),
-                          Gaps.vLg,
-                          const SectionHeader(title: 'Organización'),
-                          AppCard(
-                            padding: EdgeInsets.zero,
-                            child: Column(
-                              children: [
-                                _row(
-                                  'Categorías',
-                                  '${s.categoriesCount}',
-                                  chevron: true,
-                                  onTap: () => Navigator.of(context)
-                                      .pushNamed(AppRoutes.activityTypes)
-                                      .then((_) => cubit.load()),
-                                ),
-                                const Divider(height: 1),
-                                _row(
-                                  'Proyectos',
-                                  '${s.projectsCount}',
-                                  chevron: true,
-                                  onTap: () => Navigator.of(context)
-                                      .pushNamed(AppRoutes.projects)
-                                      .then((_) => cubit.load()),
-                                ),
-                                const Divider(height: 1),
-                                _row(
-                                  'Tareas recurrentes',
-                                  '',
-                                  chevron: true,
-                                  onTap: () => Navigator.of(context)
-                                      .pushNamed(AppRoutes.taskRecurrences),
-                                ),
-                                const Divider(height: 1),
-                                _row(
-                                  'Áreas de vida',
-                                  '',
-                                  chevron: true,
-                                  onTap: () => Navigator.of(context)
-                                      .pushNamed(AppRoutes.lifeAreas),
-                                ),
-                              ],
-                            ),
+                          Gaps.vSm,
+                          _CategoryTile(
+                            icon: Icons.schedule_rounded,
+                            title: 'Horarios',
+                            subtitle: 'Laboral, estudio, sueño y horarios propios',
+                            onTap: () => _open(context, cubit, const _HorariosPage()),
                           ),
-                          Gaps.vLg,
-                          const SectionHeader(title: 'Calendario'),
-                          const CalendarImportTile(),
-                          Gaps.vLg,
-                          const SectionHeader(title: 'Notificaciones'),
-                          const NotificationsSettingsTile(),
-                          Gaps.vMd,
-                          const NudgeSettingsTile(),
-                          Gaps.vLg,
-                          const SectionHeader(title: 'Seguridad'),
-                          const AppLockTile(),
-                          Gaps.vLg,
-                          const SectionHeader(title: 'Score'),
-                          AppCard(
-                            padding: EdgeInsets.zero,
-                            onTap: () => _editScoreWeights(context, cubit, s),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        const Text('Pesos del score diario', style: AppTextStyles.body),
-                                        const SizedBox(height: 2),
-                                        Text(s.scoreWeightsLabel, style: AppTextStyles.caption),
-                                      ],
-                                    ),
-                                  ),
-                                  const Icon(Icons.chevron_right_rounded,
-                                      color: AppColors.textTertiary, size: 20),
-                                ],
-                              ),
-                            ),
+                          Gaps.vSm,
+                          _CategoryTile(
+                            icon: Icons.folder_outlined,
+                            title: 'Organización',
+                            subtitle:
+                                '${s.categoriesCount} categorías · ${s.projectsCount} proyectos',
+                            onTap: () => _open(context, cubit, const _OrganizacionPage()),
                           ),
-                          Gaps.vLg,
-                          const SectionHeader(title: 'Exportar y backup'),
-                          const ExportBackupTile(),
-                          Gaps.vLg,
-                          const SectionHeader(title: 'Ayuda'),
-                          AppCard(
-                            padding: EdgeInsets.zero,
-                            child: Column(
-                              children: [
-                                _row(
-                                  'Ver guía de bienvenida',
-                                  '',
-                                  chevron: true,
-                                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                                    builder: (_) => OnboardingPage(
-                                      onDone: () => Navigator.of(context).pop(),
-                                    ),
-                                  )),
-                                ),
-                                const Divider(height: 1),
-                                _row(
-                                  'Soporte',
-                                  '',
-                                  chevron: true,
-                                  onTap: () => Navigator.of(context)
-                                      .pushNamed(AppRoutes.support),
-                                ),
-                              ],
-                            ),
+                          Gaps.vSm,
+                          _CategoryTile(
+                            icon: Icons.calendar_month_outlined,
+                            title: 'Calendario',
+                            subtitle: 'Importar eventos desde un .ics',
+                            onTap: () => _open(context, cubit, const _CalendarioPage()),
+                          ),
+                          Gaps.vSm,
+                          _CategoryTile(
+                            icon: Icons.notifications_none_rounded,
+                            title: 'Notificaciones',
+                            subtitle: 'Recordatorios y avisos de distracción',
+                            onTap: () => _open(context, cubit, const _NotificacionesPage()),
+                          ),
+                          Gaps.vSm,
+                          _CategoryTile(
+                            icon: Icons.lock_outline_rounded,
+                            title: 'Seguridad',
+                            subtitle: 'Bloqueo con huella, cara o PIN',
+                            onTap: () => _open(context, cubit, const _SeguridadPage()),
+                          ),
+                          Gaps.vSm,
+                          _CategoryTile(
+                            icon: Icons.tune_rounded,
+                            title: 'Score',
+                            subtitle: 'Pesos del cálculo diario',
+                            onTap: () => _open(context, cubit, const _ScorePage()),
+                          ),
+                          Gaps.vSm,
+                          _CategoryTile(
+                            icon: Icons.backup_outlined,
+                            title: 'Exportar y backup',
+                            subtitle: 'CSV, JSON, PDF y backup completo',
+                            onTap: () => _open(context, cubit, const _BackupPage()),
+                          ),
+                          Gaps.vSm,
+                          _CategoryTile(
+                            icon: Icons.help_outline_rounded,
+                            title: 'Ayuda',
+                            subtitle: 'Guía de bienvenida y soporte',
+                            onTap: () => _open(context, cubit, const _AyudaPage()),
                           ),
                         ],
                       ),
@@ -233,12 +124,129 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  /// Abre dialog para editar horarios por día de la semana.
-  Future<void> _editScheduleRanges(
-    BuildContext context,
-    SettingsCubit cubit,
-    String type,
-  ) async {
+  /// Empuja una sub-pantalla de Configuración compartiendo la misma
+  /// instancia de [SettingsCubit] (no una nueva) para que los cambios se
+  /// reflejen sin tener que recargar al volver.
+  Future<void> _open(BuildContext context, SettingsCubit cubit, Widget page) {
+    return Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => BlocProvider.value(value: cubit, child: page),
+    ));
+  }
+}
+
+Widget _pageHeader(BuildContext context, String title) {
+  return Row(
+    children: [
+      AppIconButton(
+        icon: Icons.chevron_left_rounded,
+        onPressed: () => Navigator.of(context).pop(),
+      ),
+      Gaps.hSm,
+      Text(title, style: AppTextStyles.headline),
+    ],
+  );
+}
+
+/// Scaffold común a todas las sub-pantallas de Configuración.
+class _SubPageScaffold extends StatelessWidget {
+  const _SubPageScaffold({required this.title, required this.child});
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Padding(
+          padding: AppSpacing.page,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _pageHeader(context, title),
+              Gaps.vLg,
+              Expanded(child: child),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CategoryTile extends StatelessWidget {
+  const _CategoryTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      onTap: onTap,
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: AppColors.accentSoft,
+              borderRadius: AppRadius.control,
+            ),
+            child: Icon(icon, color: AppColors.accent, size: 20),
+          ),
+          Gaps.hMd,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppTextStyles.body),
+                const SizedBox(height: 2),
+                AppCaption(subtitle),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right_rounded, color: AppColors.textTertiary, size: 20),
+        ],
+      ),
+    );
+  }
+}
+
+class _PerfilPage extends StatelessWidget {
+  const _PerfilPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return const _SubPageScaffold(
+      title: 'Perfil',
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ProfilePhotoTile(),
+            Gaps.vMd,
+            UserNameTile(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HorariosPage extends StatelessWidget {
+  const _HorariosPage();
+
+  Future<void> _editScheduleRanges(BuildContext context, SettingsCubit cubit, String type) async {
     final title = type == 'work'
         ? 'Horario laboral'
         : type == 'study'
@@ -247,23 +255,23 @@ class SettingsPage extends StatelessWidget {
     await _ScheduleRangesDialog.show(context, title, type, cubit);
   }
 
-  Future<void> _editScoreWeights(
-    BuildContext context,
-    SettingsCubit cubit,
-    AppSettings s,
-  ) async {
-    final result = await _ScoreWeightsDialog.show(
+  Future<void> _addCustomSchedule(BuildContext context, SettingsCubit cubit) async {
+    final result = await _CustomScheduleDialog.show(
       context,
-      compliance: s.scoreWeightCompliance,
-      efficiency: s.scoreWeightEfficiency,
-      sleep: s.scoreWeightSleep,
-      punctuality: s.scoreWeightPunctuality,
+      title: 'Agregar horario',
+      actionLabel: 'Agregar',
+      initialName: '',
+      initialWeekday: DateTime.now().weekday,
+      initialStartMinute: 20 * 60,
+      initialEndMinute: 23 * 60,
     );
     if (result == null) return;
-    await cubit.saveSetting(ScoreWeightKeys.compliance, '${result.compliance}');
-    await cubit.saveSetting(ScoreWeightKeys.efficiency, '${result.efficiency}');
-    await cubit.saveSetting(ScoreWeightKeys.sleep, '${result.sleep}');
-    await cubit.saveSetting(ScoreWeightKeys.punctuality, '${result.punctuality}');
+    await cubit.createCustomSchedule(
+      result.name,
+      result.weekday,
+      result.startMinute,
+      result.endMinute,
+    );
   }
 
   Widget _customScheduleRow(BuildContext context, SettingsCubit cubit, CustomSchedule cs) {
@@ -307,8 +315,7 @@ class SettingsPage extends StatelessWidget {
             const SizedBox(width: 10),
             GestureDetector(
               onTap: () => cubit.deleteCustomSchedule(cs.id),
-              child: const Icon(Icons.close_rounded,
-                  color: AppColors.textTertiary, size: 16),
+              child: const Icon(Icons.close_rounded, color: AppColors.textTertiary, size: 16),
             ),
           ],
         ),
@@ -316,52 +323,312 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  Future<void> _addCustomSchedule(BuildContext context, SettingsCubit cubit) async {
-    final result = await _CustomScheduleDialog.show(
+  @override
+  Widget build(BuildContext context) {
+    return _SubPageScaffold(
+      title: 'Horarios',
+      child: BlocBuilder<SettingsCubit, SettingsState>(
+        builder: (context, state) {
+          if (state.isLoading) return const LoadingView();
+          final s = state.settings!;
+          final cubit = context.read<SettingsCubit>();
+          return ListView(
+            padding: const EdgeInsets.only(bottom: 32),
+            children: [
+              AppCard(
+                padding: EdgeInsets.zero,
+                child: Column(
+                  children: [
+                    _row('Horario laboral', '',
+                        chevron: true, onTap: () => _editScheduleRanges(context, cubit, 'work')),
+                    const Divider(height: 1),
+                    _row('Horario de estudio', '',
+                        chevron: true, onTap: () => _editScheduleRanges(context, cubit, 'study')),
+                    const Divider(height: 1),
+                    _row('Hora ideal de dormir', '',
+                        chevron: true, onTap: () => _editScheduleRanges(context, cubit, 'sleep')),
+                    for (final cs in s.customSchedules) ...[
+                      const Divider(height: 1),
+                      _customScheduleRow(context, cubit, cs),
+                    ],
+                    const Divider(height: 1),
+                    InkWell(
+                      onTap: () => _addCustomSchedule(context, cubit),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        child: Row(
+                          children: [
+                            Icon(Icons.add_rounded, color: AppColors.accent, size: 18),
+                            SizedBox(width: 8),
+                            Text(
+                              'Agregar horario',
+                              style: TextStyle(
+                                color: AppColors.accent,
+                                fontFamily: AppTextStyles.sans,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _OrganizacionPage extends StatelessWidget {
+  const _OrganizacionPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return _SubPageScaffold(
+      title: 'Organización',
+      child: BlocBuilder<SettingsCubit, SettingsState>(
+        builder: (context, state) {
+          if (state.isLoading) return const LoadingView();
+          final s = state.settings!;
+          final cubit = context.read<SettingsCubit>();
+          return ListView(
+            padding: const EdgeInsets.only(bottom: 32),
+            children: [
+              AppCard(
+                padding: EdgeInsets.zero,
+                child: Column(
+                  children: [
+                    _row(
+                      'Categorías',
+                      '${s.categoriesCount}',
+                      chevron: true,
+                      onTap: () => Navigator.of(context)
+                          .pushNamed(AppRoutes.activityTypes)
+                          .then((_) => cubit.load()),
+                    ),
+                    const Divider(height: 1),
+                    _row(
+                      'Proyectos',
+                      '${s.projectsCount}',
+                      chevron: true,
+                      onTap: () => Navigator.of(context)
+                          .pushNamed(AppRoutes.projects)
+                          .then((_) => cubit.load()),
+                    ),
+                    const Divider(height: 1),
+                    _row(
+                      'Tareas recurrentes',
+                      '',
+                      chevron: true,
+                      onTap: () => Navigator.of(context).pushNamed(AppRoutes.taskRecurrences),
+                    ),
+                    const Divider(height: 1),
+                    _row(
+                      'Áreas de vida',
+                      '',
+                      chevron: true,
+                      onTap: () => Navigator.of(context).pushNamed(AppRoutes.lifeAreas),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _CalendarioPage extends StatelessWidget {
+  const _CalendarioPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return const _SubPageScaffold(
+      title: 'Calendario',
+      child: SingleChildScrollView(child: CalendarImportTile()),
+    );
+  }
+}
+
+class _NotificacionesPage extends StatelessWidget {
+  const _NotificacionesPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return const _SubPageScaffold(
+      title: 'Notificaciones',
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            NotificationsSettingsTile(),
+            Gaps.vMd,
+            NudgeSettingsTile(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SeguridadPage extends StatelessWidget {
+  const _SeguridadPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return const _SubPageScaffold(
+      title: 'Seguridad',
+      child: SingleChildScrollView(child: AppLockTile()),
+    );
+  }
+}
+
+class _ScorePage extends StatelessWidget {
+  const _ScorePage();
+
+  Future<void> _editScoreWeights(BuildContext context, SettingsCubit cubit, AppSettings s) async {
+    final result = await _ScoreWeightsDialog.show(
       context,
-      title: 'Agregar horario',
-      actionLabel: 'Agregar',
-      initialName: '',
-      initialWeekday: DateTime.now().weekday,
-      initialStartMinute: 20 * 60,
-      initialEndMinute: 23 * 60,
+      compliance: s.scoreWeightCompliance,
+      efficiency: s.scoreWeightEfficiency,
+      sleep: s.scoreWeightSleep,
+      punctuality: s.scoreWeightPunctuality,
     );
     if (result == null) return;
-    await cubit.createCustomSchedule(
-      result.name,
-      result.weekday,
-      result.startMinute,
-      result.endMinute,
-    );
+    await cubit.saveSetting(ScoreWeightKeys.compliance, '${result.compliance}');
+    await cubit.saveSetting(ScoreWeightKeys.efficiency, '${result.efficiency}');
+    await cubit.saveSetting(ScoreWeightKeys.sleep, '${result.sleep}');
+    await cubit.saveSetting(ScoreWeightKeys.punctuality, '${result.punctuality}');
   }
 
-  Widget _row(String label, String value,
-      {bool chevron = false, VoidCallback? onTap}) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label, style: AppTextStyles.body.copyWith(fontSize: 14)),
-            Row(
-              children: [
-                Text(value,
-                    style: chevron
-                        ? AppTextStyles.metricCaption.copyWith(fontSize: 12)
-                        : AppTextStyles.metricCaption.copyWith(color: AppColors.accent, fontSize: 13)),
-                if (chevron) ...[
-                  const SizedBox(width: 8),
-                  const Icon(Icons.chevron_right_rounded, color: AppColors.textTertiary, size: 18),
-                ],
-              ],
-            ),
-          ],
-        ),
+  @override
+  Widget build(BuildContext context) {
+    return _SubPageScaffold(
+      title: 'Score',
+      child: BlocBuilder<SettingsCubit, SettingsState>(
+        builder: (context, state) {
+          if (state.isLoading) return const LoadingView();
+          final s = state.settings!;
+          final cubit = context.read<SettingsCubit>();
+          return ListView(
+            padding: const EdgeInsets.only(bottom: 32),
+            children: [
+              AppCard(
+                padding: EdgeInsets.zero,
+                onTap: () => _editScoreWeights(context, cubit, s),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Pesos del score diario', style: AppTextStyles.body),
+                            const SizedBox(height: 2),
+                            Text(s.scoreWeightsLabel, style: AppTextStyles.caption),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right_rounded,
+                          color: AppColors.textTertiary, size: 20),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
+}
+
+class _BackupPage extends StatelessWidget {
+  const _BackupPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return const _SubPageScaffold(
+      title: 'Exportar y backup',
+      child: SingleChildScrollView(child: ExportBackupTile()),
+    );
+  }
+}
+
+class _AyudaPage extends StatelessWidget {
+  const _AyudaPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return _SubPageScaffold(
+      title: 'Ayuda',
+      child: ListView(
+        padding: const EdgeInsets.only(bottom: 32),
+        children: [
+          AppCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                _row(
+                  'Ver guía de bienvenida',
+                  '',
+                  chevron: true,
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => OnboardingPage(
+                      onDone: () => Navigator.of(context).pop(),
+                    ),
+                  )),
+                ),
+                const Divider(height: 1),
+                _row(
+                  'Soporte',
+                  '',
+                  chevron: true,
+                  onTap: () => Navigator.of(context).pushNamed(AppRoutes.support),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+Widget _row(String label, String value, {bool chevron = false, VoidCallback? onTap}) {
+  return InkWell(
+    onTap: onTap,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: AppTextStyles.body.copyWith(fontSize: 14)),
+          Row(
+            children: [
+              Text(value,
+                  style: chevron
+                      ? AppTextStyles.metricCaption.copyWith(fontSize: 12)
+                      : AppTextStyles.metricCaption
+                          .copyWith(color: AppColors.accent, fontSize: 13)),
+              if (chevron) ...[
+                const SizedBox(width: 8),
+                const Icon(Icons.chevron_right_rounded, color: AppColors.textTertiary, size: 18),
+              ],
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 typedef ScoreWeights = ({int compliance, int efficiency, int sleep, int punctuality});

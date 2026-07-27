@@ -34,12 +34,20 @@ class PrimaryButton extends StatelessWidget {
       );
       return expanded ? SizedBox(width: double.infinity, child: button) : button;
     }
+    // FittedBox en vez de Text a secas: una etiqueta larga ("Marcar como no
+    // hecha") se achica para entrar en una línea en vez de partirse en dos y
+    // estirar el botón mucho más alto que el que tiene al lado.
     final button = icon == null
-        ? FilledButton(onPressed: onPressed, child: Text(label))
+        ? FilledButton(
+            onPressed: onPressed,
+            child: FittedBox(
+                fit: BoxFit.scaleDown, child: Text(label, maxLines: 1)),
+          )
         : FilledButton.icon(
             onPressed: onPressed,
             icon: Icon(icon, size: 18, color: AppColors.onAccent),
-            label: Text(label),
+            label: FittedBox(
+                fit: BoxFit.scaleDown, child: Text(label, maxLines: 1)),
           );
     return expanded ? SizedBox(width: double.infinity, child: button) : button;
   }

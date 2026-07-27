@@ -1,6 +1,7 @@
 import 'package:sqflite/sqflite.dart' show ConflictAlgorithm;
 
 import '../../../../core/database/app_database.dart';
+import '../../../../core/services/profile_service.dart';
 import '../usecases/metrics_usecases.dart';
 
 /// Arma un resumen de texto, estructurado y legible, de los datos de
@@ -42,14 +43,25 @@ class AiSummaryService {
         conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
+  Future<String?> _fetchUserName() async {
+    final db = await _database.database;
+    final rows = await db.query('settings', where: 'key = ?', whereArgs: [profileNameKey]);
+    return rows.isEmpty ? null : rows.first['value'] as String;
+  }
+
   Future<String> buildSummary() async {
     final metrics = await _getMetrics(days: summaryWindowDays);
     final tasks = await _getTasks(days: summaryWindowDays);
     final events = await _getEvents(days: summaryWindowDays);
+    final name = await _fetchUserName();
 
     final b = StringBuffer()
       ..writeln('Resumen de mis datos de Cronos (últimos $summaryWindowDays días):')
       ..writeln();
+    if (name != null && name.isNotEmpty) {
+      b.writeln('Mi nombre es $name.');
+      b.writeln();
+    }
 
     b.writeln('Métricas generales:');
     for (final k in metrics.kpis) {

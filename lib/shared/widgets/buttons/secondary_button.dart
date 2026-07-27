@@ -31,13 +31,21 @@ class SecondaryButton extends StatelessWidget {
         side: const BorderSide(color: AppColors.borderStrong),
       ),
     );
+    // FittedBox: una etiqueta larga se achica para entrar en una línea en
+    // vez de partirse en dos y estirar el botón más alto que su vecino.
     final child = icon == null
-        ? FilledButton(style: button, onPressed: onPressed, child: Text(label))
+        ? FilledButton(
+            style: button,
+            onPressed: onPressed,
+            child: FittedBox(
+                fit: BoxFit.scaleDown, child: Text(label, maxLines: 1)),
+          )
         : FilledButton.icon(
             style: button,
             onPressed: onPressed,
             icon: Icon(icon, size: 18),
-            label: Text(label),
+            label: FittedBox(
+                fit: BoxFit.scaleDown, child: Text(label, maxLines: 1)),
           );
     return expanded ? SizedBox(width: double.infinity, child: child) : child;
   }

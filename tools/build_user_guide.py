@@ -379,8 +379,9 @@ story.append(para(
     'curso.'))
 story.append(para(
     'Tocando una tarea entrás a su detalle, donde podés ver su historial de '
-    'sesiones (cada vez que la arrancaste y pausaste), editarla (ícono de '
-    'lápiz) o borrarla (ícono de tacho, con confirmación).'))
+    'sesiones (cada vez que la arrancaste y pausaste, las dos más recientes '
+    'para no alargar la pantalla), editarla (ícono de lápiz) o borrarla '
+    '(ícono de tacho, con confirmación).'))
 story.append(Spacer(1, 8))
 story.append(Paragraph('Subtareas', callout_title))
 story.append(para(
@@ -433,10 +434,13 @@ story.append(PageBreak())
 story += section_heading(9, 'Configuración')
 story.append(para(
     'Se abre tocando tu foto de perfil (o el círculo con tu inicial) arriba de '
-    'la pantalla Hoy. Ahí encontrás:'))
+    'la pantalla Hoy. Es un menú de categorías -tocando cualquiera se abre su '
+    'propia pantalla, en vez de un solo listado larguísimo-:'))
 story.append(Spacer(1, 4))
 story.append(info_table([
-    ('Perfil', 'Poner o cambiar tu foto (de la galería o con la cámara).'),
+    ('Perfil', 'Poner o cambiar tu foto (de la galería o con la cámara) y cargar tu '
+               'nombre, para que Croni te hable más directo en toda la app y quede '
+               'incluido en lo que compartís con la IA desde Analizar.'),
     ('Horarios', 'Tu horario laboral, de estudio y hora de dormir, día por día de la '
                  'semana — incluso podés marcar un día sin horario. También podés '
                  'agregar horarios propios (por ejemplo "Gimnasio", martes y jueves de '

@@ -63,4 +63,17 @@ void main() {
     await service.markHintSeen();
     expect(await service.hasSeenHint(), isTrue);
   });
+
+  test('si hay un nombre guardado en Perfil, el resumen lo incluye', () async {
+    final db = await database.database;
+    await db.insert('settings', {'key': 'profile_name', 'value': 'Francisco'});
+
+    final summary = await service.buildSummary();
+    expect(summary, contains('Mi nombre es Francisco.'));
+  });
+
+  test('sin nombre guardado, el resumen no menciona ninguno', () async {
+    final summary = await service.buildSummary();
+    expect(summary, isNot(contains('Mi nombre es')));
+  });
 }

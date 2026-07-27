@@ -5,9 +5,10 @@ oscuro, tipografías IBM Plex y persistencia local en SQLite.
 
 ## Qué hace
 
-- **Hoy**: score del día (cumplimiento, eficiencia, sueño, puntualidad — pesos
-  configurables), tiempo productivo/perdido, tarea o actividad en curso con
-  cronómetro vivo, siguiente bloque y score de los últimos 7 días.
+- **Hoy**: saludo personalizado si cargaste tu nombre en Configuración →
+  Perfil, score del día (cumplimiento, eficiencia, sueño, puntualidad —
+  pesos configurables), tiempo productivo/perdido, tarea o actividad en
+  curso con cronómetro vivo, siguiente bloque y score de los últimos 7 días.
 - **Agenda**: línea de tiempo del día (tareas planificadas, actividades,
   eventos y huecos libres) y mapa de calor mensual, navegable a meses
   anteriores y siguientes — tocando cualquier día del mes se abre su agenda
@@ -20,7 +21,8 @@ oscuro, tipografías IBM Plex y persistencia local en SQLite.
   segundo plano, cada 15 minutos).
 - **Tareas**: lista Hoy/Semana/Todas con prioridades P1–P3, cronómetro por
   tarea (solo uno a la vez), estimado vs real, detalle con historial de
-  sesiones, subtareas (título + descripción opcional, checklist que bloquea
+  sesiones (las dos más recientes, para no alargar la pantalla), subtareas
+  (título + descripción opcional, checklist que bloquea
   finalizar hasta completarse; se pueden agregar ya desde la creación de la
   tarea o después desde su detalle) y tareas recurrentes (diarias o por día
   de semana, con fecha de inicio elegible; las subtareas cargadas al crear
@@ -49,11 +51,14 @@ oscuro, tipografías IBM Plex y persistencia local en SQLite.
   selector de compartir de Android — Cronos no tiene IA propia ni llama a
   ninguna API: arma el contexto, el usuario elige a quién dárselo. Ver
   `features/metrics/domain/services/ai_summary_service.dart`.
-- **Configuración**: horarios editables por día (laboral/estudio/sueño +
-  horarios propios), notificaciones de tareas planificadas, aviso opcional
-  si te distraés de la tarea en curso, bloqueo con huella/cara/PIN del
-  sistema, pesos del score, exportar/backup (CSV, JSON, PDF, backup
-  completo restaurable) y una pantalla de soporte con contacto directo.
+- **Configuración**: menú de categorías (cada una abre su propia pantalla en
+  vez de un único listado largo) — perfil (foto y nombre, usado para
+  personalizar saludos y lo que se comparte con la IA), horarios editables
+  por día (laboral/estudio/sueño + horarios propios), notificaciones de
+  tareas planificadas, aviso opcional si te distraés de la tarea en curso,
+  bloqueo con huella/cara/PIN del sistema, pesos del score, exportar/backup
+  (CSV, JSON, PDF, backup completo restaurable) y una pantalla de soporte
+  con contacto directo.
 - **Actualizaciones**: al abrir la app, chequea si hay una versión más nueva
   publicada en GitHub Releases y la descarga e instala sin salir de Cronos;
   también avisa por notificación.

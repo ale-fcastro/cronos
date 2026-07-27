@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:showcaseview/showcaseview.dart';
 
+import '../../../../core/di/service_locator.dart';
 import '../../../../core/models/event_category.dart';
 import '../../../../core/models/life_area.dart';
 import '../../../../core/navigation/profile_avatar.dart';
+import '../../../../core/services/profile_service.dart';
 import '../../../../shared/shared.dart';
 import '../../domain/entities/dashboard_summary.dart';
 import '../bloc/dashboard_cubit.dart';
@@ -34,7 +36,12 @@ class DashboardPage extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Headline('Hoy'),
+                    ValueListenableBuilder<String?>(
+                      valueListenable: sl<ProfileService>().name,
+                      builder: (context, name, _) => Headline(
+                        (name == null || name.isEmpty) ? 'Hoy' : 'Hola, $name',
+                      ),
+                    ),
                     const SizedBox(height: 2),
                     Subtitle(s.dateLabel),
                   ],

@@ -154,9 +154,15 @@ class TaskDetailPage extends StatelessWidget {
                           Gaps.vMd,
                           SummaryCard(
                             title: 'Historial',
+                            // Solo las últimas dos sesiones: el historial completo
+                            // de una tarea que se pausa y retoma muchas veces no
+                            // aporta nada acá y alarga la pantalla sin necesidad.
+                            trailing: d.history.length <= 2
+                                ? null
+                                : AppCaption('2 de ${d.history.length}'),
                             child: Column(
                               children: [
-                                for (final h in d.history) ...[
+                                for (final h in d.history.take(2)) ...[
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
@@ -184,7 +190,7 @@ class TaskDetailPage extends StatelessWidget {
                                                   : AppColors.textSecondary)),
                                     ],
                                   ),
-                                  if (h != d.history.last) Gaps.vSm,
+                                  if (h != d.history.take(2).last) Gaps.vSm,
                                 ],
                               ],
                             ),

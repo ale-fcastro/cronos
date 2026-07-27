@@ -78,7 +78,9 @@ class ConfirmationDialog extends StatelessWidget {
                               backgroundColor: confirmColor,
                               foregroundColor: AppColors.onAccent),
                           onPressed: () => Navigator.of(context).pop(true),
-                          child: Text(confirmLabel),
+                          child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(confirmLabel, maxLines: 1)),
                         ),
                 ),
               ],
