@@ -14,7 +14,7 @@ class AppDatabase {
   final String? _pathOverride;
   Database? _db;
 
-  static const _version = 17;
+  static const _version = 18;
 
   Future<Database> get database async {
     final cached = _db;
@@ -102,7 +102,8 @@ class AppDatabase {
         area_id TEXT,
         warn INTEGER NOT NULL DEFAULT 0,
         sort INTEGER NOT NULL DEFAULT 0,
-        impact TEXT NOT NULL DEFAULT 'neutral'
+        impact TEXT NOT NULL DEFAULT 'neutral',
+        productivity_weight INTEGER NOT NULL DEFAULT 100
       )
     ''');
     await db.execute('''
@@ -214,6 +215,23 @@ class AppDatabase {
         date TEXT NOT NULL,
         done INTEGER NOT NULL,
         PRIMARY KEY (habit_id, date)
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE activity_type_apps(
+        activity_type_id TEXT NOT NULL,
+        package_name TEXT NOT NULL,
+        start_minute INTEGER,
+        end_minute INTEGER,
+        PRIMARY KEY (activity_type_id, package_name, start_minute)
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE app_classification_choices(
+        package_name TEXT NOT NULL,
+        target TEXT NOT NULL,
+        count INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (package_name, target)
       )
     ''');
 
@@ -409,6 +427,36 @@ class AppDatabase {
             date TEXT NOT NULL,
             done INTEGER NOT NULL,
             PRIMARY KEY (habit_id, date)
+          )
+        ''');
+      }
+    }
+    if (oldVersion < 18) {
+      if (!await _columnExists(db, 'activity_types', 'productivity_weight')) {
+        await db.execute(
+            'ALTER TABLE activity_types ADD COLUMN productivity_weight INTEGER NOT NULL DEFAULT 100');
+      }
+      final tables = await db.rawQuery(
+          "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('activity_type_apps', 'app_classification_choices')");
+      final existing = tables.map((r) => r['name'] as String).toSet();
+      if (!existing.contains('activity_type_apps')) {
+        await db.execute('''
+          CREATE TABLE activity_type_apps(
+            activity_type_id TEXT NOT NULL,
+            package_name TEXT NOT NULL,
+            start_minute INTEGER,
+            end_minute INTEGER,
+            PRIMARY KEY (activity_type_id, package_name, start_minute)
+          )
+        ''');
+      }
+      if (!existing.contains('app_classification_choices')) {
+        await db.execute('''
+          CREATE TABLE app_classification_choices(
+            package_name TEXT NOT NULL,
+            target TEXT NOT NULL,
+            count INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (package_name, target)
           )
         ''');
       }

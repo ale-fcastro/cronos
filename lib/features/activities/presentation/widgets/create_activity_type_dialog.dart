@@ -60,6 +60,7 @@ class _CreateActivityTypeDialogState extends State<_CreateActivityTypeDialog> {
   late String? _areaId = widget.initial?.areaId;
   late bool _warn = widget.initial?.warn ?? false;
   late ActivityImpact _impact = widget.initial?.impact ?? ActivityImpact.neutral;
+  late int _weight = widget.initial?.productivityWeight ?? 100;
 
   bool get _editing => widget.initial != null;
 
@@ -141,6 +142,23 @@ class _CreateActivityTypeDialogState extends State<_CreateActivityTypeDialog> {
                 'Define qué suma: productiva cuenta como tiempo bien usado, '
                 'ocio como tiempo perdido, neutra no afecta el puntaje.',
               ),
+              if (_impact == ActivityImpact.productive) ...[
+                Gaps.vMd,
+                Text('Qué tan productiva es ($_weight%)', style: AppTextStyles.label),
+                Slider(
+                  value: _weight.toDouble(),
+                  min: 0,
+                  max: 100,
+                  divisions: 20,
+                  activeColor: AppColors.accent,
+                  label: '$_weight%',
+                  onChanged: (v) => setState(() => _weight = v.round()),
+                ),
+                const AppCaption(
+                  'Para apps vinculadas por App Tracking que solo son parcialmente '
+                  'productivas (ej. navegar mezclando trabajo y otras cosas).',
+                ),
+              ],
               if (widget.lifeAreas.isNotEmpty) ...[
                 Gaps.vMd,
                 TagSelector(
@@ -195,6 +213,8 @@ class _CreateActivityTypeDialogState extends State<_CreateActivityTypeDialog> {
                                 areaId: _areaId,
                                 warn: _warn,
                                 impact: _impact,
+                                productivityWeight:
+                                    _impact == ActivityImpact.productive ? _weight : 100,
                               )),
                     ),
                   ),

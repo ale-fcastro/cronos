@@ -119,6 +119,15 @@
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="time_tracking"/>
         </service>
+
+        <!-- Detección automática de contexto por app (Configuración > App Tracking):
+             sondea la app en primer plano mientras el usuario la tenga activada. -->
+        <service android:name=".AppTrackingService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="app_usage_tracking"/>
+        </service>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

@@ -18,6 +18,8 @@ class ActivitiesCubit extends Cubit<ActivitiesState> {
     this._updateActivityType,
     this._deleteActivityType,
     this._lifeAreasService,
+    this._getLinkedApps,
+    this._setLinkedApps,
   ) : super(const ActivitiesState()) {
     _load();
     _loadLifeAreas();
@@ -39,6 +41,8 @@ class ActivitiesCubit extends Cubit<ActivitiesState> {
   final UpdateActivityType _updateActivityType;
   final DeleteActivityType _deleteActivityType;
   final LifeAreasService _lifeAreasService;
+  final GetLinkedApps _getLinkedApps;
+  final SetLinkedApps _setLinkedApps;
   Timer? _ticker;
 
   Future<void> _load() async {
@@ -102,6 +106,11 @@ class ActivitiesCubit extends Cubit<ActivitiesState> {
       reportError('ActivitiesCubit.removeActivityType', e, st);
     }
   }
+
+  Future<List<String>> getLinkedApps(String activityTypeId) => _getLinkedApps(activityTypeId);
+
+  Future<void> setLinkedApps(String activityTypeId, List<String> packageNames) =>
+      _setLinkedApps(activityTypeId, packageNames);
 
   @override
   Future<void> close() {

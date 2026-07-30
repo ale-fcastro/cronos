@@ -7,8 +7,11 @@ import 'package:flutter/services.dart';
 /// Más confiable que el plugin de estadísticas de uso, que a veces no
 /// resuelve el label y expone package names crudos.
 class ResolvedAppInfo {
-  const ResolvedAppInfo({this.appName, this.icon});
+  const ResolvedAppInfo({this.packageName, this.appName, this.icon});
 
+  /// Solo viene poblado desde [AppIconService.listInstalled]; [resolve] no
+  /// lo necesita porque el llamador ya conoce el package que pidió.
+  final String? packageName;
   final String? appName;
   final Uint8List? icon;
 }
@@ -44,6 +47,28 @@ class AppIconService {
     } catch (_) {
       _cache[packageName] = null;
       return null;
+    }
+  }
+
+  /// Todas las apps instaladas con ícono en el launcher (no solo las de uso
+  /// reciente que devuelve `AppUsageService.queryUsage`). Alimenta el
+  /// selector de "apps vinculadas" de un contexto de App Tracking.
+  Future<List<ResolvedAppInfo>> listInstalled() async {
+    if (!isSupported) return const [];
+    try {
+      final raw = await _channel.invokeListMethod<Object?>('getInstalledApps');
+      if (raw == null) return const [];
+      return [
+        for (final entry in raw)
+          if (entry is Map)
+            ResolvedAppInfo(
+              packageName: entry['packageName'] as String?,
+              appName: entry['appName'] as String?,
+              icon: entry['icon'] as Uint8List?,
+            ),
+      ];
+    } catch (_) {
+      return const [];
     }
   }
 

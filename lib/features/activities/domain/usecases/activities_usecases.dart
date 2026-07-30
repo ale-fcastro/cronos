@@ -1,5 +1,6 @@
 import '../entities/activity_type.dart';
 import '../entities/new_activity_type_input.dart';
+import '../entities/time_rule.dart';
 import '../repositories/activities_repository.dart';
 
 class GetFrequentActivities {
@@ -50,4 +51,55 @@ class DeleteActivityType {
   const DeleteActivityType(this._repository);
   final ActivitiesRepository _repository;
   Future<void> call(String id) => _repository.deleteActivityType(id);
+}
+
+class GetLinkedApps {
+  const GetLinkedApps(this._repository);
+  final ActivitiesRepository _repository;
+  Future<List<String>> call(String activityTypeId) => _repository.getLinkedApps(activityTypeId);
+}
+
+class SetLinkedApps {
+  const SetLinkedApps(this._repository);
+  final ActivitiesRepository _repository;
+  Future<void> call(String activityTypeId, List<String> packageNames) =>
+      _repository.setLinkedApps(activityTypeId, packageNames);
+}
+
+class GetTimeRules {
+  const GetTimeRules(this._repository);
+  final ActivitiesRepository _repository;
+  Future<List<TimeRule>> call() => _repository.getTimeRules();
+}
+
+class AddTimeRule {
+  const AddTimeRule(this._repository);
+  final ActivitiesRepository _repository;
+  Future<void> call({
+    required String activityTypeId,
+    required String packageName,
+    required int startMinute,
+    required int endMinute,
+  }) =>
+      _repository.addTimeRule(
+        activityTypeId: activityTypeId,
+        packageName: packageName,
+        startMinute: startMinute,
+        endMinute: endMinute,
+      );
+}
+
+class RemoveTimeRule {
+  const RemoveTimeRule(this._repository);
+  final ActivitiesRepository _repository;
+  Future<void> call({
+    required String activityTypeId,
+    required String packageName,
+    required int startMinute,
+  }) =>
+      _repository.removeTimeRule(
+        activityTypeId: activityTypeId,
+        packageName: packageName,
+        startMinute: startMinute,
+      );
 }

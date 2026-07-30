@@ -7,11 +7,13 @@ import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/navigation/onboarding_page.dart';
 import '../../../../core/utils/time_format.dart';
 import '../../../../shared/shared.dart';
+import '../../../activities/presentation/widgets/time_rules_tile.dart';
 import '../../../notifications/presentation/widgets/notifications_settings_tile.dart';
 import '../../../security/presentation/widgets/app_lock_tile.dart';
 import '../../domain/entities/app_settings.dart';
 import '../bloc/settings_cubit.dart';
 import '../bloc/settings_state.dart';
+import '../widgets/app_tracking_settings_tile.dart';
 import '../widgets/calendar_import_tile.dart';
 import '../widgets/export_backup_tile.dart';
 import '../widgets/nudge_settings_tile.dart';
@@ -82,6 +84,13 @@ class SettingsPage extends StatelessWidget {
                             title: 'Notificaciones',
                             subtitle: 'Recordatorios y avisos de distracción',
                             onTap: () => _open(context, cubit, const _NotificacionesPage()),
+                          ),
+                          Gaps.vSm,
+                          _CategoryTile(
+                            icon: Icons.apps_rounded,
+                            title: 'App Tracking',
+                            subtitle: 'Registrar tiempo solo, detectando la app en uso',
+                            onTap: () => _open(context, cubit, const _AppTrackingPage()),
                           ),
                           Gaps.vSm,
                           _CategoryTile(
@@ -478,6 +487,27 @@ class _NotificacionesPage extends StatelessWidget {
             NotificationsSettingsTile(),
             Gaps.vMd,
             NudgeSettingsTile(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AppTrackingPage extends StatelessWidget {
+  const _AppTrackingPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return const _SubPageScaffold(
+      title: 'App Tracking',
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AppTrackingSettingsTile(),
+            Gaps.vMd,
+            TimeRulesTile(),
           ],
         ),
       ),

@@ -5,6 +5,7 @@ import '../database/app_database.dart';
 import '../services/app_update_service.dart';
 import '../services/app_usage_service.dart';
 import '../services/calendar_import_service.dart';
+import '../services/app_tracking_service.dart';
 import '../services/export_service.dart';
 import '../services/home_widget_service.dart';
 import '../services/life_areas_service.dart';
@@ -114,6 +115,7 @@ void configureDependencies({AppDatabase? database}) {
   sl.registerLazySingleton(() => LifeAreasService(sl()));
   sl.registerLazySingleton(() => ProjectsService(sl()));
   sl.registerLazySingleton(() => TimerService(sl()));
+  sl.registerLazySingleton(() => AppTrackingService(sl()));
   sl.registerLazySingleton(() => AppUsageService());
   sl.registerLazySingleton(() => AppUpdateService(sl()));
   sl.registerLazySingleton(() => CalendarImportService(sl()));
@@ -182,8 +184,13 @@ void configureDependencies({AppDatabase? database}) {
   sl.registerLazySingleton(() => CreateActivityType(sl()));
   sl.registerLazySingleton(() => UpdateActivityType(sl()));
   sl.registerLazySingleton(() => DeleteActivityType(sl()));
+  sl.registerLazySingleton(() => GetLinkedApps(sl()));
+  sl.registerLazySingleton(() => SetLinkedApps(sl()));
+  sl.registerLazySingleton(() => GetTimeRules(sl()));
+  sl.registerLazySingleton(() => AddTimeRule(sl()));
+  sl.registerLazySingleton(() => RemoveTimeRule(sl()));
   sl.registerFactory(
-      () => ActivitiesCubit(sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl()));
+      () => ActivitiesCubit(sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl()));
 
   // Events
   sl.registerLazySingleton(() => EventsLocalDatasource(sl()));

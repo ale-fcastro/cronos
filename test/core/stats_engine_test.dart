@@ -68,6 +68,33 @@ void main() {
     expect(s.hasData, isTrue);
   });
 
+  test('un peso de productividad distinto de 100 escala los minutos productivos', () async {
+    final db = await database.database;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    int ms(DateTime d) => d.millisecondsSinceEpoch;
+
+    await db.insert('activity_types', {
+      'id': 'nav_web',
+      'name': 'Navegar (mitad productivo)',
+      'color': 0xFF7EC9A2,
+      'category': 'personalizada',
+      'impact': 'productive',
+      'productivity_weight': 50,
+    });
+    // 60 minutos a peso 50% -> 30 minutos productivos.
+    await db.insert('activity_sessions', {
+      'activity_id': 'nav_web',
+      'started_at': ms(today.add(const Duration(hours: 9))),
+      'ended_at': ms(today.add(const Duration(hours: 10))),
+    });
+
+    final s = await engine.statsForDay(today);
+    expect(s.productiveActivityMin, 30);
+    // El tiempo crudo por categoría no se pesa, solo el aporte a productivo.
+    expect(s.categoryMin['personalizada'], 60);
+  });
+
   test(
       'una actividad personalizada marcada como productiva o de ocio suma '
       'al cálculo aunque no sea "estudio" ni tenga warn activado', () async {

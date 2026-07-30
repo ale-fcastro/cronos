@@ -6,6 +6,7 @@ import '../../../../shared/shared.dart';
 import '../bloc/activities_cubit.dart';
 import '../bloc/activities_state.dart';
 import '../widgets/create_activity_type_dialog.dart';
+import '../widgets/manage_linked_apps_sheet.dart';
 
 /// Pantalla "Categorías": gestiona los tipos de actividad (crear se hace
 /// desde el registro con el FAB; acá se ven y se borran).
@@ -86,18 +87,37 @@ class ActivityTypesPage extends StatelessWidget {
                                               color: AppColors.textTertiary, fontSize: 12)),
                                     ],
                                   ),
-                                  AppIconButton(
-                                    icon: Icons.delete_outline_rounded,
-                                    color: AppColors.danger,
-                                    onPressed: () async {
-                                      final confirmed = await DeleteDialog.show(
-                                        context,
-                                        title: 'Eliminar "${a.name}"',
-                                        message:
-                                            'Las sesiones ya registradas con esta categoría dejarán de listarse.',
-                                      );
-                                      if (confirmed) cubit.removeActivityType(a.id);
-                                    },
+                                  Row(
+                                    children: [
+                                      AppIconButton(
+                                        icon: Icons.apps_rounded,
+                                        onPressed: () async {
+                                          final linked = await cubit.getLinkedApps(a.id);
+                                          if (!context.mounted) return;
+                                          final picked = await showManageLinkedAppsSheet(
+                                            context,
+                                            activityTypeName: a.name,
+                                            initiallyLinked: linked,
+                                          );
+                                          if (picked != null) {
+                                            cubit.setLinkedApps(a.id, picked);
+                                          }
+                                        },
+                                      ),
+                                      AppIconButton(
+                                        icon: Icons.delete_outline_rounded,
+                                        color: AppColors.danger,
+                                        onPressed: () async {
+                                          final confirmed = await DeleteDialog.show(
+                                            context,
+                                            title: 'Eliminar "${a.name}"',
+                                            message:
+                                                'Las sesiones ya registradas con esta categoría dejarán de listarse.',
+                                          );
+                                          if (confirmed) cubit.removeActivityType(a.id);
+                                        },
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),

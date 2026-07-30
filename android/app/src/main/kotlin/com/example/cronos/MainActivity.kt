@@ -22,6 +22,7 @@ import java.io.ByteArrayOutputStream
 class MainActivity : FlutterFragmentActivity() {
     private val channelName = "cronos/app_info"
     private val sessionServiceChannelName = "cronos/session_service"
+    private val appTrackingServiceChannelName = "cronos/app_tracking_service"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -39,6 +40,9 @@ class MainActivity : FlutterFragmentActivity() {
                     "openUsageAccessSettings" -> {
                         openUsageAccessSettings()
                         result.success(null)
+                    }
+                    "getInstalledApps" -> {
+                        result.success(getInstalledApps())
                     }
                     else -> result.notImplemented()
                 }
@@ -79,6 +83,59 @@ class MainActivity : FlutterFragmentActivity() {
                     else -> result.notImplemented()
                 }
             }
+
+        // Arranca/detiene AppTrackingService: lib/core/services/
+        // app_tracking_service.dart lo llama al prender/apagar el toggle en
+        // Configuración > App Tracking.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, appTrackingServiceChannelName)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "start" -> {
+                        ContextCompat.startForegroundService(
+                            this,
+                            Intent(this, AppTrackingService::class.java),
+                        )
+                        result.success(null)
+                    }
+                    "stop" -> {
+                        stopService(Intent(this, AppTrackingService::class.java))
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+    }
+
+    /// Todas las apps con ícono en el launcher (excluye Cronos misma y
+    /// componentes sin actividad de lanzamiento). A diferencia de
+    /// `AppUsageService.queryUsage`, que solo ve apps con uso reciente, esto
+    /// alimenta el selector de "apps vinculadas" de un ActivityType (App
+    /// Tracking), donde hace falta poder elegir una app que todavía no se
+    /// usó en la ventana consultada.
+    private fun getInstalledApps(): List<Map<String, Any?>> {
+        val intent = Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_LAUNCHER) }
+        val resolved = packageManager.queryIntentActivities(intent, 0)
+        val seen = HashSet<String>()
+        val result = mutableListOf<Map<String, Any?>>()
+        for (info in resolved) {
+            val pkg = info.activityInfo.packageName
+            if (pkg == packageName || !seen.add(pkg)) continue
+            try {
+                val appInfo = packageManager.getApplicationInfo(pkg, 0)
+                val label = packageManager.getApplicationLabel(appInfo).toString()
+                val icon = packageManager.getApplicationIcon(appInfo)
+                result.add(
+                    mapOf(
+                        "packageName" to pkg,
+                        "appName" to label,
+                        "icon" to drawableToPngBytes(icon),
+                    ),
+                )
+            } catch (e: PackageManager.NameNotFoundException) {
+                // App desinstalada entre la resolución del intent y acá: se salta.
+            }
+        }
+        return result.sortedBy { (it["appName"] as String).lowercase() }
     }
 
     private fun getAppInfo(packageName: String): Map<String, Any?>? {

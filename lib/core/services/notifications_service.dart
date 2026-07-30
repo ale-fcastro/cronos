@@ -54,7 +54,30 @@ class NotificationsService {
   /// del payload de un recordatorio normal (que es el id de tarea a secas).
   static const overduePayloadPrefix = 'overdue:';
 
-  Future<void> initialize() async {
+  /// Prefijo del payload de la notificación de desambiguación de App
+  /// Tracking (ver [showAppClassificationPrompt]) — el resto del payload es
+  /// el package de la app. Las acciones (qué categoría eligió, o "ignorar")
+  /// se resuelven en background: ver `notificationBackgroundResponseHandler`
+  /// en main.dart, registrado como [onDidReceiveBackgroundNotificationResponse]
+  /// más abajo.
+  static const appTrackPayloadPrefix = 'apptrack:';
+
+  /// Id de la acción "ignorar esta app" en [showAppClassificationPrompt].
+  static const appTrackIgnoreActionId = 'ignore';
+
+  /// Prefijo del id de acción con la categoría elegida en
+  /// [showAppClassificationPrompt] — el resto es el id del ActivityType.
+  static const appTrackActivityActionPrefix = 'activity:';
+
+  /// [onBackgroundResponse] registra el handler global de acciones que se
+  /// resuelven sin abrir la app (hoy solo las de
+  /// [showAppClassificationPrompt]) — flutter_local_notifications solo
+  /// admite UNO por app, así que solo el arranque principal en main.dart lo
+  /// pasa; instancias descartables (p.ej. la de `nudgeCallbackDispatcher`,
+  /// que solo necesita `showNow`) lo dejan en null.
+  Future<void> initialize({
+    void Function(NotificationResponse)? onBackgroundResponse,
+  }) async {
     if (_initialized) return;
     _initialized = true;
     try {
@@ -89,8 +112,15 @@ class NotificationsService {
             onTaskOverdueTapped?.call(payload.substring(overduePayloadPrefix.length));
             return;
           }
+          if (payload.startsWith(appTrackPayloadPrefix)) {
+            // El tap del cuerpo (no de una acción) no hace nada especial acá
+            // -- las acciones de esta notificación son todas
+            // showsUserInterface:false y se resuelven en background.
+            return;
+          }
           onTaskReminderTapped?.call(payload);
         },
+        onDidReceiveBackgroundNotificationResponse: onBackgroundResponse,
       );
     } catch (_) {
       // Plataforma sin soporte (o sin plugin nativo registrado): el resto
@@ -298,6 +328,55 @@ class NotificationsService {
       );
     } catch (_) {
       // Un aviso perdido no debe romper el chequeo de actualizaciones.
+    }
+  }
+
+  /// Pregunta "¿qué estás haciendo en \$appName?" cuando App Tracking no
+  /// puede resolver la app sola (sin contexto, o en varios a la vez). No
+  /// depende de [isEnabled]/[hasPermission] de los recordatorios de tareas
+  /// (es una función aparte); el llamador (AppTrackingResolver) decide si
+  /// preguntar. [candidates] son hasta 3 pares (id, nombre) de ActivityType.
+  Future<void> showAppClassificationPrompt(
+    String packageName,
+    String appName,
+    List<(String id, String name)> candidates,
+  ) async {
+    if (!await hasPermission()) return;
+    await initialize();
+    try {
+      await _plugin.show(
+        id: _notificationId('apptrack_$packageName'),
+        title: 'Croni te pregunta',
+        body: '¿Qué estás haciendo en $appName?',
+        notificationDetails: NotificationDetails(
+          android: AndroidNotificationDetails(
+            _channelId,
+            _channelName,
+            icon: _smallIcon,
+            color: _accentColor,
+            importance: Importance.high,
+            priority: Priority.high,
+            actions: [
+              for (final (id, name) in candidates)
+                AndroidNotificationAction(
+                  '$appTrackActivityActionPrefix$id',
+                  name,
+                  showsUserInterface: false,
+                ),
+              const AndroidNotificationAction(
+                appTrackIgnoreActionId,
+                'Ignorar esta app',
+                showsUserInterface: false,
+              ),
+            ],
+          ),
+          iOS: const DarwinNotificationDetails(),
+          macOS: const DarwinNotificationDetails(),
+        ),
+        payload: '$appTrackPayloadPrefix$packageName',
+      );
+    } catch (_) {
+      // Un aviso perdido no debe romper el sondeo de App Tracking.
     }
   }
 

@@ -37,6 +37,7 @@ class ActivityType extends Equatable {
     this.areaId,
     this.warn = false,
     this.impact = ActivityImpact.neutral,
+    this.productivityWeight = 100,
     this.lastUsedLabel,
     this.lastUsedWarn = false,
   });
@@ -53,12 +54,26 @@ class ActivityType extends Equatable {
 
   /// Si suma a tiempo productivo, a tiempo perdido, o a ninguno.
   final ActivityImpact impact;
+
+  /// 0-100: qué porcentaje del tiempo en esta actividad cuenta como
+  /// productivo (ver StatsEngine). Solo tiene efecto si [impact] es
+  /// productive -- no todas las actividades "productivas" aportan igual.
+  final int productivityWeight;
   final String? lastUsedLabel;
   final bool lastUsedWarn;
 
   @override
-  List<Object?> get props =>
-      [id, name, color, areaId, warn, impact, lastUsedLabel, lastUsedWarn];
+  List<Object?> get props => [
+        id,
+        name,
+        color,
+        areaId,
+        warn,
+        impact,
+        productivityWeight,
+        lastUsedLabel,
+        lastUsedWarn,
+      ];
 }
 
 /// Entrada del registro de hoy.

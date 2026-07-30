@@ -96,7 +96,7 @@ class StatsEngine {
 
     // --- Sesiones de actividades por categoría e impacto ---
     final actSessions = await db.rawQuery('''
-      SELECT s.started_at, s.ended_at, t.category, t.impact
+      SELECT s.started_at, s.ended_at, t.category, t.impact, t.productivity_weight
       FROM activity_sessions s JOIN activity_types t ON t.id = s.activity_id
       WHERE s.started_at < ? AND COALESCE(s.ended_at, ?) > ?
     ''', [endMs, nowMs, startMs]);
@@ -115,7 +115,11 @@ class StatsEngine {
         case 'leisure':
           lostMin += min;
         case 'productive':
-          productiveActivityMin += min;
+          // Peso de productividad (App Tracking > apps vinculadas): no todas
+          // las actividades "productivas" aportan igual (ej. VS Code 100%
+          // vs. Chrome 60%). Por defecto es 100, sin cambiar nada.
+          final weight = (row['productivity_weight'] as int?) ?? 100;
+          productiveActivityMin += (min * weight / 100).round();
       }
     }
     final sleepMin = categoryMin['sueno'] ?? 0;

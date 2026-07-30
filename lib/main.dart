@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:workmanager/workmanager.dart';
@@ -14,6 +16,8 @@ import 'core/diagnostics/error_banner.dart';
 import 'core/diagnostics/error_reporting.dart';
 import 'core/navigation/app_router.dart';
 import 'core/navigation/app_routes.dart';
+import 'core/services/app_tracking_resolver.dart';
+import 'core/services/app_tracking_service.dart';
 import 'core/services/app_update_service.dart';
 import 'core/services/app_usage_service.dart';
 import 'core/services/home_widget_service.dart';
@@ -176,6 +180,94 @@ Future<void> homeWidgetInteractionCallback(Uri? uri) async {
   }
 }
 
+/// Handler global de acciones de notificación que se resuelven sin abrir la
+/// app (`onDidReceiveBackgroundNotificationResponse` de
+/// flutter_local_notifications, que solo admite uno por app — ver
+/// [NotificationsService.initialize]). Hoy solo maneja las acciones de
+/// [NotificationsService.showAppClassificationPrompt] (App Tracking): elegir
+/// una categoría, o "Ignorar esta app". Registra la elección para que
+/// [AppTrackingResolver] pueda "aprender" con el tiempo.
+@pragma('vm:entry-point')
+void notificationBackgroundResponseHandler(NotificationResponse response) {
+  final payload = response.payload;
+  final actionId = response.actionId;
+  if (payload == null || actionId == null) return;
+  if (!payload.startsWith(NotificationsService.appTrackPayloadPrefix)) return;
+  final packageName = payload.substring(NotificationsService.appTrackPayloadPrefix.length);
+
+  Future<void> run() async {
+    final database = AppDatabase();
+    final db = await database.database;
+    final target = actionId == NotificationsService.appTrackIgnoreActionId
+        ? AppTrackingResolver.ignoreTarget
+        : actionId.startsWith(NotificationsService.appTrackActivityActionPrefix)
+            ? actionId.substring(NotificationsService.appTrackActivityActionPrefix.length)
+            : null;
+    if (target == null) return;
+
+    await db.rawInsert('''
+      INSERT INTO app_classification_choices (package_name, target, count)
+      VALUES (?, ?, 1)
+      ON CONFLICT(package_name, target) DO UPDATE SET count = count + 1
+    ''', [packageName, target]);
+
+    if (target != AppTrackingResolver.ignoreTarget) {
+      await TimerService(database).startActivity(target);
+    }
+  }
+
+  run();
+}
+
+/// Entrypoint del FlutterEngine de fondo que mantiene vivo
+/// AppTrackingService.kt mientras la detección automática de contexto por
+/// app está activada (Configuración > App Tracking). A diferencia de
+/// [nudgeCallbackDispatcher]/[homeWidgetInteractionCallback] (un engine
+/// nuevo por invocación), este entrypoint corre en UN SOLO engine que el
+/// servicio nativo crea una vez y mantiene vivo — recrear el engine en cada
+/// sondeo (cada pocos segundos) sería demasiado lento y gastaría más
+/// batería que el problema que resuelve.
+///
+/// Arma sus propias instancias (mismo motivo que el resto de los
+/// entrypoints de background: este isolate no comparte el GetIt del
+/// principal).
+@pragma('vm:entry-point')
+void appTrackingEntrypoint() {
+  WidgetsFlutterBinding.ensureInitialized();
+  const channel = MethodChannel('cronos/app_tracking');
+  final database = AppDatabase();
+  final resolver = AppTrackingResolver(
+    database,
+    TimerService(database),
+    NotificationsService(database),
+  );
+
+  AppTrackingService(database).getGraceSeconds().then((seconds) {
+    resolver.graceDuration = Duration(seconds: seconds);
+  });
+
+  channel.setMethodCallHandler((call) async {
+    if (call.method != 'foregroundAppChanged') return null;
+    final packageName = call.arguments as String?;
+    if (packageName == null) return null;
+    try {
+      await resolver.handleForegroundApp(packageName);
+    } catch (_) {
+      // Un tick perdido no debe tirar el sondeo entero -- el próximo cambio
+      // de app en primer plano vuelve a intentar resolver desde cero.
+    }
+    return null;
+  });
+
+  // El servicio nativo solo avisa CAMBIOS de app en primer plano; una
+  // interrupción corta que nunca "vuelve" (el usuario se queda en la app
+  // nueva sin cambiar a ninguna otra) necesita este chequeo periódico
+  // aparte para que el margen de gracia expire igual.
+  Timer.periodic(const Duration(seconds: 5), (_) {
+    resolver.checkPendingStopExpiry();
+  });
+}
+
 void main() {
   // Cualquier excepción (incluida la de abrir la base de datos) se reporta
   // via [reportError] -> se ve como banner rojo en la app, en vez de quedar
@@ -217,6 +309,11 @@ void main() {
         await sl<SessionNotificationService>().start();
       } catch (e, st) {
         reportError('SessionNotificationService.start', e, st);
+      }
+      try {
+        await sl<AppTrackingService>().startIfEnabled();
+      } catch (e, st) {
+        reportError('AppTrackingService.startIfEnabled', e, st);
       }
       try {
         await HomeWidget.registerInteractivityCallback(homeWidgetInteractionCallback);
@@ -261,7 +358,9 @@ void main() {
 
     final notifications = sl<NotificationsService>();
     try {
-      await notifications.initialize();
+      await notifications.initialize(
+        onBackgroundResponse: notificationBackgroundResponseHandler,
+      );
       notifications.onTaskReminderTapped = (taskId) {
         AppRouter.navigatorKey.currentState
             ?.pushNamed(AppRoutes.taskDetail, arguments: taskId);

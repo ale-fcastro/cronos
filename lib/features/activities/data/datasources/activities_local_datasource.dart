@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart' show Color;
+import 'package:sqflite/sqflite.dart' show ConflictAlgorithm;
 
 import '../../../../core/database/app_database.dart';
 import '../../../../core/services/timer_service.dart';
 import '../../../../core/utils/time_format.dart';
 import '../../domain/entities/activity_type.dart';
 import '../../domain/entities/new_activity_type_input.dart';
+import '../../domain/entities/time_rule.dart';
 
 /// Datasource real de actividades sobre SQLite.
 class ActivitiesLocalDatasource {
@@ -66,6 +68,7 @@ class ActivitiesLocalDatasource {
         areaId: t['area_id'] as String?,
         warn: warn,
         impact: ActivityImpact.fromDb(t['impact'] as String),
+        productivityWeight: (t['productivity_weight'] as int?) ?? 100,
         lastUsedLabel: label,
         lastUsedWarn: warnLabel,
       ));
@@ -132,6 +135,7 @@ class ActivitiesLocalDatasource {
       'warn': input.warn ? 1 : 0,
       'sort': nextSort,
       'impact': input.impact.toDb(),
+      'productivity_weight': input.productivityWeight,
     });
   }
 
@@ -145,6 +149,7 @@ class ActivitiesLocalDatasource {
         'area_id': input.areaId,
         'warn': input.warn ? 1 : 0,
         'impact': input.impact.toDb(),
+        'productivity_weight': input.productivityWeight,
       },
       where: 'id = ?',
       whereArgs: [id],
@@ -154,5 +159,88 @@ class ActivitiesLocalDatasource {
   Future<void> deleteActivityType(String id) async {
     final db = await _database.database;
     await db.delete('activity_types', where: 'id = ?', whereArgs: [id]);
+  }
+
+  /// Apps vinculadas a [activityTypeId] para App Tracking (solo la regla
+  /// general, sin franja horaria -- esas se gestionan aparte).
+  Future<List<String>> getLinkedApps(String activityTypeId) async {
+    final db = await _database.database;
+    final rows = await db.query(
+      'activity_type_apps',
+      columns: ['package_name'],
+      where: 'activity_type_id = ? AND start_minute IS NULL',
+      whereArgs: [activityTypeId],
+    );
+    return [for (final r in rows) r['package_name'] as String];
+  }
+
+  Future<void> setLinkedApps(String activityTypeId, List<String> packageNames) async {
+    final db = await _database.database;
+    await db.transaction((txn) async {
+      await txn.delete(
+        'activity_type_apps',
+        where: 'activity_type_id = ? AND start_minute IS NULL',
+        whereArgs: [activityTypeId],
+      );
+      for (final pkg in packageNames) {
+        await txn.insert('activity_type_apps', {'activity_type_id': activityTypeId, 'package_name': pkg});
+      }
+    });
+  }
+
+  /// Reglas por horario (App Tracking, capa avanzada): una app vinculada a
+  /// un ActivityType distinto solo dentro de una franja específica -- ver
+  /// AppTrackingResolver, que le da prioridad sobre la regla general del
+  /// mismo package si la franja está activa.
+  Future<List<TimeRule>> fetchTimeRules() async {
+    final db = await _database.database;
+    final rows = await db.rawQuery('''
+      SELECT a.package_name, a.activity_type_id, a.start_minute, a.end_minute, t.name AS activity_name
+      FROM activity_type_apps a JOIN activity_types t ON t.id = a.activity_type_id
+      WHERE a.start_minute IS NOT NULL
+      ORDER BY a.start_minute ASC
+    ''');
+    return [
+      for (final r in rows)
+        TimeRule(
+          packageName: r['package_name'] as String,
+          activityTypeId: r['activity_type_id'] as String,
+          activityTypeName: r['activity_name'] as String,
+          startMinute: r['start_minute'] as int,
+          endMinute: r['end_minute'] as int,
+        ),
+    ];
+  }
+
+  Future<void> addTimeRule({
+    required String activityTypeId,
+    required String packageName,
+    required int startMinute,
+    required int endMinute,
+  }) async {
+    final db = await _database.database;
+    await db.insert(
+      'activity_type_apps',
+      {
+        'activity_type_id': activityTypeId,
+        'package_name': packageName,
+        'start_minute': startMinute,
+        'end_minute': endMinute,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<void> removeTimeRule({
+    required String activityTypeId,
+    required String packageName,
+    required int startMinute,
+  }) async {
+    final db = await _database.database;
+    await db.delete(
+      'activity_type_apps',
+      where: 'activity_type_id = ? AND package_name = ? AND start_minute = ?',
+      whereArgs: [activityTypeId, packageName, startMinute],
+    );
   }
 }

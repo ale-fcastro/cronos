@@ -183,9 +183,10 @@ index_items = [
     ('8', 'Analizar: entender tus números'),
     ('9', 'Configuración'),
     ('10', 'Widgets y notificación de sesión'),
-    ('11', 'Actualizaciones automáticas'),
-    ('12', 'Tus datos son tuyos (privacidad y respaldo)'),
-    ('13', 'Preguntas frecuentes'),
+    ('11', 'App Tracking: registro automático'),
+    ('12', 'Actualizaciones automáticas'),
+    ('13', 'Tus datos son tuyos (privacidad y respaldo)'),
+    ('14', 'Preguntas frecuentes'),
 ]
 story.append(Paragraph('Índice', h1))
 story.append(HRFlowable(width='100%', thickness=1, color=RULE, spaceAfter=14))
@@ -509,9 +510,9 @@ story.append(info_table([
               'en tu puntaje diario. Los cuatro deben sumar 100.'),
     ('Exportar y backup', 'Sacar tus datos como CSV, JSON o un reporte en PDF, o hacer '
                            'una copia de seguridad completa para restaurarla después. Ver '
-                           'punto 12.'),
+                           'punto 13.'),
     ('Ayuda', 'Volver a ver la guía de bienvenida de Croni.'),
-    ('Soporte', 'Datos de contacto para dudas, problemas o sugerencias. Ver punto 11.'),
+    ('Soporte', 'Datos de contacto para dudas, problemas o sugerencias. Ver punto 12.'),
 ]))
 story.append(PageBreak())
 
@@ -551,8 +552,47 @@ story.append(callout(
     'desde adentro de Cronos.'))
 story.append(PageBreak())
 
-# ---------- 11. Actualizaciones automáticas ----------
-story += section_heading(11, 'Actualizaciones automáticas')
+# ---------- 11. App Tracking: registro automático ----------
+story += section_heading(11, 'App Tracking: registro automático')
+story.append(para(
+    'App Tracking hace que Cronos registre tiempo casi sin que lo toques: '
+    'abrís una app y Croni arranca solo el cronómetro que corresponde, sin '
+    'que tengas que entrar a la app y tocar nada.'))
+story.append(para(
+    'Se activa desde Configuración → App Tracking. Como necesita revisar '
+    'constantemente qué app tenés abierta, corre con una notificación fija '
+    'propia mientras está prendido y usa algo más de batería — por eso está '
+    'apagado por defecto, es una decisión tuya activarlo.'))
+story.append(Paragraph('Cómo decide qué hacer', callout_title))
+story.append(bul('Tarea vinculada:', 'si vinculaste una tarea con una app al crearla (ver punto '
+                                      '5), abrir esa app arranca esa tarea directo, sin preguntar.'))
+story.append(bul('Una sola categoría:', 'si vinculaste una app a una sola categoría de actividad '
+                                          '(Configuración → Categorías → ícono de apps en cada una), '
+                                          'abrirla arranca esa actividad directo.'))
+story.append(bul('Varias categorías, o ninguna:', 'Croni te pregunta con una notificación "¿Qué '
+                                                     'estás haciendo?" con las opciones más probables. '
+                                                     'Tocás una (o "Ignorar esta app" si no querés que '
+                                                     'cuente nada) y listo.'))
+story.append(bul('Croni aprende:', 'si contestás lo mismo varias veces para la misma app, deja de '
+                                     'preguntar y clasifica sola. Si cambiás de opinión seguido, '
+                                     'vuelve a preguntar.'))
+story.append(bul('Interrupciones cortas:', 'si te vas un momento a otra app (una notificación, un '
+                                             'mensaje) el cronómetro no se corta al toque — espera el '
+                                             'margen que elegiste (15s a 2min) antes de pausar, por si '
+                                             'volvés.'))
+story.append(Spacer(1, 4))
+story.append(callout(
+    'Reglas por horario y peso de productividad',
+    'Desde Configuración → App Tracking → Reglas por horario podés hacer que '
+    'la misma app cuente distinto según la hora (ej. YouTube de mañana = '
+    'Estudio, YouTube de noche = Ocio). Y en cada categoría productiva podés '
+    'ajustar qué tan productiva es (0 a 100%), para apps que solo son '
+    'productivas a medias.',
+))
+story.append(PageBreak())
+
+# ---------- 12. Actualizaciones automáticas ----------
+story += section_heading(12, 'Actualizaciones automáticas')
 story.append(para(
     'Cronos revisa solo, cada vez que abrís la app, si hay una versión más '
     'nueva publicada. No hace falta que la busques en ningún lado ni que te '
@@ -578,8 +618,8 @@ story.append(para(
     'propio de Cronos.'))
 story.append(PageBreak())
 
-# ---------- 12. Tus datos son tuyos ----------
-story += section_heading(12, 'Tus datos son tuyos')
+# ---------- 13. Tus datos son tuyos ----------
+story += section_heading(13, 'Tus datos son tuyos')
 story.append(para(
     'Todo lo que anotás en Cronos se guarda únicamente en tu teléfono. No hay '
     'ninguna cuenta, ni servidor, ni nube: nadie más que vos puede ver tus '
@@ -599,8 +639,8 @@ story.append(para(
     'mismo lugar, por ejemplo para revisar tus números en la computadora.'))
 story.append(PageBreak())
 
-# ---------- 13. Preguntas frecuentes ----------
-story += section_heading(13, 'Preguntas frecuentes')
+# ---------- 14. Preguntas frecuentes ----------
+story += section_heading(14, 'Preguntas frecuentes')
 faq = [
     ('¿Tengo que anotar todo, todo el tiempo?',
      'No. Cronos funciona mejor cuanto más registrás, pero no es un '
@@ -638,6 +678,16 @@ faq = [
      'No, son independientes. El puntaje se calcula solo con tareas y '
      'actividades (ver punto 4); los hábitos son un seguimiento aparte, '
      'de racha diaria.'),
+    ('¿App Tracking funciona igual que vincular una tarea con una app?',
+     'Se complementan. Vincular una tarea (punto 5) sigue siendo puntual, '
+     'para esa tarea en particular. App Tracking (punto 11) es más amplio: '
+     'cubre categorías enteras y corre todo el tiempo en segundo plano, no '
+     'solo cuando esa tarea está planificada.'),
+    ('¿Por qué App Tracking gasta más batería que el resto de Cronos?',
+     'Porque necesita revisar seguido qué app tenés abierta para poder '
+     'reaccionar al instante — eso exige que el sistema lo trate como una '
+     'app "activa" todo el tiempo, con su propia notificación fija. Si '
+     'preferís ahorrar batería, dejalo apagado y seguí registrando manual.'),
 ]
 for q, a in faq:
     story.append(Paragraph(q, callout_title))

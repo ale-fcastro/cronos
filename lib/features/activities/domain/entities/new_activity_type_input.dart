@@ -9,6 +9,7 @@ class NewActivityTypeInput {
     this.areaId,
     this.warn = false,
     this.impact = ActivityImpact.neutral,
+    this.productivityWeight = 100,
   });
 
   final String name;
@@ -23,4 +24,7 @@ class NewActivityTypeInput {
 
   /// Si suma a tiempo productivo, a tiempo perdido, o a ninguno.
   final ActivityImpact impact;
+
+  /// 0-100, solo relevante si [impact] es productive (ver [ActivityType]).
+  final int productivityWeight;
 }

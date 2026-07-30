@@ -1,5 +1,6 @@
 import '../../domain/entities/activity_type.dart';
 import '../../domain/entities/new_activity_type_input.dart';
+import '../../domain/entities/time_rule.dart';
 import '../../domain/repositories/activities_repository.dart';
 import '../datasources/activities_local_datasource.dart';
 
@@ -34,4 +35,40 @@ class ActivitiesRepositoryImpl implements ActivitiesRepository {
 
   @override
   Future<void> deleteActivityType(String id) => _datasource.deleteActivityType(id);
+
+  @override
+  Future<List<String>> getLinkedApps(String activityTypeId) => _datasource.getLinkedApps(activityTypeId);
+
+  @override
+  Future<void> setLinkedApps(String activityTypeId, List<String> packageNames) =>
+      _datasource.setLinkedApps(activityTypeId, packageNames);
+
+  @override
+  Future<List<TimeRule>> getTimeRules() => _datasource.fetchTimeRules();
+
+  @override
+  Future<void> addTimeRule({
+    required String activityTypeId,
+    required String packageName,
+    required int startMinute,
+    required int endMinute,
+  }) =>
+      _datasource.addTimeRule(
+        activityTypeId: activityTypeId,
+        packageName: packageName,
+        startMinute: startMinute,
+        endMinute: endMinute,
+      );
+
+  @override
+  Future<void> removeTimeRule({
+    required String activityTypeId,
+    required String packageName,
+    required int startMinute,
+  }) =>
+      _datasource.removeTimeRule(
+        activityTypeId: activityTypeId,
+        packageName: packageName,
+        startMinute: startMinute,
+      );
 }

@@ -84,6 +84,23 @@ class AppUsageService {
     }
   }
 
+  /// Todas las apps instaladas con ícono en el launcher (a diferencia de
+  /// [queryUsage], no depende de que se hayan usado recientemente). Para el
+  /// selector de "apps vinculadas" de un contexto de App Tracking.
+  Future<List<LinkedAppOption>> listInstalledApps() async {
+    if (!isSupported) return const [];
+    final resolved = await _icons.listInstalled();
+    return [
+      for (final r in resolved)
+        if (r.packageName != null)
+          LinkedAppOption(
+            packageName: r.packageName!,
+            appName: r.appName ?? humanizeAppName(r.packageName!),
+            icon: r.icon,
+          ),
+    ];
+  }
+
   /// Ordena los eventos ACTIVITY_RESUMED con package conocido, de más viejo
   /// a más nuevo, entre [start] y ahora. Base de [isCurrentForeground] y
   /// [wasLinkedAppLeftSince].

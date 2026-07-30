@@ -112,6 +112,13 @@ void main() {
         "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('habits', 'habit_checks')");
     expect(habitTables, hasLength(2));
 
+    final appTrackingTables = await db.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('activity_type_apps', 'app_classification_choices')");
+    expect(appTrackingTables, hasLength(2));
+    final weightCol = await db.rawQuery("PRAGMA table_info('activity_types')");
+    expect(weightCol.where((r) => r['name'] == 'productivity_weight'), hasLength(1));
+    expect(estudio.first['productivity_weight'], 100);
+
     await appDb.close();
   });
 }
