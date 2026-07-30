@@ -3,9 +3,11 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:home_widget/home_widget.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:workmanager/workmanager.dart';
 
+import 'core/analytics/stats_engine.dart';
 import 'core/database/app_database.dart';
 import 'core/di/service_locator.dart';
 import 'core/diagnostics/error_banner.dart';
@@ -14,9 +16,14 @@ import 'core/navigation/app_router.dart';
 import 'core/navigation/app_routes.dart';
 import 'core/services/app_update_service.dart';
 import 'core/services/app_usage_service.dart';
+import 'core/services/home_widget_service.dart';
 import 'core/services/notifications_service.dart';
 import 'core/services/nudge_service.dart';
 import 'core/services/overdue_task_service.dart';
+import 'core/services/session_notification_service.dart';
+import 'core/services/timer_service.dart';
+import 'features/dashboard/data/datasources/dashboard_local_datasource.dart';
+import 'features/habits/data/datasources/habits_local_datasource.dart';
 import 'features/tasks/domain/usecases/task_recurrence_usecases.dart';
 import 'shared/shared.dart';
 
@@ -26,6 +33,15 @@ import 'shared/shared.dart';
 @pragma('vm:entry-point')
 void nudgeCallbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
+    if (task == HomeWidgetService.refreshTaskName) {
+      try {
+        await _refreshHomeWidgetsInBackground();
+      } catch (_) {
+        // Red de seguridad nomás: el próximo evento de TimerService (o la
+        // siguiente corrida de esta misma tarea) va a refrescar igual.
+      }
+      return true;
+    }
     final database = AppDatabase();
     final notifications = NotificationsService(database);
     try {
@@ -51,6 +67,113 @@ void nudgeCallbackDispatcher() {
     }
     return true;
   });
+}
+
+/// Refresca los widgets "Hoy", "Semanal" y "Hábitos" para el rollover de
+/// medianoche: el score de "Hoy" cambia con el simple paso del tiempo, sin
+/// que el usuario toque nada, así que el disparo event-driven de
+/// [HomeWidgetService] no alcanza para eso. No cubre "Sesión" a propósito:
+/// ese widget solo cambia con eventos de [TimerService], que ya la
+/// mantienen al día en vivo. Arma su propia cadena de dependencias (mismo
+/// motivo que [nudgeCallbackDispatcher]: este isolate no comparte el GetIt
+/// del principal).
+Future<void> _refreshHomeWidgetsInBackground() async {
+  final database = AppDatabase();
+  final stats = StatsEngine(database);
+  final dashboard = DashboardLocalDatasource(database, stats);
+  final summary = await dashboard.fetchTodaySummary();
+
+  await HomeWidget.saveWidgetData('today_score', summary.score);
+  await HomeWidget.saveWidgetData('today_productive_label', summary.productiveLabel);
+  await HomeWidget.saveWidgetData('today_lost_label', summary.lostLabel);
+  await HomeWidget.saveWidgetData('today_date_label', summary.dateLabel);
+  await HomeWidget.saveWidgetData('today_next_task_title', summary.nextTask?.title ?? '');
+  await HomeWidget.saveWidgetData('today_next_task_time', summary.nextTask?.time ?? '');
+  await HomeWidget.updateWidget(
+      qualifiedAndroidName: 'com.example.cronos.widgets.HomeWidgetProvider');
+
+  await HomeWidget.saveWidgetData('weekly_scores',
+      summary.weeklyScores.map((p) => p.value.toStringAsFixed(2)).join(','));
+  await HomeWidget.saveWidgetData(
+      'weekly_labels', summary.weeklyScores.map((p) => p.label).join(','));
+  await HomeWidget.updateWidget(
+      qualifiedAndroidName: 'com.example.cronos.widgets.WeeklyWidgetProvider');
+
+  const maxHabits = 5;
+  final habits =
+      (await HabitsLocalDatasource(database).fetchHabits()).take(maxHabits).toList();
+  await HomeWidget.saveWidgetData('habits_count', habits.length);
+  for (var i = 0; i < maxHabits; i++) {
+    if (i < habits.length) {
+      final item = habits[i];
+      await HomeWidget.saveWidgetData('habit_${i}_id', item.habit.id);
+      await HomeWidget.saveWidgetData('habit_${i}_title', item.habit.title);
+      await HomeWidget.saveWidgetData('habit_${i}_done_today', item.doneToday);
+      await HomeWidget.saveWidgetData('habit_${i}_streak', item.streak);
+    } else {
+      await HomeWidget.saveWidgetData('habit_${i}_title', '');
+    }
+  }
+  await HomeWidget.updateWidget(
+      qualifiedAndroidName: 'com.example.cronos.widgets.HabitsWidgetProvider');
+}
+
+/// Punto de entrada que home_widget invoca en un isolate aparte para
+/// acciones de widgets/notificación con la app cerrada (ver
+/// SessionForegroundService.kt, SessionWidgetProvider.kt, HabitsWidgetProvider.kt):
+/// no comparte el GetIt del isolate principal, así que arma sus propias
+/// instancias mínimas, igual que [nudgeCallbackDispatcher]. Solo cubre
+/// acciones que no requieren el diálogo de confirmación de tarea (pausar una
+/// tarea, finalizar una actividad, tildar un hábito) — finalizar una tarea
+/// abre la app en cambio (ver el manejo de 'task-detail' más abajo).
+@pragma('vm:entry-point')
+Future<void> homeWidgetInteractionCallback(Uri? uri) async {
+  if (uri == null) return;
+  try {
+    if (uri.host == 'session-action') {
+      final type = uri.queryParameters['type'];
+      final kind = uri.queryParameters['kind'];
+      final taskId = uri.queryParameters['taskId'];
+      final timer = TimerService(AppDatabase());
+      if (type == 'pause' && kind == 'task' && taskId != null) {
+        await timer.pauseTask(taskId);
+      } else if (type == 'finish' && kind == 'activity') {
+        await timer.stopRunningActivity();
+      }
+    } else if (uri.host == 'habit-toggle') {
+      final habitId = uri.queryParameters['habitId'];
+      if (habitId != null) {
+        final habitsDatasource = HabitsLocalDatasource(AppDatabase());
+        await habitsDatasource.toggleToday(habitId);
+        // Este isolate no comparte el HomeWidgetService del isolate
+        // principal (ni su TimerService.events): empuja el widget de
+        // hábitos acá mismo con los datos ya frescos, mismo formato que
+        // HomeWidgetService._pushHabits().
+        const maxHabits = 5;
+        final habits = (await habitsDatasource.fetchHabits()).take(maxHabits).toList();
+        await HomeWidget.saveWidgetData('habits_count', habits.length);
+        for (var i = 0; i < maxHabits; i++) {
+          if (i < habits.length) {
+            final item = habits[i];
+            await HomeWidget.saveWidgetData('habit_${i}_id', item.habit.id);
+            await HomeWidget.saveWidgetData('habit_${i}_title', item.habit.title);
+            await HomeWidget.saveWidgetData('habit_${i}_done_today', item.doneToday);
+            await HomeWidget.saveWidgetData('habit_${i}_streak', item.streak);
+          } else {
+            await HomeWidget.saveWidgetData('habit_${i}_title', '');
+          }
+        }
+        await HomeWidget.updateWidget(
+          qualifiedAndroidName: 'com.example.cronos.widgets.HabitsWidgetProvider',
+        );
+      }
+    }
+  } catch (_) {
+    // La notificación/foreground service ya se cerraron nativamente pase lo
+    // que pase acá (ver SessionForegroundService.kt): una mutación perdida
+    // no debe dejar nada colgado, la próxima apertura de la app refleja el
+    // estado real de la base igual.
+  }
 }
 
 void main() {
@@ -81,6 +204,27 @@ void main() {
       reportError('GenerateRecurringTasks', e, st);
     }
 
+    // Los widgets de home screen y la notificación persistente de sesión son
+    // exclusivos de Android: no hay equivalente en escritorio y todavía no
+    // se implementó el lado iOS.
+    if (Platform.isAndroid) {
+      try {
+        await sl<HomeWidgetService>().start();
+      } catch (e, st) {
+        reportError('HomeWidgetService.start', e, st);
+      }
+      try {
+        await sl<SessionNotificationService>().start();
+      } catch (e, st) {
+        reportError('SessionNotificationService.start', e, st);
+      }
+      try {
+        await HomeWidget.registerInteractivityCallback(homeWidgetInteractionCallback);
+      } catch (e, st) {
+        reportError('HomeWidget.registerInteractivityCallback', e, st);
+      }
+    }
+
     // WorkManager solo existe en Android/iOS; en escritorio no hay
     // background scheduling real, así que los avisos de uso y de tareas
     // vencidas quedan ausentes ahí sin romper nada más.
@@ -98,6 +242,16 @@ void main() {
             NudgeService.taskName,
             NudgeService.taskName,
             frequency: const Duration(minutes: 15),
+          );
+        }
+        // Red de seguridad para el rollover de medianoche de los widgets
+        // "Hoy"/"Semanal"/"Hábitos" (ver _refreshHomeWidgetsInBackground).
+        // Solo Android: son los únicos widgets de home screen que existen.
+        if (Platform.isAndroid) {
+          await Workmanager().registerPeriodicTask(
+            HomeWidgetService.refreshTaskName,
+            HomeWidgetService.refreshTaskName,
+            frequency: const Duration(minutes: 20),
           );
         }
       } catch (e, st) {
@@ -152,6 +306,38 @@ void main() {
           arguments: TaskDetailArgs(taskId, askIfDone: isOverdue),
         );
       });
+    }
+
+    // Dos casos abren la app vía el mecanismo de lanzamiento de home_widget
+    // (reusado como simple transporte de un Uri al abrir MainActivity, no
+    // necesariamente desde un widget de home screen):
+    // - Widget "Hoy" > "+ Registrar": trae la app al frente en el dashboard.
+    // - Notificación de sesión > "Finalizar" (solo tareas, ver
+    //   SessionForegroundService.kt): abre el detalle con el diálogo de
+    //   completar — finalizar una tarea nunca es un toque directo en background.
+    void handleHomeWidgetLaunchUri(Uri? uri) {
+      if (uri == null) return;
+      if (uri.host == 'quick-register') {
+        AppRouter.navigatorKey.currentState?.popUntil((route) => route.isFirst);
+      } else if (uri.host == 'task-detail') {
+        final taskId = uri.queryParameters['taskId'];
+        if (taskId == null) return;
+        AppRouter.navigatorKey.currentState?.pushNamed(
+          AppRoutes.taskDetail,
+          arguments: TaskDetailArgs(taskId, askIfDone: true),
+        );
+      }
+    }
+
+    if (Platform.isAndroid) {
+      try {
+        final coldStartUri = await HomeWidget.initiallyLaunchedFromHomeWidget();
+        WidgetsBinding.instance
+            .addPostFrameCallback((_) => handleHomeWidgetLaunchUri(coldStartUri));
+      } catch (e, st) {
+        reportError('HomeWidget.initiallyLaunchedFromHomeWidget', e, st);
+      }
+      HomeWidget.widgetClicked.listen(handleHomeWidgetLaunchUri);
     }
   }, (error, stack) => reportError('Zona no capturada', error, stack));
 }

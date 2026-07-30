@@ -182,9 +182,10 @@ index_items = [
     ('7', 'La pantalla Tareas'),
     ('8', 'Analizar: entender tus números'),
     ('9', 'Configuración'),
-    ('10', 'Actualizaciones automáticas'),
-    ('11', 'Tus datos son tuyos (privacidad y respaldo)'),
-    ('12', 'Preguntas frecuentes'),
+    ('10', 'Widgets y notificación de sesión'),
+    ('11', 'Actualizaciones automáticas'),
+    ('12', 'Tus datos son tuyos (privacidad y respaldo)'),
+    ('13', 'Preguntas frecuentes'),
 ]
 story.append(Paragraph('Índice', h1))
 story.append(HRFlowable(width='100%', thickness=1, color=RULE, spaceAfter=14))
@@ -491,10 +492,11 @@ story.append(info_table([
                  'semana — incluso podés marcar un día sin horario. También podés '
                  'agregar horarios propios (por ejemplo "Gimnasio", martes y jueves de '
                  '18 a 19).'),
-    ('Organización', 'Categorías (tipos de actividad), Proyectos, Tareas recurrentes y '
-                      'Áreas de vida: para ver, agregar, editar o borrar cada una. Cada '
-                      'categoría de actividad se puede marcar como productiva, de ocio o '
-                      'neutra, para que el puntaje del día sepa qué hacer con ella.'),
+    ('Organización', 'Categorías (tipos de actividad), Proyectos, Tareas recurrentes, '
+                      'Áreas de vida y Hábitos: para ver, agregar, editar o borrar cada '
+                      'una. Cada categoría de actividad se puede marcar como productiva, '
+                      'de ocio o neutra, para que el puntaje del día sepa qué hacer con '
+                      'ella.'),
     ('Calendario', 'Importar un archivo .ics exportado de un calendario externo '
                     '(Google Calendar) y traer sus eventos próximos como tareas. '
                     'Ver punto 6.'),
@@ -507,14 +509,50 @@ story.append(info_table([
               'en tu puntaje diario. Los cuatro deben sumar 100.'),
     ('Exportar y backup', 'Sacar tus datos como CSV, JSON o un reporte en PDF, o hacer '
                            'una copia de seguridad completa para restaurarla después. Ver '
-                           'punto 11.'),
+                           'punto 12.'),
     ('Ayuda', 'Volver a ver la guía de bienvenida de Croni.'),
-    ('Soporte', 'Datos de contacto para dudas, problemas o sugerencias. Ver punto 10.'),
+    ('Soporte', 'Datos de contacto para dudas, problemas o sugerencias. Ver punto 11.'),
 ]))
 story.append(PageBreak())
 
-# ---------- 10. Actualizaciones automáticas ----------
-story += section_heading(10, 'Actualizaciones automáticas')
+# ---------- 10. Widgets y notificación de sesión ----------
+story += section_heading(10, 'Widgets y notificación de sesión')
+story.append(para(
+    'Cronos no vive solo adentro de la app: podés agregar widgets a la '
+    'pantalla de inicio de tu teléfono para ver tu día sin abrirla, y una '
+    'tarea o actividad en curso se puede pausar o finalizar desde una '
+    'notificación, sin entrar a Cronos.'))
+story.append(para(
+    'Para agregar un widget: mantené presionado un espacio vacío de tu '
+    'pantalla de inicio, elegí "Widgets", buscá Cronos y arrastrá el que '
+    'quieras. Hay cuatro:'))
+story.append(bul('Hoy:', 'tu puntaje del día, tiempo productivo y perdido, y la próxima '
+                          'tarea planificada. Un botón "+ Registrar" abre la app directo.'))
+story.append(bul('Sesión activa:', 'la tarea o actividad que tengas corriendo en ese '
+                                    'momento, con el cronómetro en vivo y botones para '
+                                    'pausarla o finalizarla.'))
+story.append(bul('Semanal:', 'una barra por día con tu puntaje de los últimos 7 días, '
+                              'igual al gráfico chico de la pantalla Hoy.'))
+story.append(bul('Hábitos:', 'tus hábitos del día con su racha — tocá uno para marcarlo '
+                              'hecho sin abrir la app.'))
+story.append(Spacer(1, 8))
+story.append(Paragraph('La notificación de sesión', callout_title))
+story.append(para(
+    'Mientras tengas una tarea o actividad con el cronómetro corriendo, '
+    'Croni te acompaña con una notificación fija que muestra cuánto tiempo '
+    'llevás, con botones para pausar o finalizar sin destrabar el teléfono '
+    'ni abrir la app. Se puede desactivar como cualquier otra notificación, '
+    'desde los ajustes de notificaciones del sistema.'))
+story.append(callout(
+    'Finalizar una tarea siempre pregunta antes',
+    'Pausar es inmediato, pero finalizar una tarea (a diferencia de una '
+    'actividad) abre la app un instante para confirmar el horario real y '
+    'chequear que no queden subtareas pendientes — igual que si lo hicieras '
+    'desde adentro de Cronos.'))
+story.append(PageBreak())
+
+# ---------- 11. Actualizaciones automáticas ----------
+story += section_heading(11, 'Actualizaciones automáticas')
 story.append(para(
     'Cronos revisa solo, cada vez que abrís la app, si hay una versión más '
     'nueva publicada. No hace falta que la busques en ningún lado ni que te '
@@ -540,8 +578,8 @@ story.append(para(
     'propio de Cronos.'))
 story.append(PageBreak())
 
-# ---------- 11. Tus datos son tuyos ----------
-story += section_heading(11, 'Tus datos son tuyos')
+# ---------- 12. Tus datos son tuyos ----------
+story += section_heading(12, 'Tus datos son tuyos')
 story.append(para(
     'Todo lo que anotás en Cronos se guarda únicamente en tu teléfono. No hay '
     'ninguna cuenta, ni servidor, ni nube: nadie más que vos puede ver tus '
@@ -561,8 +599,8 @@ story.append(para(
     'mismo lugar, por ejemplo para revisar tus números en la computadora.'))
 story.append(PageBreak())
 
-# ---------- 12. Preguntas frecuentes ----------
-story += section_heading(12, 'Preguntas frecuentes')
+# ---------- 13. Preguntas frecuentes ----------
+story += section_heading(13, 'Preguntas frecuentes')
 faq = [
     ('¿Tengo que anotar todo, todo el tiempo?',
      'No. Cronos funciona mejor cuanto más registrás, pero no es un '
@@ -596,6 +634,10 @@ faq = [
     ('¿Cómo hago si tengo un problema o una duda?',
      'Andá a Configuración → Soporte: ahí tenés el contacto directo para '
      'escribir o llamar.'),
+    ('¿Los hábitos suman a mi puntaje del día?',
+     'No, son independientes. El puntaje se calcula solo con tareas y '
+     'actividades (ver punto 4); los hábitos son un seguimiento aparte, '
+     'de racha diaria.'),
 ]
 for q, a in faq:
     story.append(Paragraph(q, callout_title))

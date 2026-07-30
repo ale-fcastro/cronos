@@ -48,6 +48,7 @@ class DashboardLocalDatasource {
         title: r['title'] as String,
         subtitle: 'En curso · est. ${fmtDurationMin(r['estimate_min'] as int)}',
         elapsedLabel: fmtClock(now.difference(start)),
+        startedAtEpochMs: r['started_at'] as int,
       );
     } else {
       final runningAct = await db.rawQuery('''
@@ -65,6 +66,7 @@ class DashboardLocalDatasource {
           title: r['name'] as String,
           subtitle: 'Actividad en curso',
           elapsedLabel: fmtClock(now.difference(start)),
+          startedAtEpochMs: r['started_at'] as int,
           isSleep: r['category'] == 'sueno',
         );
       }

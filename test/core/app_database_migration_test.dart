@@ -108,6 +108,10 @@ void main() {
     final redes = await db.query('activity_types', where: "id = 'redes'");
     expect(redes.first['impact'], 'leisure');
 
+    final habitTables = await db.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('habits', 'habit_checks')");
+    expect(habitTables, hasLength(2));
+
     await appDb.close();
   });
 }

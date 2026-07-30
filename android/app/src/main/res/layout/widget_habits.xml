@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_background"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="HÁBITOS"
+        android:textColor="@color/widget_text_tertiary"
+        android:textSize="11sp"
+        android:letterSpacing="0.12"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/widget_habits_empty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Sin hábitos todavía"
+        android:textColor="@color/widget_text_secondary"
+        android:textSize="13sp"
+        android:visibility="gone" />
+
+    <LinearLayout android:id="@+id/widget_habit_row_0" style="@style/HabitRow">
+        <ImageView android:id="@+id/widget_habit_check_0" style="@style/HabitCheck" />
+        <TextView android:id="@+id/widget_habit_title_0" style="@style/HabitTitle" />
+        <TextView android:id="@+id/widget_habit_streak_0" style="@style/HabitStreak" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/widget_habit_row_1" style="@style/HabitRow">
+        <ImageView android:id="@+id/widget_habit_check_1" style="@style/HabitCheck" />
+        <TextView android:id="@+id/widget_habit_title_1" style="@style/HabitTitle" />
+        <TextView android:id="@+id/widget_habit_streak_1" style="@style/HabitStreak" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/widget_habit_row_2" style="@style/HabitRow">
+        <ImageView android:id="@+id/widget_habit_check_2" style="@style/HabitCheck" />
+        <TextView android:id="@+id/widget_habit_title_2" style="@style/HabitTitle" />
+        <TextView android:id="@+id/widget_habit_streak_2" style="@style/HabitStreak" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/widget_habit_row_3" style="@style/HabitRow">
+        <ImageView android:id="@+id/widget_habit_check_3" style="@style/HabitCheck" />
+        <TextView android:id="@+id/widget_habit_title_3" style="@style/HabitTitle" />
+        <TextView android:id="@+id/widget_habit_streak_3" style="@style/HabitStreak" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/widget_habit_row_4" style="@style/HabitRow">
+        <ImageView android:id="@+id/widget_habit_check_4" style="@style/HabitCheck" />
+        <TextView android:id="@+id/widget_habit_title_4" style="@style/HabitTitle" />
+        <TextView android:id="@+id/widget_habit_streak_4" style="@style/HabitStreak" />
+    </LinearLayout>
+</LinearLayout>

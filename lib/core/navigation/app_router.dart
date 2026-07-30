@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../features/activities/presentation/pages/activity_types_page.dart';
+import '../../features/habits/presentation/pages/habits_page.dart';
 import '../../features/projects/presentation/pages/projects_page.dart';
 import '../../features/settings/presentation/pages/life_areas_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
@@ -37,6 +38,9 @@ abstract final class AppRouter {
       case AppRoutes.lifeAreas:
         return AppPageRoute(
             builder: (_) => const LifeAreasPage(), settings: settings);
+      case AppRoutes.habits:
+        return AppPageRoute(
+            builder: (_) => const HabitsPage(), settings: settings);
       case AppRoutes.taskDetail:
         final args = settings.arguments!;
         final taskId = args is TaskDetailArgs ? args.taskId : args as String;

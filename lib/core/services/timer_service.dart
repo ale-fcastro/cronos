@@ -1,6 +1,21 @@
+import 'dart:async';
+
 import 'package:sqflite/sqflite.dart';
 
 import '../database/app_database.dart';
+
+/// Eventos que dispara [TimerService] en cada mutación de sesión — los
+/// consumen HomeWidgetService y SessionNotificationService para mantener
+/// widgets nativos y la notificación de sesión sincronizados sin que ellos
+/// necesiten conocer los detalles de tasks/activities.
+enum TimerEventKind {
+  taskStarted,
+  taskPaused,
+  taskCompleted,
+  taskNotDone,
+  activityStarted,
+  activityStopped,
+}
 
 /// Única fuente de verdad para arrancar/pausar cronómetros de tareas y
 /// actividades. Vive en core/ porque dashboard y schedule necesitan operar
@@ -10,6 +25,10 @@ class TimerService {
   TimerService(this._database);
 
   final AppDatabase _database;
+
+  final _eventsController = StreamController<TimerEventKind>.broadcast();
+
+  Stream<TimerEventKind> get events => _eventsController.stream;
 
   /// Arranca el cronómetro de [id]; si había otra tarea corriendo, la pausa.
   /// Si [id] tenía una pausa justificada pendiente, cierra ese tramo como
@@ -31,6 +50,7 @@ class TimerService {
       await txn.insert('task_sessions', {'task_id': id, 'started_at': nowMs});
       await txn.update('tasks', {'status': 'running'}, where: 'id = ?', whereArgs: [id]);
     });
+    _eventsController.add(TimerEventKind.taskStarted);
   }
 
   /// Pausa la tarea [id]. Si [reason] no es null, la pausa queda
@@ -56,6 +76,7 @@ class TimerService {
           where: 'id = ?',
           whereArgs: [id]);
     });
+    _eventsController.add(TimerEventKind.taskPaused);
   }
 
   /// Finaliza [id] como hecha. Si [manualStart]/[manualEnd] vienen (el
@@ -80,6 +101,7 @@ class TimerService {
           'tasks', {'status': 'done', 'completed_at': nowMs, 'not_done_reason': null},
           where: 'id = ?', whereArgs: [id]);
     });
+    _eventsController.add(TimerEventKind.taskCompleted);
   }
 
   /// Marca [id] como NO hecha, con [reason] obligatorio: la tarea vencida
@@ -94,6 +116,7 @@ class TimerService {
       await txn.update('tasks', {'status': 'not_done', 'not_done_reason': reason},
           where: 'id = ?', whereArgs: [id]);
     });
+    _eventsController.add(TimerEventKind.taskNotDone);
   }
 
   /// Si [id] tiene una pausa justificada pendiente (pause_reason/paused_at
@@ -157,6 +180,7 @@ class TimerService {
       await txn.update('tasks', {'status': 'normal'},
           where: 'status = ?', whereArgs: ['running']);
     });
+    _eventsController.add(TimerEventKind.taskPaused);
   }
 
   /// Arranca la actividad [activityId]. Si había una interrupción
@@ -190,6 +214,7 @@ class TimerService {
       await txn.update('activity_sessions', {'ended_at': nowMs}, where: 'ended_at IS NULL');
       await txn.insert('activity_sessions', {'activity_id': activityId, 'started_at': nowMs});
     });
+    _eventsController.add(TimerEventKind.activityStarted);
   }
 
   /// Detiene la actividad en curso. Si [reason] no es null, queda una
@@ -229,5 +254,6 @@ class TimerService {
         );
       }
     });
+    _eventsController.add(TimerEventKind.activityStopped);
   }
 }

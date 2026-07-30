@@ -21,6 +21,11 @@
     <!-- Instalar el APK descargado dentro de la app (Android 8+ pide este
          permiso especial para lanzar el instalador desde una app propia). -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
+    <!-- Notificación persistente del cronómetro de sesión (SessionForegroundService):
+         mantiene el proceso en foreground mientras hay una tarea/actividad
+         corriendo, para que el sistema no la trate como "en background". -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
     <application
         android:label="Cronos"
         android:name="${applicationName}"
@@ -63,6 +68,57 @@
                 <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
             </intent-filter>
         </receiver>
+
+        <!-- Widget "Hoy": score, tiempo productivo/perdido, próxima tarea.
+             lib/core/services/home_widget_service.dart lo dispara vía
+             home_widget.updateWidget(qualifiedAndroidName: "...HomeWidgetProvider"). -->
+        <receiver android:name=".widgets.HomeWidgetProvider"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider"
+                android:resource="@xml/home_widget_info"/>
+        </receiver>
+
+        <!-- Widget "Sesión activa": tarea/actividad en curso con Pausar/Finalizar. -->
+        <receiver android:name=".widgets.SessionWidgetProvider"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider"
+                android:resource="@xml/session_widget_info"/>
+        </receiver>
+
+        <!-- Widget "Semanal": una barra por día con el score de esta semana. -->
+        <receiver android:name=".widgets.WeeklyWidgetProvider"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider"
+                android:resource="@xml/weekly_widget_info"/>
+        </receiver>
+
+        <!-- Widget "Hábitos": check diario + racha. -->
+        <receiver android:name=".widgets.HabitsWidgetProvider"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider"
+                android:resource="@xml/habits_widget_info"/>
+        </receiver>
+
+        <!-- Notificación persistente de sesión: lib/core/services/session_notification_service.dart
+             la arranca/detiene vía el canal cronos/session_service (ver MainActivity.kt). -->
+        <service android:name=".SessionForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="time_tracking"/>
+        </service>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

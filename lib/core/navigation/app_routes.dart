@@ -9,6 +9,7 @@ abstract final class AppRoutes {
   static const taskDetail = '/task-detail';
   static const support = '/support';
   static const lifeAreas = '/life-areas';
+  static const habits = '/habits';
 }
 
 /// Argumentos de [AppRoutes.taskDetail]. La mayoría de los llamadores solo

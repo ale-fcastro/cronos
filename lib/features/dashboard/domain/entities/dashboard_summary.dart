@@ -69,6 +69,7 @@ class CurrentTaskInfo extends Equatable {
     required this.title,
     required this.subtitle,
     required this.elapsedLabel,
+    required this.startedAtEpochMs,
     this.isSleep = false,
   });
 
@@ -80,12 +81,18 @@ class CurrentTaskInfo extends Equatable {
   final String subtitle;
   final String elapsedLabel;
 
+  /// Instante en que arrancó el cronómetro (epoch ms), para que consumidores
+  /// nativos (widget/notificación de sesión) puedan tickear con un
+  /// Chronometer del sistema en vez de recalcular [elapsedLabel] ellos mismos.
+  final int startedAtEpochMs;
+
   /// true si [kind] es activity y es la actividad de dormir: al pausarla
   /// se pregunta el motivo (pesadilla, ruido...).
   final bool isSleep;
 
   @override
-  List<Object?> get props => [id, kind, title, subtitle, elapsedLabel, isSleep];
+  List<Object?> get props =>
+      [id, kind, title, subtitle, elapsedLabel, startedAtEpochMs, isSleep];
 }
 
 /// Siguiente bloque planificado tras el actual.

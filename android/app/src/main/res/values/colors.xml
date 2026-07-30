@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Paleta de los widgets de home screen: espeja lib/shared/theme/app_colors.dart
+     (única fuente de color del design system) porque RemoteViews no puede leer
+     Dart en tiempo de ejecución. Si cambia la paleta ahí, hay que replicarlo acá. -->
+<resources>
+    <color name="widget_background">#FF1B1D21</color>
+    <color name="widget_border">#FF2C2E34</color>
+    <color name="widget_divider">#FF26282E</color>
+    <color name="widget_text_primary">#FFE8E9ED</color>
+    <color name="widget_text_secondary">#FF9AA0AB</color>
+    <color name="widget_text_tertiary">#FF6A6F79</color>
+    <color name="widget_accent">#FF9DB1F5</color>
+    <color name="widget_neutral_bar">#FF3A3D45</color>
+    <color name="widget_success">#FF7EC9A2</color>
+</resources>

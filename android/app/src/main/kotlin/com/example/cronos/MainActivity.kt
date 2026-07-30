@@ -9,6 +9,7 @@ import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -20,6 +21,7 @@ import java.io.ByteArrayOutputStream
 /// package name crudo ("com.instagram.android") en vez de "Instagram".
 class MainActivity : FlutterFragmentActivity() {
     private val channelName = "cronos/app_info"
+    private val sessionServiceChannelName = "cronos/session_service"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -36,6 +38,42 @@ class MainActivity : FlutterFragmentActivity() {
                     }
                     "openUsageAccessSettings" -> {
                         openUsageAccessSettings()
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+
+        // Arranca/detiene SessionForegroundService: lib/core/services/
+        // session_notification_service.dart lo llama en cada evento de
+        // TimerService (ver TimerService.events).
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, sessionServiceChannelName)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "startForegroundSession" -> {
+                        val intent = Intent(this, SessionForegroundService::class.java).apply {
+                            action = SessionForegroundService.ACTION_START
+                            putExtra(
+                                SessionForegroundService.EXTRA_NOTIFICATION_ID,
+                                (call.argument<Int>("notificationId")) ?: -1,
+                            )
+                            putExtra(SessionForegroundService.EXTRA_KIND, call.argument<String>("kind"))
+                            putExtra(SessionForegroundService.EXTRA_TASK_ID, call.argument<String>("taskId"))
+                        }
+                        ContextCompat.startForegroundService(this, intent)
+                        result.success(null)
+                    }
+                    "stopForegroundSession" -> {
+                        try {
+                            startService(
+                                Intent(this, SessionForegroundService::class.java).apply {
+                                    action = SessionForegroundService.ACTION_STOP
+                                },
+                            )
+                        } catch (e: IllegalStateException) {
+                            // App en background sin excepción de servicio en primer
+                            // plano: no hay nada corriendo para detener igual.
+                        }
                         result.success(null)
                     }
                     else -> result.notImplemented()

@@ -6,6 +6,7 @@ import '../services/app_update_service.dart';
 import '../services/app_usage_service.dart';
 import '../services/calendar_import_service.dart';
 import '../services/export_service.dart';
+import '../services/home_widget_service.dart';
 import '../services/life_areas_service.dart';
 import '../services/linked_app_guard_service.dart';
 import '../services/notifications_service.dart';
@@ -13,6 +14,7 @@ import '../services/nudge_service.dart';
 import '../services/onboarding_service.dart';
 import '../services/profile_service.dart';
 import '../services/projects_service.dart';
+import '../services/session_notification_service.dart';
 import '../services/timer_service.dart';
 
 import '../../features/activities/data/datasources/activities_local_datasource.dart';
@@ -26,6 +28,12 @@ import '../../features/dashboard/data/repositories/dashboard_repository_impl.dar
 import '../../features/dashboard/domain/repositories/dashboard_repository.dart';
 import '../../features/dashboard/domain/usecases/get_today_summary.dart';
 import '../../features/dashboard/presentation/bloc/dashboard_cubit.dart';
+
+import '../../features/habits/data/datasources/habits_local_datasource.dart';
+import '../../features/habits/data/repositories/habits_repository_impl.dart';
+import '../../features/habits/domain/repositories/habits_repository.dart';
+import '../../features/habits/domain/usecases/habits_usecases.dart';
+import '../../features/habits/presentation/bloc/habits_cubit.dart';
 
 import '../../features/events/data/datasources/events_local_datasource.dart';
 import '../../features/events/data/repositories/events_repository_impl.dart';
@@ -121,6 +129,8 @@ void configureDependencies({AppDatabase? database}) {
   sl.registerLazySingleton<DashboardRepository>(() => DashboardRepositoryImpl(sl()));
   sl.registerLazySingleton(() => GetTodaySummary(sl()));
   sl.registerFactory(() => DashboardCubit(sl(), sl(), sl()));
+  sl.registerLazySingleton(() => HomeWidgetService(sl(), sl(), sl()));
+  sl.registerLazySingleton(() => SessionNotificationService(sl(), sl(), sl()));
 
   // Schedule
   sl.registerLazySingleton(() => ScheduleLocalDatasource(sl(), sl()));
@@ -181,6 +191,15 @@ void configureDependencies({AppDatabase? database}) {
   sl.registerLazySingleton(() => SearchEventSuggestions(sl()));
   sl.registerLazySingleton(() => RegisterEvent(sl()));
   sl.registerFactory(() => EventRegisterCubit(sl(), sl(), sl()));
+
+  // Hábitos
+  sl.registerLazySingleton(() => HabitsLocalDatasource(sl()));
+  sl.registerLazySingleton<HabitsRepository>(() => HabitsRepositoryImpl(sl()));
+  sl.registerLazySingleton(() => GetHabits(sl()));
+  sl.registerLazySingleton(() => CreateHabit(sl()));
+  sl.registerLazySingleton(() => ArchiveHabit(sl()));
+  sl.registerLazySingleton(() => ToggleHabitToday(sl()));
+  sl.registerFactory(() => HabitsCubit(sl(), sl(), sl(), sl(), sl()));
 
   // Notifications
   sl.registerLazySingleton(() => NotificationsLocalDatasource(sl()));

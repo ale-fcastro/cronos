@@ -14,7 +14,7 @@ class AppDatabase {
   final String? _pathOverride;
   Database? _db;
 
-  static const _version = 16;
+  static const _version = 17;
 
   Future<Database> get database async {
     final cached = _db;
@@ -198,6 +198,24 @@ class AppDatabase {
         PRIMARY KEY (type, weekday)
       )
     ''');
+    await db.execute('''
+      CREATE TABLE habits(
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        target_weekdays TEXT,
+        area_id TEXT,
+        created_at INTEGER NOT NULL,
+        archived_at INTEGER
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE habit_checks(
+        habit_id TEXT NOT NULL,
+        date TEXT NOT NULL,
+        done INTEGER NOT NULL,
+        PRIMARY KEY (habit_id, date)
+      )
+    ''');
 
     await _seed(db);
   }
@@ -366,6 +384,33 @@ class AppDatabase {
     if (oldVersion < 16) {
       if (!await _columnExists(db, 'task_recurrences', 'subtasks_json')) {
         await db.execute('ALTER TABLE task_recurrences ADD COLUMN subtasks_json TEXT');
+      }
+    }
+    if (oldVersion < 17) {
+      final tables = await db.rawQuery(
+          "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('habits', 'habit_checks')");
+      final existing = tables.map((r) => r['name'] as String).toSet();
+      if (!existing.contains('habits')) {
+        await db.execute('''
+          CREATE TABLE habits(
+            id TEXT PRIMARY KEY,
+            title TEXT NOT NULL,
+            target_weekdays TEXT,
+            area_id TEXT,
+            created_at INTEGER NOT NULL,
+            archived_at INTEGER
+          )
+        ''');
+      }
+      if (!existing.contains('habit_checks')) {
+        await db.execute('''
+          CREATE TABLE habit_checks(
+            habit_id TEXT NOT NULL,
+            date TEXT NOT NULL,
+            done INTEGER NOT NULL,
+            PRIMARY KEY (habit_id, date)
+          )
+        ''');
       }
     }
   }

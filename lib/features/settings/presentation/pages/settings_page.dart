@@ -434,6 +434,13 @@ class _OrganizacionPage extends StatelessWidget {
                       chevron: true,
                       onTap: () => Navigator.of(context).pushNamed(AppRoutes.lifeAreas),
                     ),
+                    const Divider(height: 1),
+                    _row(
+                      'Hábitos',
+                      '',
+                      chevron: true,
+                      onTap: () => Navigator.of(context).pushNamed(AppRoutes.habits),
+                    ),
                   ],
                 ),
               ),
