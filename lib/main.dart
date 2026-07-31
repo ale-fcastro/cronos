@@ -212,7 +212,18 @@ void notificationBackgroundResponseHandler(NotificationResponse response) {
     ''', [packageName, target]);
 
     if (target != AppTrackingResolver.ignoreTarget) {
-      await TimerService(database).startActivity(target);
+      // Mientras esperaba la respuesta ya quedó corriendo un placeholder
+      // "Chequeo rápido" (ver AppTrackingResolver._checkPendingAsk) con el
+      // tiempo real desde que la app pasó a primer plano. Si eligió
+      // justamente esa categoría, no hace falta cortar y volver a arrancar
+      // -- solo fragmentaría en dos filas un mismo tramo continuo.
+      final running = await db.query('activity_sessions',
+          columns: ['activity_id'], where: 'ended_at IS NULL', limit: 1);
+      final alreadyRunning =
+          running.isNotEmpty && running.first['activity_id'] == target;
+      if (!alreadyRunning) {
+        await TimerService(database).startActivity(target);
+      }
     }
   }
 

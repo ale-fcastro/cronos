@@ -569,10 +569,14 @@ story.append(bul('Tarea vinculada:', 'si vinculaste una tarea con una app al cre
 story.append(bul('Una sola categoría:', 'si vinculaste una app a una sola categoría de actividad '
                                           '(Configuración → Categorías → ícono de apps en cada una), '
                                           'abrirla arranca esa actividad directo.'))
-story.append(bul('Varias categorías, o ninguna:', 'Croni te pregunta con una notificación "¿Qué '
-                                                     'estás haciendo?" con las opciones más probables. '
-                                                     'Tocás una (o "Ignorar esta app" si no querés que '
-                                                     'cuente nada) y listo.'))
+story.append(bul('Varias categorías, o ninguna:', 'si te quedás al menos 2 minutos seguidos en la '
+                                                     'app (un vistazo de unos segundos no cuenta), '
+                                                     'Croni te pregunta con una notificación "¿Qué '
+                                                     'estás haciendo en [la app]?", con su nombre real '
+                                                     'y opciones como Trabajo, Estudio, Ocio o "Chequeo '
+                                                     'rápido" si solo la abriste un momento. El tiempo '
+                                                     'de esos 2 minutos no se pierde: queda contado '
+                                                     'apenas contestás.'))
 story.append(bul('Croni aprende:', 'si contestás lo mismo varias veces para la misma app, deja de '
                                      'preguntar y clasifica sola. Si cambiás de opinión seguido, '
                                      'vuelve a preguntar.'))

@@ -189,9 +189,14 @@ class TimerService {
   /// por ejemplo. Si la pendiente era de otra actividad, se descarta sin
   /// registrar nada (evita eventos de horas cuando en realidad simplemente
   /// no se retomó lo mismo).
-  Future<void> startActivity(String activityId) async {
+  /// [startedAt] permite arrancar con una hora de inicio retroactiva (lo usa
+  /// App Tracking: el margen de 2 minutos antes de preguntar "¿qué estás
+  /// haciendo?" cuenta igual, en vez de perderse porque recién se registra
+  /// la sesión cuando el usuario responde). Por defecto, ahora mismo.
+  Future<void> startActivity(String activityId, {DateTime? startedAt}) async {
     final db = await _database.database;
     final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final startMs = (startedAt ?? DateTime.now()).millisecondsSinceEpoch;
     await db.transaction((txn) async {
       final pending = await txn.query('pending_activity_interruption', where: 'id = 1');
       if (pending.isNotEmpty) {
@@ -212,7 +217,7 @@ class TimerService {
         await txn.delete('pending_activity_interruption', where: 'id = 1');
       }
       await txn.update('activity_sessions', {'ended_at': nowMs}, where: 'ended_at IS NULL');
-      await txn.insert('activity_sessions', {'activity_id': activityId, 'started_at': nowMs});
+      await txn.insert('activity_sessions', {'activity_id': activityId, 'started_at': startMs});
     });
     _eventsController.add(TimerEventKind.activityStarted);
   }

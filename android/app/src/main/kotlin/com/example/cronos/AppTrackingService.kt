@@ -80,6 +80,26 @@ class AppTrackingService : Service() {
             DartExecutor.DartEntrypoint(loader.findAppBundlePath(), ENTRYPOINT_NAME),
         )
         channel = MethodChannel(newEngine.dartExecutor.binaryMessenger, CHANNEL_NAME)
+
+        // PackageManager solo necesita un Context (no una Activity), así que
+        // el mismo canal `cronos/app_info` que usa MainActivity también
+        // funciona acá: sin esto, el isolate de fondo no tenía forma de
+        // resolver el nombre visible de la app y mostraba el package name
+        // crudo ("com.android.settings") en la notificación de clasificación.
+        MethodChannel(newEngine.dartExecutor.binaryMessenger, APP_INFO_CHANNEL_NAME)
+            .setMethodCallHandler { call, result ->
+                if (call.method == "getAppInfo") {
+                    val packageName = call.argument<String>("packageName")
+                    if (packageName == null) {
+                        result.success(null)
+                    } else {
+                        result.success(AppInfoResolver.getAppInfo(applicationContext, packageName))
+                    }
+                } else {
+                    result.notImplemented()
+                }
+            }
+
         engine = newEngine
     }
 
@@ -134,6 +154,7 @@ class AppTrackingService : Service() {
     companion object {
         const val CHANNEL_NAME = "cronos/app_tracking"
         const val ENTRYPOINT_NAME = "appTrackingEntrypoint"
+        private const val APP_INFO_CHANNEL_NAME = "cronos/app_info"
         private const val CHANNEL_ID = "app_tracking"
         private const val NOTIFICATION_ID = 7002
         private const val POLL_INTERVAL_MS = 4000L

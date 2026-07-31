@@ -2,9 +2,45 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'package:cronos/core/database/app_database.dart';
+import 'package:cronos/core/services/app_icon_service.dart';
 import 'package:cronos/core/services/app_tracking_resolver.dart';
 import 'package:cronos/core/services/notifications_service.dart';
 import 'package:cronos/core/services/timer_service.dart';
+
+/// Devuelve un nombre fijo por package en vez de pegarle a PackageManager
+/// (no existe en el entorno de test) -- simula la resolución real.
+class _FakeAppIconService extends AppIconService {
+  _FakeAppIconService(this._names);
+  final Map<String, String> _names;
+
+  @override
+  Future<ResolvedAppInfo?> resolve(String packageName) async {
+    final name = _names[packageName];
+    return name == null ? null : ResolvedAppInfo(appName: name);
+  }
+}
+
+/// Captura lo que el resolver le manda a la notificación en vez de
+/// intentar mostrarla de verdad (sin permiso/plugin en test, no haría nada).
+class _CapturingNotificationsService extends NotificationsService {
+  _CapturingNotificationsService(super.database);
+
+  String? capturedAppName;
+  List<(String, String)>? capturedCandidates;
+  bool? capturedIncludeIgnoreAction;
+
+  @override
+  Future<void> showAppClassificationPrompt(
+    String packageName,
+    String appName,
+    List<(String id, String name)> candidates, {
+    bool includeIgnoreAction = true,
+  }) async {
+    capturedAppName = appName;
+    capturedCandidates = candidates;
+    capturedIncludeIgnoreAction = includeIgnoreAction;
+  }
+}
 
 void main() {
   sqfliteFfiInit();
@@ -188,5 +224,85 @@ void main() {
     final running = await db.rawQuery(
         'SELECT activity_id FROM activity_sessions WHERE ended_at IS NULL');
     expect(running.first['activity_id'], 'test_trabajo');
+  });
+
+  test('una app sin clasificar no pregunta ni registra nada antes de que pase el margen', () async {
+    resolver.askDelay = const Duration(minutes: 2);
+    await resolver.handleForegroundApp('com.android.settings');
+    await resolver.checkPendingStopExpiry(); // todavía no pasó askDelay
+
+    final db = await database.database;
+    final running = await db.rawQuery(
+        'SELECT activity_id FROM activity_sessions WHERE ended_at IS NULL');
+    expect(running, isEmpty);
+  });
+
+  test('pasado el margen, arranca "Chequeo rápido" con la hora real de apertura', () async {
+    resolver.askDelay = Duration.zero;
+    await resolver.handleForegroundApp('com.android.settings');
+    await resolver.checkPendingStopExpiry();
+
+    final db = await database.database;
+    final running = await db.rawQuery(
+        'SELECT activity_id, started_at FROM activity_sessions WHERE ended_at IS NULL');
+    expect(running, hasLength(1));
+    expect(running.first['activity_id'], AppTrackingResolver.checkActivityId);
+  });
+
+  test('sin match, pregunta con Trabajo/Estudio/Ocio/Chequeo y el nombre real de la app', () async {
+    final notifications = _CapturingNotificationsService(database);
+    final icons = _FakeAppIconService({'com.android.settings': 'Ajustes'});
+    final r = AppTrackingResolver(database, timer, notifications, appIcons: icons);
+    r.askDelay = Duration.zero;
+
+    await r.handleForegroundApp('com.android.settings');
+    await r.checkPendingStopExpiry();
+
+    expect(notifications.capturedAppName, 'Ajustes',
+        reason: 'debe usar el nombre real, no el package name crudo');
+    final candidateIds = notifications.capturedCandidates!.map((c) => c.$1).toList();
+    expect(candidateIds, containsAll(['trabajo_general', 'estudio', 'ocio_general', 'chequeo']));
+    expect(candidateIds, isNot(anyOf(contains('dormir'), contains('comer'), contains('ejercicio'))),
+        reason: 'las categorías físicas no tienen sentido para clasificar uso de apps');
+    expect(notifications.capturedIncludeIgnoreAction, isFalse);
+  });
+
+  test('si se va de la app antes del margen, no arranca nada al llegar la hora', () async {
+    // 'com.otraapp' resuelve sola (un solo contexto) para aislar lo que se
+    // prueba: que dejar 'com.android.settings' antes de tiempo cancela SU
+    // pregunta pendiente, sin que otra app ambigua dispare la suya en el
+    // mismo tick y ensucie el resultado.
+    await insertActivityType('test_estudio', name: 'Estudio');
+    await linkApp('test_estudio', 'com.otraapp');
+
+    resolver.askDelay = const Duration(minutes: 2);
+    await resolver.handleForegroundApp('com.android.settings');
+    await resolver.handleForegroundApp('com.otraapp'); // se fue antes de tiempo
+
+    resolver.askDelay = Duration.zero;
+    await resolver.checkPendingStopExpiry();
+
+    final db = await database.database;
+    final running = await db.rawQuery(
+        "SELECT activity_id FROM activity_sessions WHERE activity_id = '${AppTrackingResolver.checkActivityId}'");
+    expect(running, isEmpty);
+  });
+
+  test('el placeholder de chequeo respeta el margen de gracia como cualquier otro contexto', () async {
+    resolver.askDelay = Duration.zero;
+    await resolver.handleForegroundApp('com.android.settings');
+    await resolver.checkPendingStopExpiry(); // arranca "Chequeo rápido" para settings
+
+    // Que 'com.otraapp' no dispare ya su propio placeholder en este mismo
+    // tick -- lo que se está probando es que el de settings se corta.
+    resolver.askDelay = const Duration(minutes: 2);
+    resolver.graceDuration = Duration.zero;
+    await resolver.handleForegroundApp('com.otraapp'); // interrupción, sin volver
+    await resolver.checkPendingStopExpiry();
+
+    final db = await database.database;
+    final running = await db.rawQuery(
+        'SELECT activity_id FROM activity_sessions WHERE ended_at IS NULL');
+    expect(running, isEmpty);
   });
 }

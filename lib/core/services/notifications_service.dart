@@ -335,12 +335,18 @@ class NotificationsService {
   /// puede resolver la app sola (sin contexto, o en varios a la vez). No
   /// depende de [isEnabled]/[hasPermission] de los recordatorios de tareas
   /// (es una función aparte); el llamador (AppTrackingResolver) decide si
-  /// preguntar. [candidates] son hasta 3 pares (id, nombre) de ActivityType.
+  /// preguntar. [candidates] son hasta 4 pares (id, nombre) de ActivityType.
+  /// [includeIgnoreAction] se omite en el fallback genérico (Trabajo/
+  /// Estudio/Ocio/Chequeo rápido): ya son 4 botones, y "Chequeo rápido"
+  /// aprendido con el tiempo cumple el mismo rol que "Ignorar" para una app
+  /// irrelevante sin agregar un quinto botón (el límite práctico de
+  /// Android para que se vean todos).
   Future<void> showAppClassificationPrompt(
     String packageName,
     String appName,
-    List<(String id, String name)> candidates,
-  ) async {
+    List<(String id, String name)> candidates, {
+    bool includeIgnoreAction = true,
+  }) async {
     if (!await hasPermission()) return;
     await initialize();
     try {
@@ -363,11 +369,12 @@ class NotificationsService {
                   name,
                   showsUserInterface: false,
                 ),
-              const AndroidNotificationAction(
-                appTrackIgnoreActionId,
-                'Ignorar esta app',
-                showsUserInterface: false,
-              ),
+              if (includeIgnoreAction)
+                const AndroidNotificationAction(
+                  appTrackIgnoreActionId,
+                  'Ignorar esta app',
+                  showsUserInterface: false,
+                ),
             ],
           ),
           iOS: const DarwinNotificationDetails(),

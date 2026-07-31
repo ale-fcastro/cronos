@@ -14,7 +14,7 @@ class AppDatabase {
   final String? _pathOverride;
   Database? _db;
 
-  static const _version = 18;
+  static const _version = 19;
 
   Future<Database> get database async {
     final cached = _db;
@@ -461,6 +461,32 @@ class AppDatabase {
         ''');
       }
     }
+    if (oldVersion < 19) {
+      // Categorías genéricas para la pregunta de App Tracking cuando una app
+      // no matchea nada (ver appTrackingFallbackIds) -- antes caía en las
+      // primeras 3 por orden de creación (Dormir/Comer/Ejercicio), que no
+      // tienen sentido para clasificar el uso de una app.
+      const newTypes = [
+        // (id, nombre, color, categoria, sort, impact, areaId)
+        ('trabajo_general', 'Trabajo', 0xFF6C8EEF, 'trabajo', 8, 'productive', 'trabajo'),
+        ('ocio_general', 'Ocio', 0xFFE0A63A, 'ocio', 9, 'leisure', 'ocio'),
+        ('chequeo', 'Chequeo rápido', 0xFF6A6F79, 'neutro', 10, 'neutral', 'personal'),
+      ];
+      final batch = db.batch();
+      for (final t in newTypes) {
+        batch.insert('activity_types', {
+          'id': t.$1,
+          'name': t.$2,
+          'color': t.$3,
+          'category': t.$4,
+          'area_id': t.$7,
+          'warn': 0,
+          'sort': t.$5,
+          'impact': t.$6,
+        }, conflictAlgorithm: ConflictAlgorithm.ignore);
+      }
+      await batch.commit(noResult: true);
+    }
   }
 
   Future<bool> _columnExists(Database db, String table, String column) async {
@@ -492,7 +518,17 @@ class AppDatabase {
     'videojuegos': 'ocio',
     'transporte': 'personal',
     'estudio': 'aprendizaje',
+    'trabajo_general': 'trabajo',
+    'ocio_general': 'ocio',
+    'chequeo': 'personal',
   };
+
+  /// Categorías que App Tracking ofrece cuando una app en primer plano no
+  /// matchea ningún ActivityType configurado por el usuario (más "estudio",
+  /// ya sembrado desde antes) — en vez de las primeras 3 por orden alfabético
+  /// / de creación, que podían ser categorías físicas sin sentido para uso
+  /// de apps (dormir, comer...).
+  static const appTrackingFallbackIds = ['trabajo_general', 'estudio', 'ocio_general', 'chequeo'];
 
   Future<void> _seedLifeAreas(Database db) async {
     final batch = db.batch();
@@ -537,6 +573,9 @@ class AppDatabase {
       ('videojuegos', 'Videojuegos', 0xFFE0837A, 'ocio', 1, 5, 'leisure'),
       ('transporte', 'Transporte', 0xFF6A6F79, 'neutro', 0, 6, 'neutral'),
       ('estudio', 'Estudio', 0xFF7EC9A2, 'estudio', 0, 7, 'productive'),
+      ('trabajo_general', 'Trabajo', 0xFF6C8EEF, 'trabajo', 0, 8, 'productive'),
+      ('ocio_general', 'Ocio', 0xFFE0A63A, 'ocio', 0, 9, 'leisure'),
+      ('chequeo', 'Chequeo rápido', 0xFF6A6F79, 'neutro', 0, 10, 'neutral'),
     ];
     final batch = db.batch();
     for (final t in types) {

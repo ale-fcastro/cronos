@@ -2,10 +2,6 @@ package com.example.cronos
 
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.drawable.BitmapDrawable
-import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
@@ -13,7 +9,6 @@ import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
-import java.io.ByteArrayOutputStream
 
 /// Expone datos de apps instaladas (nombre visible + icono real) que el
 /// plugin de estadisticas de uso no resuelve de forma confiable para todos
@@ -34,7 +29,7 @@ class MainActivity : FlutterFragmentActivity() {
                         if (packageName == null) {
                             result.success(null)
                         } else {
-                            result.success(getAppInfo(packageName))
+                            result.success(AppInfoResolver.getAppInfo(this, packageName))
                         }
                     }
                     "openUsageAccessSettings" -> {
@@ -128,7 +123,7 @@ class MainActivity : FlutterFragmentActivity() {
                     mapOf(
                         "packageName" to pkg,
                         "appName" to label,
-                        "icon" to drawableToPngBytes(icon),
+                        "icon" to AppInfoResolver.drawableToPngBytes(icon),
                     ),
                 )
             } catch (e: PackageManager.NameNotFoundException) {
@@ -136,40 +131,6 @@ class MainActivity : FlutterFragmentActivity() {
             }
         }
         return result.sortedBy { (it["appName"] as String).lowercase() }
-    }
-
-    private fun getAppInfo(packageName: String): Map<String, Any?>? {
-        return try {
-            val pm = packageManager
-            val appInfo = pm.getApplicationInfo(packageName, 0)
-            val label = pm.getApplicationLabel(appInfo).toString()
-            val icon = pm.getApplicationIcon(appInfo)
-            mapOf(
-                "appName" to label,
-                "icon" to drawableToPngBytes(icon)
-            )
-        } catch (e: PackageManager.NameNotFoundException) {
-            null
-        } catch (e: Exception) {
-            null
-        }
-    }
-
-    private fun drawableToPngBytes(drawable: Drawable): ByteArray {
-        val bitmap = if (drawable is BitmapDrawable && drawable.bitmap != null) {
-            drawable.bitmap
-        } else {
-            val width = if (drawable.intrinsicWidth > 0) drawable.intrinsicWidth else 108
-            val height = if (drawable.intrinsicHeight > 0) drawable.intrinsicHeight else 108
-            val bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-            val canvas = Canvas(bmp)
-            drawable.setBounds(0, 0, canvas.width, canvas.height)
-            drawable.draw(canvas)
-            bmp
-        }
-        val stream = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
-        return stream.toByteArray()
     }
 
     /// Abre la pantalla de "Acceso al uso" del sistema. Desde Android 12
