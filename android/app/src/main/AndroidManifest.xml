@@ -144,5 +144,17 @@
             <action android:name="android.intent.action.VIEW"/>
             <data android:scheme="https"/>
         </intent>
+        <!-- Visibilidad de paquetes (Android 11+): sin esto,
+             PackageManager.queryIntentActivities en MainActivity.getInstalledApps()
+             solo veía un puñado de apps -- la mayoría quedaban invisibles para
+             Cronos por default. Necesario para que el selector de "apps
+             vinculadas" de App Tracking (y de una categoría de actividad)
+             liste TODAS las apps con ícono en el launcher, igual que ya podía
+             ver AppUsageService.queryUsage vía el permiso especial de
+             "Acceso al uso" (ese no está sujeto a este filtro). -->
+        <intent>
+            <action android:name="android.intent.action.MAIN"/>
+            <category android:name="android.intent.category.LAUNCHER"/>
+        </intent>
     </queries>
 </manifest>
