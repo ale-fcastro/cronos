@@ -76,7 +76,7 @@ class CalendarImportService {
 
     final db = await _database.database;
     final now = DateTime.now();
-    final fileName = path.split(Platform.pathSeparator).last;
+    final fileName = path.split(RegExp(r'[/\\]')).last;
     await db.insert(
       'settings',
       {'key': _lastSyncKey, 'value': '${now.millisecondsSinceEpoch}'},

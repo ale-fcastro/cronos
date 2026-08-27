@@ -16,10 +16,12 @@ import '../bloc/task_detail_cubit.dart';
 import '../bloc/task_detail_state.dart';
 import '../widgets/complete_task_dialog.dart';
 import '../widgets/create_task_form.dart';
+import '../widgets/session_interruption_sheet.dart';
 
 /// Pantalla empujada con el detalle de una tarea: estimado vs real e historial.
 class TaskDetailPage extends StatefulWidget {
-  const TaskDetailPage({super.key, required this.taskId, this.askIfDone = false});
+  const TaskDetailPage(
+      {super.key, required this.taskId, this.askIfDone = false});
 
   final String taskId;
 
@@ -53,8 +55,8 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                     (state.detail!.status == TaskStatus.normal ||
                         state.detail!.status == TaskStatus.late)) {
                   _asked = true;
-                  WidgetsBinding.instance
-                      .addPostFrameCallback((_) => _finalize(context, state.detail!));
+                  WidgetsBinding.instance.addPostFrameCallback(
+                      (_) => _finalize(context, state.detail!));
                 }
               },
               builder: (context, state) {
@@ -84,7 +86,8 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                                 final confirmed = await DeleteDialog.show(
                                   context,
                                   title: 'Eliminar "${d.title}"',
-                                  message: 'Se borra la tarea y su historial de sesiones.',
+                                  message:
+                                      'Se borra la tarea y su historial de sesiones.',
                                 );
                                 if (confirmed && context.mounted) {
                                   context.read<TaskDetailCubit>().delete();
@@ -105,17 +108,20 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                         AppActionChip(label: d.project),
                         Gaps.hSm,
                         if (d.status == TaskStatus.running)
-                          StatusBadge(label: 'En curso', color: AppColors.accent)
+                          StatusBadge(
+                              label: 'En curso', color: AppColors.accent)
                         else if (d.status == TaskStatus.done)
                           StatusBadge(label: 'Hecha', color: AppColors.success)
                         else if (d.status == TaskStatus.notDone)
-                          StatusBadge(label: 'No hecha', color: AppColors.danger),
+                          StatusBadge(
+                              label: 'No hecha', color: AppColors.danger),
                       ],
                     ),
                     if (d.notDoneReason != null) ...[
                       Gaps.vSm,
                       Text('No hecha: ${d.notDoneReason}',
-                          style: AppTextStyles.caption.copyWith(color: AppColors.danger)),
+                          style: AppTextStyles.caption
+                              .copyWith(color: AppColors.danger)),
                     ],
                     if (d.linkedAppName != null) ...[
                       Gaps.vSm,
@@ -154,7 +160,8 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                           Row(
                             children: [
                               Expanded(
-                                child: StatisticCard(label: 'Planificada', value: d.plannedTime),
+                                child: StatisticCard(
+                                    label: 'Planificada', value: d.plannedTime),
                               ),
                               Gaps.hSm,
                               Expanded(
@@ -167,7 +174,8 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                               Gaps.hSm,
                               Expanded(
                                 child: StatisticCard(
-                                    label: 'Sesiones', value: '${d.sessionsCount}'),
+                                    label: 'Sesiones',
+                                    value: '${d.sessionsCount}'),
                               ),
                             ],
                           ),
@@ -186,30 +194,44 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                               children: [
                                 for (final h in d.history.take(2)) ...[
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Row(
-                                        children: [
-                                          Container(
-                                            width: 7,
-                                            height: 7,
-                                            decoration: BoxDecoration(
-                                              color: h.running
-                                                  ? AppColors.accent
-                                                  : AppColors.neutralBar,
-                                              shape: BoxShape.circle,
-                                            ),
-                                          ),
-                                          Gaps.hSm,
-                                          Text(h.rangeLabel,
-                                              style: AppTextStyles.body.copyWith(fontSize: 12.5)),
-                                        ],
+                                      Container(
+                                        width: 7,
+                                        height: 7,
+                                        decoration: BoxDecoration(
+                                          color: h.running
+                                              ? AppColors.accent
+                                              : AppColors.neutralBar,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      Gaps.hSm,
+                                      Expanded(
+                                        child: Text(h.rangeLabel,
+                                            style: AppTextStyles.body
+                                                .copyWith(fontSize: 12.5)),
                                       ),
                                       AppText.mono(h.durationLabel,
                                           style: TextStyle(
                                               color: h.running
                                                   ? AppColors.accent
                                                   : AppColors.textSecondary)),
+                                      Gaps.hXs,
+                                      AppIconButton(
+                                        icon: Icons.content_cut_rounded,
+                                        size: 28,
+                                        color: AppColors.accent,
+                                        onPressed: h.startedAt
+                                                .add(const Duration(minutes: 2))
+                                                .isBefore(
+                                                    h.endedAt ?? DateTime.now())
+                                            ? () => _addInterruption(
+                                                  context,
+                                                  h,
+                                                  state.lifeAreas,
+                                                )
+                                            : null,
+                                      ),
                                     ],
                                   ),
                                   if (h != d.history.take(2).last) Gaps.vSm,
@@ -223,7 +245,9 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                               title: 'Notas',
                               child: Text(d.notes!,
                                   style: AppTextStyles.body.copyWith(
-                                      fontSize: 13, color: AppColors.textPrimary, height: 1.55)),
+                                      fontSize: 13,
+                                      color: AppColors.textPrimary,
+                                      height: 1.55)),
                             ),
                           ],
                         ],
@@ -240,6 +264,27 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
   }
 }
 
+Future<void> _addInterruption(
+  BuildContext context,
+  TaskSession session,
+  List<LifeArea> lifeAreas,
+) async {
+  final cubit = context.read<TaskDetailCubit>();
+  final draft = await showSessionInterruptionSheet(
+    context,
+    session: session,
+    lifeAreas: lifeAreas,
+  );
+  if (draft == null) return;
+  await cubit.addInterruption(
+    sessionId: session.id,
+    startedAt: draft.startedAt,
+    endedAt: draft.endedAt,
+    reason: draft.reason,
+    areaId: draft.areaId,
+  );
+}
+
 /// Abre "Editar tarea" en una hoja modal (mismo formulario que "Nueva
 /// tarea", en modo edición) y refresca el detalle al cerrarla.
 Future<void> _editTask(BuildContext context, TaskDetail d) async {
@@ -253,7 +298,8 @@ Future<void> _editTask(BuildContext context, TaskDetail d) async {
       child: Container(
         decoration: const BoxDecoration(
           color: AppColors.background,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
+          borderRadius:
+              BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
         ),
         child: SafeArea(
           top: false,
@@ -326,10 +372,12 @@ class _TimerCard extends StatelessWidget {
                   Gaps.hSm,
                   Expanded(
                     child: Text('En pausa · ${detail.pauseReason}',
-                        style: AppTextStyles.title.copyWith(color: AppColors.accent)),
+                        style: AppTextStyles.title
+                            .copyWith(color: AppColors.accent)),
                   ),
                   if (detail.pausedElapsedLabel != null)
-                    MetricLabel(detail.pausedElapsedLabel!, color: AppColors.accent),
+                    MetricLabel(detail.pausedElapsedLabel!,
+                        color: AppColors.accent),
                 ],
               ),
             ),
@@ -346,11 +394,13 @@ class _TimerCard extends StatelessWidget {
               Expanded(
                 child: SecondaryButton(
                   label: running ? 'Pausar' : 'Reanudar',
-                  icon: running ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                  icon:
+                      running ? Icons.pause_rounded : Icons.play_arrow_rounded,
                   onPressed: () async {
                     final cubit = context.read<TaskDetailCubit>();
                     if (!running) {
-                      final linked = await sl<LinkedAppGuardService>().getLinkedApp(detail.id);
+                      final linked = await sl<LinkedAppGuardService>()
+                          .getLinkedApp(detail.id);
                       if (linked != null) {
                         if (!context.mounted) return;
                         final opened = await OpenLinkedAppDialog.show(
@@ -495,11 +545,15 @@ class _SubtasksCardState extends State<_SubtasksCard> {
                               s.title,
                               style: AppTextStyles.body.copyWith(
                                 fontSize: 13,
-                                color: s.done ? AppColors.textTertiary : AppColors.textPrimary,
-                                decoration: s.done ? TextDecoration.lineThrough : null,
+                                color: s.done
+                                    ? AppColors.textTertiary
+                                    : AppColors.textPrimary,
+                                decoration:
+                                    s.done ? TextDecoration.lineThrough : null,
                               ),
                             ),
-                            if (s.description != null && s.description!.isNotEmpty)
+                            if (s.description != null &&
+                                s.description!.isNotEmpty)
                               Padding(
                                 padding: const EdgeInsets.only(top: 2),
                                 child: Text(
@@ -544,7 +598,9 @@ class _SubtasksCardState extends State<_SubtasksCard> {
               Gaps.hSm,
               AppIconButton(
                 icon: Icons.add_rounded,
-                onPressed: _titleController.text.trim().isEmpty ? null : () => _add(cubit),
+                onPressed: _titleController.text.trim().isEmpty
+                    ? null
+                    : () => _add(cubit),
               ),
             ],
           ),
@@ -554,7 +610,8 @@ class _SubtasksCardState extends State<_SubtasksCard> {
   }
 }
 
-Future<void> _editSubtask(BuildContext context, TaskDetailCubit cubit, Subtask s) async {
+Future<void> _editSubtask(
+    BuildContext context, TaskDetailCubit cubit, Subtask s) async {
   final titleController = TextEditingController(text: s.title);
   final descController = TextEditingController(text: s.description ?? '');
   final result = await showDialog<bool>(
@@ -568,7 +625,8 @@ Future<void> _editSubtask(BuildContext context, TaskDetailCubit cubit, Subtask s
           children: [
             const Text('Editar subtarea', style: AppTextStyles.headline),
             Gaps.vLg,
-            AppTextField(label: 'Título', controller: titleController, autofocus: true),
+            AppTextField(
+                label: 'Título', controller: titleController, autofocus: true),
             Gaps.vMd,
             AppTextField(
               label: 'Descripción',
@@ -600,6 +658,7 @@ Future<void> _editSubtask(BuildContext context, TaskDetailCubit cubit, Subtask s
     ),
   );
   if (result == true) {
-    cubit.updateSubtask(s.id, title: titleController.text, description: descController.text);
+    cubit.updateSubtask(s.id,
+        title: titleController.text, description: descController.text);
   }
 }

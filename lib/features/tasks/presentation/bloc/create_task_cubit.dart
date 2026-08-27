@@ -77,7 +77,8 @@ class CreateTaskCubit extends Cubit<CreateTaskState> {
       if (isClosed) return;
       final plannedAt = input.plannedAt;
       _originalRecurrenceId = input.recurrenceId;
-      _originalMinuteOfDay = plannedAt == null ? null : plannedAt.hour * 60 + plannedAt.minute;
+      _originalMinuteOfDay =
+          plannedAt == null ? null : plannedAt.hour * 60 + plannedAt.minute;
       emit(state.copyWith(
         title: input.title,
         project: input.project,
@@ -85,7 +86,8 @@ class CreateTaskCubit extends Cubit<CreateTaskState> {
         areaId: input.areaId,
         clearAreaId: input.areaId == null,
         plannedDate: plannedAt,
-        plannedMinuteOfDay: plannedAt == null ? null : plannedAt.hour * 60 + plannedAt.minute,
+        plannedMinuteOfDay:
+            plannedAt == null ? null : plannedAt.hour * 60 + plannedAt.minute,
         estimateMinutes: input.estimateMinutes,
         notes: input.notes ?? '',
         linkedPackage: input.linkedPackage,
@@ -107,8 +109,8 @@ class CreateTaskCubit extends Cubit<CreateTaskState> {
       return;
     }
     try {
-      final conflict =
-          await _checkScheduleConflict(state.plannedAt, excludeTaskId: _editingTaskId);
+      final conflict = await _checkScheduleConflict(state.plannedAt,
+          excludeTaskId: _editingTaskId);
       if (isClosed) return;
       emit(state.copyWith(timeConflict: conflict));
     } catch (e, st) {
@@ -157,8 +159,9 @@ class CreateTaskCubit extends Cubit<CreateTaskState> {
   }
 
   void setProject(String v) => emit(state.copyWith(project: v));
-  void setArea(String? areaId) => emit(
-      areaId == null ? state.copyWith(clearAreaId: true) : state.copyWith(areaId: areaId));
+  void setArea(String? areaId) => emit(areaId == null
+      ? state.copyWith(clearAreaId: true)
+      : state.copyWith(areaId: areaId));
   void setPriority(TaskPriority v) => emit(state.copyWith(priority: v));
   void setNotes(String v) => emit(state.copyWith(notes: v));
   void setDate(DateTime v) {
@@ -173,11 +176,13 @@ class CreateTaskCubit extends Cubit<CreateTaskState> {
 
   void incrementEstimate() =>
       emit(state.copyWith(estimateMinutes: state.estimateMinutes + 15));
-  void decrementEstimate() => emit(
-      state.copyWith(estimateMinutes: (state.estimateMinutes - 15).clamp(15, 24 * 60)));
+  void decrementEstimate() => emit(state.copyWith(
+      estimateMinutes: (state.estimateMinutes - 15).clamp(15, 24 * 60)));
 
   void setRepeatMode(RecurrenceMode? mode) {
-    emit(mode == null ? state.copyWith(clearRepeatMode: true) : state.copyWith(repeatMode: mode));
+    emit(mode == null
+        ? state.copyWith(clearRepeatMode: true)
+        : state.copyWith(repeatMode: mode));
     _checkConflict();
   }
 
@@ -202,7 +207,8 @@ class CreateTaskCubit extends Cubit<CreateTaskState> {
     emit(state.copyWith(repeatWeekdayMinuteOfDay: map));
   }
 
-  void setRepeatStartDate(DateTime v) => emit(state.copyWith(repeatStartDate: v));
+  void setRepeatStartDate(DateTime v) =>
+      emit(state.copyWith(repeatStartDate: v));
 
   Future<bool> hasAppUsagePermission() => _appUsage.hasPermission();
 
@@ -216,7 +222,8 @@ class CreateTaskCubit extends Cubit<CreateTaskState> {
 
   void setLinkedApp(LinkedAppOption? app) => emit(app == null
       ? state.copyWith(clearLinkedApp: true)
-      : state.copyWith(linkedPackage: app.packageName, linkedAppName: app.appName));
+      : state.copyWith(
+          linkedPackage: app.packageName, linkedAppName: app.appName));
 
   /// Agrega una subtarea al borrador, antes de que la tarea exista. Si es
   /// una regla de repetición, se copiará a cada ocurrencia generada.
@@ -225,12 +232,16 @@ class CreateTaskCubit extends Cubit<CreateTaskState> {
     if (t.isEmpty) return;
     emit(state.copyWith(draftSubtasks: [
       ...state.draftSubtasks,
-      NewSubtaskDraft(title: t, description: description?.trim().isEmpty ?? true ? null : description!.trim()),
+      NewSubtaskDraft(
+          title: t,
+          description:
+              description?.trim().isEmpty ?? true ? null : description!.trim()),
     ]));
   }
 
   void removeDraftSubtask(int index) {
-    final list = List<NewSubtaskDraft>.from(state.draftSubtasks)..removeAt(index);
+    final list = List<NewSubtaskDraft>.from(state.draftSubtasks)
+      ..removeAt(index);
     emit(state.copyWith(draftSubtasks: list));
   }
 

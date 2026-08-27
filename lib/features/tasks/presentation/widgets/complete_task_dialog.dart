@@ -34,14 +34,16 @@ Future<CompleteTaskResult?> showCompleteTaskDialog(
 }) {
   return showDialog<CompleteTaskResult>(
     context: context,
-    builder: (_) => _CompleteTaskDialog(title: title, hasTrackedTime: hasTrackedTime),
+    builder: (_) =>
+        _CompleteTaskDialog(title: title, hasTrackedTime: hasTrackedTime),
   );
 }
 
 enum _Step { ask, whenDone, whyNot, substitute }
 
 class _CompleteTaskDialog extends StatefulWidget {
-  const _CompleteTaskDialog({required this.title, required this.hasTrackedTime});
+  const _CompleteTaskDialog(
+      {required this.title, required this.hasTrackedTime});
 
   final String title;
   final bool hasTrackedTime;
@@ -136,7 +138,8 @@ class _CompleteTaskDialogState extends State<_CompleteTaskDialog> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('¿En qué horario lo hiciste?', style: AppTextStyles.headline.copyWith(fontSize: 18)),
+        Text('¿En qué horario lo hiciste?',
+            style: AppTextStyles.headline.copyWith(fontSize: 18)),
         Gaps.vSm,
         const AppCaption(
           'Esta tarea nunca se arrancó con el cronómetro — contanos cuándo '
@@ -178,8 +181,11 @@ class _CompleteTaskDialogState extends State<_CompleteTaskDialog> {
                 onPressed: () {
                   var start = _todayAt(_start);
                   var end = _todayAt(_end);
-                  if (!end.isAfter(start)) end = end.add(const Duration(days: 1));
-                  Navigator.of(context).pop(CompleteTaskDone(start: start, end: end));
+                  if (!end.isAfter(start)) {
+                    end = end.add(const Duration(days: 1));
+                  }
+                  Navigator.of(context)
+                      .pop(CompleteTaskDone(start: start, end: end));
                 },
               ),
             ),
@@ -195,7 +201,8 @@ class _CompleteTaskDialogState extends State<_CompleteTaskDialog> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Se va a marcar como no hecha', style: AppTextStyles.headline.copyWith(fontSize: 18)),
+        Text('Se va a marcar como no hecha',
+            style: AppTextStyles.headline.copyWith(fontSize: 18)),
         Gaps.vSm,
         const AppCaption('Contanos qué pasó, para que quede en el historial.'),
         Gaps.vLg,
@@ -218,8 +225,9 @@ class _CompleteTaskDialogState extends State<_CompleteTaskDialog> {
             Expanded(
               child: PrimaryButton(
                 label: 'Marcar como no hecha',
-                onPressed:
-                    reason.isEmpty ? null : () => setState(() => _step = _Step.substitute),
+                onPressed: reason.isEmpty
+                    ? null
+                    : () => setState(() => _step = _Step.substitute),
               ),
             ),
           ],
@@ -234,7 +242,8 @@ class _CompleteTaskDialogState extends State<_CompleteTaskDialog> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('¿Qué pasó en su lugar?', style: AppTextStyles.headline.copyWith(fontSize: 18)),
+        Text('¿Qué pasó en su lugar?',
+            style: AppTextStyles.headline.copyWith(fontSize: 18)),
         Gaps.vSm,
         const AppCaption(
           'Si hiciste otra cosa en ese rato, registrala ahora para que quede en tu día.',

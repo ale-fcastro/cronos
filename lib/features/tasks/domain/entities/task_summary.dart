@@ -36,5 +36,6 @@ class TaskSummary extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, title, priority, status, project, plannedTime, timeInfo];
+  List<Object?> get props =>
+      [id, title, priority, status, project, plannedTime, timeInfo];
 }

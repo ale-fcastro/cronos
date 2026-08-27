@@ -33,6 +33,8 @@ class GenerateRecurringTasks {
 class UpdateTaskRecurrenceTime {
   const UpdateTaskRecurrenceTime(this._repository);
   final TasksRepository _repository;
-  Future<void> call(String recurrenceId, {required int weekday, required int minuteOfDay}) =>
-      _repository.updateRecurrenceTime(recurrenceId, weekday: weekday, minuteOfDay: minuteOfDay);
+  Future<void> call(String recurrenceId,
+          {required int weekday, required int minuteOfDay}) =>
+      _repository.updateRecurrenceTime(recurrenceId,
+          weekday: weekday, minuteOfDay: minuteOfDay);
 }

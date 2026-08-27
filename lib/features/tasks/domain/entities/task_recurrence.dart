@@ -52,13 +52,22 @@ class TaskRecurrence extends Equatable {
   /// Subtareas que se copian a cada ocurrencia generada por esta regla.
   final List<NewSubtaskDraft> subtasks;
 
-  static const _weekdayShort = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+  static const _weekdayShort = [
+    'Lun',
+    'Mar',
+    'Mié',
+    'Jue',
+    'Vie',
+    'Sáb',
+    'Dom'
+  ];
 
   String get scheduleLabel {
     final schedule = mode == RecurrenceMode.dailySameTime
         ? 'Todos los días · ${_hhmm(sameTimeMinuteOfDay ?? 0)}'
         : (weekdayMinuteOfDay.keys.toList()..sort())
-            .map((d) => '${_weekdayShort[d - 1]} ${_hhmm(weekdayMinuteOfDay[d]!)}')
+            .map((d) =>
+                '${_weekdayShort[d - 1]} ${_hhmm(weekdayMinuteOfDay[d]!)}')
             .join(' · ');
     return '$schedule · desde ${_ddmm(startDate)}';
   }

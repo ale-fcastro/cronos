@@ -14,6 +14,7 @@ class TaskDetailCubit extends Cubit<TaskDetailState> {
     this._getTaskDetail,
     this._startTimer,
     this._pauseTimer,
+    this._addSessionInterruption,
     this._completeTask,
     this._markTaskNotDone,
     this._addSubtask,
@@ -40,6 +41,7 @@ class TaskDetailCubit extends Cubit<TaskDetailState> {
   final GetTaskDetail _getTaskDetail;
   final StartTaskTimer _startTimer;
   final PauseTaskTimer _pauseTimer;
+  final AddTaskSessionInterruption _addSessionInterruption;
   final CompleteTask _completeTask;
   final MarkTaskNotDone _markTaskNotDone;
   final AddSubtask _addSubtask;
@@ -65,7 +67,8 @@ class TaskDetailCubit extends Cubit<TaskDetailState> {
     try {
       final areas = await _lifeAreasService.getAll();
       if (isClosed) return;
-      emit(TaskDetailState(detail: state.detail, deleted: state.deleted, lifeAreas: areas));
+      emit(TaskDetailState(
+          detail: state.detail, deleted: state.deleted, lifeAreas: areas));
     } catch (e, st) {
       reportError('TaskDetailCubit._loadLifeAreas', e, st);
     }
@@ -78,6 +81,24 @@ class TaskDetailCubit extends Cubit<TaskDetailState> {
 
   Future<void> resume() async {
     await _startTimer(taskId);
+    await load();
+  }
+
+  Future<void> addInterruption({
+    required int sessionId,
+    required DateTime startedAt,
+    required DateTime endedAt,
+    required String reason,
+    String? areaId,
+  }) async {
+    await _addSessionInterruption(
+      taskId: taskId,
+      sessionId: sessionId,
+      startedAt: startedAt,
+      endedAt: endedAt,
+      reason: reason,
+      areaId: areaId,
+    );
     await load();
   }
 
@@ -94,15 +115,18 @@ class TaskDetailCubit extends Cubit<TaskDetailState> {
   Future<void> addSubtask(String title, {String? description}) async {
     if (title.trim().isEmpty) return;
     final desc = description?.trim();
-    await _addSubtask(taskId, title.trim(), description: (desc == null || desc.isEmpty) ? null : desc);
+    await _addSubtask(taskId, title.trim(),
+        description: (desc == null || desc.isEmpty) ? null : desc);
     await load();
   }
 
-  Future<void> updateSubtask(String subtaskId, {required String title, String? description}) async {
+  Future<void> updateSubtask(String subtaskId,
+      {required String title, String? description}) async {
     if (title.trim().isEmpty) return;
     final desc = description?.trim();
     await _updateSubtask(subtaskId,
-        title: title.trim(), description: (desc == null || desc.isEmpty) ? null : desc);
+        title: title.trim(),
+        description: (desc == null || desc.isEmpty) ? null : desc);
     await load();
   }
 
@@ -120,7 +144,8 @@ class TaskDetailCubit extends Cubit<TaskDetailState> {
     try {
       await _deleteTask(taskId);
       if (isClosed) return;
-      emit(TaskDetailState(detail: state.detail, deleted: true, lifeAreas: state.lifeAreas));
+      emit(TaskDetailState(
+          detail: state.detail, deleted: true, lifeAreas: state.lifeAreas));
     } catch (e, st) {
       reportError('TaskDetailCubit.delete', e, st);
     }

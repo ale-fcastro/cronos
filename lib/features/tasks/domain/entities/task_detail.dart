@@ -3,20 +3,35 @@ import 'task_priority.dart';
 import 'task_summary.dart';
 
 class TaskSession extends Equatable {
-  const TaskSession({required this.rangeLabel, required this.durationLabel, this.running = false});
+  const TaskSession({
+    required this.id,
+    required this.startedAt,
+    required this.rangeLabel,
+    required this.durationLabel,
+    this.endedAt,
+    this.running = false,
+  });
 
+  final int id;
+  final DateTime startedAt;
+  final DateTime? endedAt;
   final String rangeLabel;
   final String durationLabel;
   final bool running;
 
   @override
-  List<Object?> get props => [rangeLabel, durationLabel, running];
+  List<Object?> get props =>
+      [id, startedAt, endedAt, rangeLabel, durationLabel, running];
 }
 
 /// Ítem de una lista de verificación adentro de una tarea. La tarea no
 /// puede finalizarse mientras tenga subtareas sin terminar.
 class Subtask extends Equatable {
-  const Subtask({required this.id, required this.title, this.description, required this.done});
+  const Subtask(
+      {required this.id,
+      required this.title,
+      this.description,
+      required this.done});
 
   final String id;
   final String title;

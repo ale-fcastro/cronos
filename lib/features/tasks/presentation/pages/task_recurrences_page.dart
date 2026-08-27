@@ -33,7 +33,8 @@ class TaskRecurrencesPage extends StatelessWidget {
                           onPressed: () => Navigator.of(context).pop(),
                         ),
                         Gaps.hSm,
-                        const Text('Tareas recurrentes', style: AppTextStyles.headline),
+                        const Text('Tareas recurrentes',
+                            style: AppTextStyles.headline),
                       ],
                     ),
                     Gaps.vSm,
@@ -48,7 +49,8 @@ class TaskRecurrencesPage extends StatelessWidget {
                         child: EmptyState(
                           icon: Icons.repeat_rounded,
                           title: 'Sin tareas recurrentes',
-                          message: 'Creá una tarea y activá "Repetir" para verla acá.',
+                          message:
+                              'Creá una tarea y activá "Repetir" para verla acá.',
                         ),
                       )
                     else
@@ -61,13 +63,16 @@ class TaskRecurrencesPage extends StatelessWidget {
                             return AppCard(
                               padding: AppSpacing.cardDense,
                               child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
-                                        Text(r.title, style: AppTextStyles.title),
+                                        Text(r.title,
+                                            style: AppTextStyles.title),
                                         AppCaption(r.scheduleLabel),
                                       ],
                                     ),

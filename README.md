@@ -121,6 +121,18 @@ Unitarios de formato/es, del motor de estadísticas, de los datasources
 (SQLite en memoria vía `sqflite_common_ffi`) y de migraciones de esquema,
 más el smoke test de arranque.
 
+## Wear OS (desarrollo)
+
+La app de reloj vive en `android/wear/`. El teléfono conserva el historial
+completo y envía al reloj la sesión actual y hasta seis tareas de hoy; las
+acciones iniciar/pausar quedan encoladas si se pierde la conexión.
+
+Con Android SDK configurado, abrí la carpeta `android/` en Android Studio,
+creá un emulador Wear OS (API 30 o superior) y ejecutá la configuración del
+módulo `wear`. Instalá también `app` en un teléfono o emulador Android con la
+misma firma y emparejá ambos dispositivos desde Device Manager. Abrir Cronos
+en el teléfono fuerza la primera sincronización.
+
 ## Privacidad
 
 Todo se guarda solo en el teléfono (SQLite local): no hay cuenta ni

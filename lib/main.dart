@@ -26,6 +26,7 @@ import 'core/services/nudge_service.dart';
 import 'core/services/overdue_task_service.dart';
 import 'core/services/session_notification_service.dart';
 import 'core/services/timer_service.dart';
+import 'core/services/wear_sync_service.dart';
 import 'features/dashboard/data/datasources/dashboard_local_datasource.dart';
 import 'features/habits/data/datasources/habits_local_datasource.dart';
 import 'features/tasks/domain/usecases/task_recurrence_usecases.dart';
@@ -88,11 +89,14 @@ Future<void> _refreshHomeWidgetsInBackground() async {
   final summary = await dashboard.fetchTodaySummary();
 
   await HomeWidget.saveWidgetData('today_score', summary.score);
-  await HomeWidget.saveWidgetData('today_productive_label', summary.productiveLabel);
+  await HomeWidget.saveWidgetData(
+      'today_productive_label', summary.productiveLabel);
   await HomeWidget.saveWidgetData('today_lost_label', summary.lostLabel);
   await HomeWidget.saveWidgetData('today_date_label', summary.dateLabel);
-  await HomeWidget.saveWidgetData('today_next_task_title', summary.nextTask?.title ?? '');
-  await HomeWidget.saveWidgetData('today_next_task_time', summary.nextTask?.time ?? '');
+  await HomeWidget.saveWidgetData(
+      'today_next_task_title', summary.nextTask?.title ?? '');
+  await HomeWidget.saveWidgetData(
+      'today_next_task_time', summary.nextTask?.time ?? '');
   await HomeWidget.updateWidget(
       qualifiedAndroidName: 'com.example.cronos.widgets.HomeWidgetProvider');
 
@@ -104,8 +108,9 @@ Future<void> _refreshHomeWidgetsInBackground() async {
       qualifiedAndroidName: 'com.example.cronos.widgets.WeeklyWidgetProvider');
 
   const maxHabits = 5;
-  final habits =
-      (await HabitsLocalDatasource(database).fetchHabits()).take(maxHabits).toList();
+  final habits = (await HabitsLocalDatasource(database).fetchHabits())
+      .take(maxHabits)
+      .toList();
   await HomeWidget.saveWidgetData('habits_count', habits.length);
   for (var i = 0; i < maxHabits; i++) {
     if (i < habits.length) {
@@ -154,21 +159,25 @@ Future<void> homeWidgetInteractionCallback(Uri? uri) async {
         // hábitos acá mismo con los datos ya frescos, mismo formato que
         // HomeWidgetService._pushHabits().
         const maxHabits = 5;
-        final habits = (await habitsDatasource.fetchHabits()).take(maxHabits).toList();
+        final habits =
+            (await habitsDatasource.fetchHabits()).take(maxHabits).toList();
         await HomeWidget.saveWidgetData('habits_count', habits.length);
         for (var i = 0; i < maxHabits; i++) {
           if (i < habits.length) {
             final item = habits[i];
             await HomeWidget.saveWidgetData('habit_${i}_id', item.habit.id);
-            await HomeWidget.saveWidgetData('habit_${i}_title', item.habit.title);
-            await HomeWidget.saveWidgetData('habit_${i}_done_today', item.doneToday);
+            await HomeWidget.saveWidgetData(
+                'habit_${i}_title', item.habit.title);
+            await HomeWidget.saveWidgetData(
+                'habit_${i}_done_today', item.doneToday);
             await HomeWidget.saveWidgetData('habit_${i}_streak', item.streak);
           } else {
             await HomeWidget.saveWidgetData('habit_${i}_title', '');
           }
         }
         await HomeWidget.updateWidget(
-          qualifiedAndroidName: 'com.example.cronos.widgets.HabitsWidgetProvider',
+          qualifiedAndroidName:
+              'com.example.cronos.widgets.HabitsWidgetProvider',
         );
       }
     }
@@ -193,7 +202,8 @@ void notificationBackgroundResponseHandler(NotificationResponse response) {
   final actionId = response.actionId;
   if (payload == null || actionId == null) return;
   if (!payload.startsWith(NotificationsService.appTrackPayloadPrefix)) return;
-  final packageName = payload.substring(NotificationsService.appTrackPayloadPrefix.length);
+  final packageName =
+      payload.substring(NotificationsService.appTrackPayloadPrefix.length);
 
   Future<void> run() async {
     final database = AppDatabase();
@@ -201,7 +211,8 @@ void notificationBackgroundResponseHandler(NotificationResponse response) {
     final target = actionId == NotificationsService.appTrackIgnoreActionId
         ? AppTrackingResolver.ignoreTarget
         : actionId.startsWith(NotificationsService.appTrackActivityActionPrefix)
-            ? actionId.substring(NotificationsService.appTrackActivityActionPrefix.length)
+            ? actionId.substring(
+                NotificationsService.appTrackActivityActionPrefix.length)
             : null;
     if (target == null) return;
 
@@ -289,7 +300,8 @@ void main() {
 
     FlutterError.onError = (details) {
       FlutterError.dumpErrorToConsole(details);
-      reportError('Build', details.exception, details.stack ?? StackTrace.empty);
+      reportError(
+          'Build', details.exception, details.stack ?? StackTrace.empty);
     };
 
     // En escritorio (Linux/Windows) sqflite no existe: usamos SQLite via FFI.
@@ -327,9 +339,15 @@ void main() {
         reportError('AppTrackingService.startIfEnabled', e, st);
       }
       try {
-        await HomeWidget.registerInteractivityCallback(homeWidgetInteractionCallback);
+        await HomeWidget.registerInteractivityCallback(
+            homeWidgetInteractionCallback);
       } catch (e, st) {
         reportError('HomeWidget.registerInteractivityCallback', e, st);
+      }
+      try {
+        await WearSyncService(sl<AppDatabase>(), sl<TimerService>()).start();
+      } catch (e, st) {
+        reportError('WearSyncService.start', e, st);
       }
     }
 
@@ -344,7 +362,8 @@ void main() {
         // tener algo que avisar — cada chequeo respeta su propio apagado
         // adentro del dispatcher.
         final nudgeEnabled = await sl<NudgeService>().isEnabled();
-        final notificationsEnabled = await sl<NotificationsService>().isEnabled();
+        final notificationsEnabled =
+            await sl<NotificationsService>().isEnabled();
         if (nudgeEnabled || notificationsEnabled) {
           await Workmanager().registerPeriodicTask(
             NudgeService.taskName,
@@ -405,10 +424,13 @@ void main() {
     // actualización no necesita este camino: el chequeo normal de arranque
     // (RootShell) ya corre solo y muestra el diálogo si sigue vigente.
     final launchPayload = await notifications.consumeLaunchPayload();
-    if (launchPayload != null && launchPayload != NotificationsService.updatePayload) {
-      final isOverdue = launchPayload.startsWith(NotificationsService.overduePayloadPrefix);
+    if (launchPayload != null &&
+        launchPayload != NotificationsService.updatePayload) {
+      final isOverdue =
+          launchPayload.startsWith(NotificationsService.overduePayloadPrefix);
       final taskId = isOverdue
-          ? launchPayload.substring(NotificationsService.overduePayloadPrefix.length)
+          ? launchPayload
+              .substring(NotificationsService.overduePayloadPrefix.length)
           : launchPayload;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         AppRouter.navigatorKey.currentState?.pushNamed(
@@ -442,8 +464,8 @@ void main() {
     if (Platform.isAndroid) {
       try {
         final coldStartUri = await HomeWidget.initiallyLaunchedFromHomeWidget();
-        WidgetsBinding.instance
-            .addPostFrameCallback((_) => handleHomeWidgetLaunchUri(coldStartUri));
+        WidgetsBinding.instance.addPostFrameCallback(
+            (_) => handleHomeWidgetLaunchUri(coldStartUri));
       } catch (e, st) {
         reportError('HomeWidget.initiallyLaunchedFromHomeWidget', e, st);
       }

@@ -188,6 +188,89 @@ void main() {
     expect(events, isEmpty);
   });
 
+  test('una sesión admite varias interrupciones y descuenta sus tramos', () async {
+    final db = await database.database;
+    final base = DateTime(2026, 8, 27, 9);
+    await db.insert('tasks', {
+      'id': 'task-interruptions',
+      'title': 'Trabajo enfocado',
+      'project': 'Trabajo',
+      'priority': 1,
+      'status': 'normal',
+      'estimate_min': 120,
+      'created_at': base.millisecondsSinceEpoch,
+    });
+    final sessionId = await db.insert('task_sessions', {
+      'task_id': 'task-interruptions',
+      'started_at': base.millisecondsSinceEpoch,
+      'ended_at': base.add(const Duration(hours: 2)).millisecondsSinceEpoch,
+    });
+
+    await datasource.addSessionInterruption(
+      taskId: 'task-interruptions',
+      sessionId: sessionId,
+      startedAt: base.add(const Duration(minutes: 20)),
+      endedAt: base.add(const Duration(minutes: 35)),
+      reason: 'Social',
+    );
+    final afterFirst = await db.query(
+      'task_sessions',
+      where: 'task_id = ?',
+      whereArgs: ['task-interruptions'],
+      orderBy: 'started_at ASC',
+    );
+    await datasource.addSessionInterruption(
+      taskId: 'task-interruptions',
+      sessionId: afterFirst.last['id'] as int,
+      startedAt: base.add(const Duration(minutes: 70)),
+      endedAt: base.add(const Duration(minutes: 80)),
+      reason: 'Administrativo',
+    );
+
+    final sessions = await db.query(
+      'task_sessions',
+      where: 'task_id = ?',
+      whereArgs: ['task-interruptions'],
+      orderBy: 'started_at ASC',
+    );
+    final events = await db.query('events', orderBy: 'started_at ASC');
+    expect(sessions, hasLength(3));
+    expect(events.map((row) => row['category']), ['Social', 'Administrativo']);
+    final workedMs = sessions.fold<int>(0, (total, row) {
+      return total + (row['ended_at'] as int) - (row['started_at'] as int);
+    });
+    expect(workedMs, const Duration(minutes: 95).inMilliseconds);
+  });
+
+  test('no permite una interrupción fuera de los límites de la sesión', () async {
+    final db = await database.database;
+    final base = DateTime(2026, 8, 27, 9);
+    await db.insert('tasks', {
+      'id': 'task-bounds',
+      'title': 'Sesión acotada',
+      'priority': 2,
+      'status': 'normal',
+      'estimate_min': 30,
+      'created_at': base.millisecondsSinceEpoch,
+    });
+    final sessionId = await db.insert('task_sessions', {
+      'task_id': 'task-bounds',
+      'started_at': base.millisecondsSinceEpoch,
+      'ended_at': base.add(const Duration(minutes: 30)).millisecondsSinceEpoch,
+    });
+
+    expect(
+      () => datasource.addSessionInterruption(
+        taskId: 'task-bounds',
+        sessionId: sessionId,
+        startedAt: base.subtract(const Duration(minutes: 1)),
+        endedAt: base.add(const Duration(minutes: 5)),
+        reason: 'Interrupción',
+      ),
+      throwsArgumentError,
+    );
+  });
+
   test('fetchTaskEditData expone los campos crudos para precargar el formulario', () async {
     await datasource.createTask(input(title: 'Preparar demo'));
     final tasks = await datasource.fetchTasks(scope: 'all');

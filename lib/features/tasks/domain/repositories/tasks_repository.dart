@@ -10,12 +10,22 @@ abstract interface class TasksRepository {
   Future<TaskDetail> getTaskDetail(String id);
   Future<void> startTimer(String id);
   Future<void> pauseTimer(String id, {String? reason, String? areaId});
-  Future<void> completeTask(String id, {DateTime? manualStart, DateTime? manualEnd});
+  Future<void> addSessionInterruption({
+    required String taskId,
+    required int sessionId,
+    required DateTime startedAt,
+    required DateTime endedAt,
+    required String reason,
+    String? areaId,
+  });
+  Future<void> completeTask(String id,
+      {DateTime? manualStart, DateTime? manualEnd});
   Future<void> markTaskNotDone(String id, String reason);
   Future<void> createTask(NewTaskInput input);
 
   Future<void> addSubtask(String taskId, String title, {String? description});
-  Future<void> updateSubtask(String subtaskId, {required String title, String? description});
+  Future<void> updateSubtask(String subtaskId,
+      {required String title, String? description});
   Future<void> toggleSubtask(String subtaskId, bool done);
   Future<void> deleteSubtask(String subtaskId);
 

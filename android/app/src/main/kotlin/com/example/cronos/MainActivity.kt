@@ -9,6 +9,7 @@ import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import com.example.cronos.wear.PhoneWearBridge
 
 /// Expone datos de apps instaladas (nombre visible + icono real) que el
 /// plugin de estadisticas de uso no resuelve de forma confiable para todos
@@ -18,6 +19,8 @@ class MainActivity : FlutterFragmentActivity() {
     private val channelName = "cronos/app_info"
     private val sessionServiceChannelName = "cronos/session_service"
     private val appTrackingServiceChannelName = "cronos/app_tracking_service"
+    private val wearChannelName = "cronos/wear"
+    private var wearChannel: MethodChannel? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -99,6 +102,26 @@ class MainActivity : FlutterFragmentActivity() {
                     else -> result.notImplemented()
                 }
             }
+
+        wearChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, wearChannelName).also { channel ->
+            channel.setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "publishState" -> {
+                        @Suppress("UNCHECKED_CAST")
+                        val state = call.arguments as? Map<String, Any?>
+                        if (state == null) result.error("BAD_STATE", "Missing state", null)
+                        else PhoneWearBridge.publishState(this, state, result)
+                    }
+                    "takePendingActions" -> result.success(PhoneWearBridge.takePendingActions(this))
+                    else -> result.notImplemented()
+                }
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        wearChannel?.invokeMethod("syncRequested", null)
     }
 
     /// Todas las apps con ícono en el launcher (excluye Cronos misma y

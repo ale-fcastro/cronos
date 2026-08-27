@@ -128,6 +128,16 @@
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="app_usage_tracking"/>
         </service>
+
+        <!-- Recibe acciones offline del reloj y las deja en una cola local.
+             Flutter las aplica a SQLite al iniciar o volver al primer plano. -->
+        <service android:name=".wear.WearActionListenerService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED"/>
+                <data android:scheme="wear" android:host="*" android:pathPrefix="/cronos/action"/>
+            </intent-filter>
+        </service>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

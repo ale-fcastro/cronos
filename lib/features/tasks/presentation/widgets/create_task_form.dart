@@ -31,7 +31,8 @@ class CreateTaskForm extends StatefulWidget {
 }
 
 class _CreateTaskFormState extends State<CreateTaskForm> {
-  late final _titleController = TextEditingController(text: widget.initialTitle ?? '');
+  late final _titleController =
+      TextEditingController(text: widget.initialTitle ?? '');
 
   @override
   void dispose() {
@@ -114,8 +115,10 @@ class _CreateTaskFormState extends State<CreateTaskForm> {
               segments: const ['P1', 'P2', 'P3'],
               selectedIndex: state.priority.index,
               selectedColor: _priorityColor(state.priority),
-              selectedBackground: _priorityColor(state.priority).withValues(alpha: 0.14),
-              onChanged: (i) => cubit.setPriority(domain.TaskPriority.values[i]),
+              selectedBackground:
+                  _priorityColor(state.priority).withValues(alpha: 0.14),
+              onChanged: (i) =>
+                  cubit.setPriority(domain.TaskPriority.values[i]),
             ),
             if (!cubit.isEditing) ...[
               Gaps.vMd,
@@ -247,7 +250,8 @@ class _CreateTaskFormState extends State<CreateTaskForm> {
               DropdownField(
                 label: 'Vincular con app (opcional)',
                 valueText: state.linkedAppName ?? 'Ninguna',
-                leadingColor: state.linkedAppName == null ? null : AppColors.accent,
+                leadingColor:
+                    state.linkedAppName == null ? null : AppColors.accent,
                 onTap: () => _pickLinkedApp(context, cubit, state),
               ),
               if (state.linkedAppName != null)
@@ -270,7 +274,9 @@ class _CreateTaskFormState extends State<CreateTaskForm> {
             PrimaryButton(
               label: cubit.isEditing
                   ? 'Guardar cambios'
-                  : (state.repeatMode == null ? 'Crear tarea' : 'Crear tarea recurrente'),
+                  : (state.repeatMode == null
+                      ? 'Crear tarea'
+                      : 'Crear tarea recurrente'),
               expanded: true,
               loading: state.submitting,
               onPressed: state.canSubmit ? () => _submit(context, cubit) : null,
@@ -338,7 +344,8 @@ class _WeekdayScheduleEditor extends StatelessWidget {
                 children: [
                   SizedBox(
                     width: 32,
-                    child: Text(_weekdayShort[d - 1], style: AppTextStyles.caption),
+                    child: Text(_weekdayShort[d - 1],
+                        style: AppTextStyles.caption),
                   ),
                   Expanded(
                     child: TimePickerField(
@@ -352,7 +359,9 @@ class _WeekdayScheduleEditor extends StatelessWidget {
                             minute: selected[d]! % 60,
                           ),
                         );
-                        if (picked != null) onSetTime(d, picked.hour, picked.minute);
+                        if (picked != null) {
+                          onSetTime(d, picked.hour, picked.minute);
+                        }
                       },
                     ),
                   ),
@@ -370,7 +379,8 @@ class _WeekdayScheduleEditor extends StatelessWidget {
 }
 
 class _DayToggle extends StatelessWidget {
-  const _DayToggle({required this.label, required this.active, required this.onTap});
+  const _DayToggle(
+      {required this.label, required this.active, required this.onTap});
 
   final String label;
   final bool active;
@@ -387,7 +397,8 @@ class _DayToggle extends StatelessWidget {
           decoration: BoxDecoration(
             color: active ? AppColors.accentSoft : AppColors.surface,
             borderRadius: const BorderRadius.all(Radius.circular(10)),
-            border: Border.all(color: active ? AppColors.borderActive : AppColors.border),
+            border: Border.all(
+                color: active ? AppColors.borderActive : AppColors.border),
           ),
           child: Text(
             label,
@@ -445,7 +456,9 @@ class _DraftSubtasksSectionState extends State<_DraftSubtasksSection> {
   Widget build(BuildContext context) {
     return SummaryCard(
       title: 'Subtareas',
-      trailing: widget.subtasks.isEmpty ? null : AppCaption('${widget.subtasks.length}'),
+      trailing: widget.subtasks.isEmpty
+          ? null
+          : AppCaption('${widget.subtasks.length}'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -467,8 +480,8 @@ class _DraftSubtasksSectionState extends State<_DraftSubtasksSection> {
                             Padding(
                               padding: const EdgeInsets.only(top: 2),
                               child: Text(widget.subtasks[i].description!,
-                                  style: AppTextStyles.caption
-                                      .copyWith(color: AppColors.textSecondary)),
+                                  style: AppTextStyles.caption.copyWith(
+                                      color: AppColors.textSecondary)),
                             ),
                         ],
                       ),
@@ -531,7 +544,10 @@ Future<void> _pickLinkedApp(
   unawaited(showDialog<void>(
     context: context,
     barrierDismissible: false,
-    builder: (_) => const Dialog(backgroundColor: Colors.transparent, elevation: 0, child: LoadingView()),
+    builder: (_) => const Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        child: LoadingView()),
   ));
   final options = await cubit.loadAppOptions();
   if (!context.mounted) return;
@@ -554,8 +570,10 @@ Future<void> _pickLinkedApp(
     context: context,
     title: 'Vincular con app',
     options: options,
-    labelBuilder: (o) => '${o.appName} · ${fmtDurationMin(o.recentUsage.inMinutes)}',
-    leadingBuilder: (o) => AppIconAvatar(name: o.appName, icon: o.icon, size: 32),
+    labelBuilder: (o) =>
+        '${o.appName} · ${fmtDurationMin(o.recentUsage.inMinutes)}',
+    leadingBuilder: (o) =>
+        AppIconAvatar(name: o.appName, icon: o.icon, size: 32),
     selected: selected,
   );
   if (picked != null) cubit.setLinkedApp(picked);

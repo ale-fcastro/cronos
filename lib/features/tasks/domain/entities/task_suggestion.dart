@@ -24,6 +24,13 @@ class TaskSuggestion extends Equatable {
   final int estimateMinutes;
 
   @override
-  List<Object?> get props =>
-      [title, subtitle, countLabel, avgLabel, project, priority, estimateMinutes];
+  List<Object?> get props => [
+        title,
+        subtitle,
+        countLabel,
+        avgLabel,
+        project,
+        priority,
+        estimateMinutes
+      ];
 }

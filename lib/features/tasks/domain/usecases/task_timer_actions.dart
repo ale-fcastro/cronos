@@ -13,17 +13,41 @@ class PauseTaskTimer {
       _repository.pauseTimer(id, reason: reason, areaId: areaId);
 }
 
+class AddTaskSessionInterruption {
+  const AddTaskSessionInterruption(this._repository);
+  final TasksRepository _repository;
+
+  Future<void> call({
+    required String taskId,
+    required int sessionId,
+    required DateTime startedAt,
+    required DateTime endedAt,
+    required String reason,
+    String? areaId,
+  }) =>
+      _repository.addSessionInterruption(
+        taskId: taskId,
+        sessionId: sessionId,
+        startedAt: startedAt,
+        endedAt: endedAt,
+        reason: reason,
+        areaId: areaId,
+      );
+}
+
 class CompleteTask {
   const CompleteTask(this._repository);
   final TasksRepository _repository;
   Future<void> call(String id, {DateTime? manualStart, DateTime? manualEnd}) =>
-      _repository.completeTask(id, manualStart: manualStart, manualEnd: manualEnd);
+      _repository.completeTask(id,
+          manualStart: manualStart, manualEnd: manualEnd);
 }
 
 class MarkTaskNotDone {
   const MarkTaskNotDone(this._repository);
   final TasksRepository _repository;
-  Future<void> call(String id, String reason) => _repository.markTaskNotDone(id, reason);
+  Future<void> call(String id, String reason) =>
+      _repository.markTaskNotDone(id, reason);
 }
 
 class AddSubtask {
@@ -36,8 +60,10 @@ class AddSubtask {
 class UpdateSubtask {
   const UpdateSubtask(this._repository);
   final TasksRepository _repository;
-  Future<void> call(String subtaskId, {required String title, String? description}) =>
-      _repository.updateSubtask(subtaskId, title: title, description: description);
+  Future<void> call(String subtaskId,
+          {required String title, String? description}) =>
+      _repository.updateSubtask(subtaskId,
+          title: title, description: description);
 }
 
 class ToggleSubtask {

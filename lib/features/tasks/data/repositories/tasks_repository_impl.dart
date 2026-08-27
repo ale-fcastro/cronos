@@ -30,8 +30,28 @@ class TasksRepositoryImpl implements TasksRepository {
       _datasource.pauseTimer(id, reason: reason, areaId: areaId);
 
   @override
-  Future<void> completeTask(String id, {DateTime? manualStart, DateTime? manualEnd}) =>
-      _datasource.completeTask(id, manualStart: manualStart, manualEnd: manualEnd);
+  Future<void> addSessionInterruption({
+    required String taskId,
+    required int sessionId,
+    required DateTime startedAt,
+    required DateTime endedAt,
+    required String reason,
+    String? areaId,
+  }) =>
+      _datasource.addSessionInterruption(
+        taskId: taskId,
+        sessionId: sessionId,
+        startedAt: startedAt,
+        endedAt: endedAt,
+        reason: reason,
+        areaId: areaId,
+      );
+
+  @override
+  Future<void> completeTask(String id,
+          {DateTime? manualStart, DateTime? manualEnd}) =>
+      _datasource.completeTask(id,
+          manualStart: manualStart, manualEnd: manualEnd);
 
   @override
   Future<void> markTaskNotDone(String id, String reason) =>
@@ -45,18 +65,22 @@ class TasksRepositoryImpl implements TasksRepository {
       _datasource.addSubtask(taskId, title, description: description);
 
   @override
-  Future<void> updateSubtask(String subtaskId, {required String title, String? description}) =>
-      _datasource.updateSubtask(subtaskId, title: title, description: description);
+  Future<void> updateSubtask(String subtaskId,
+          {required String title, String? description}) =>
+      _datasource.updateSubtask(subtaskId,
+          title: title, description: description);
 
   @override
   Future<void> toggleSubtask(String subtaskId, bool done) =>
       _datasource.toggleSubtask(subtaskId, done);
 
   @override
-  Future<void> deleteSubtask(String subtaskId) => _datasource.deleteSubtask(subtaskId);
+  Future<void> deleteSubtask(String subtaskId) =>
+      _datasource.deleteSubtask(subtaskId);
 
   @override
-  Future<NewTaskInput> getTaskEditData(String id) => _datasource.fetchTaskEditData(id);
+  Future<NewTaskInput> getTaskEditData(String id) =>
+      _datasource.fetchTaskEditData(id);
 
   @override
   Future<void> updateTask(String id, NewTaskInput input) =>
@@ -66,7 +90,8 @@ class TasksRepositoryImpl implements TasksRepository {
   Future<void> deleteTask(String id) => _datasource.deleteTask(id);
 
   @override
-  Future<List<TaskRecurrence>> getRecurrences() => _datasource.fetchRecurrences();
+  Future<List<TaskRecurrence>> getRecurrences() =>
+      _datasource.fetchRecurrences();
 
   @override
   Future<void> createRecurrence(NewTaskRecurrenceInput input) =>
@@ -80,11 +105,13 @@ class TasksRepositoryImpl implements TasksRepository {
       _datasource.generateUpcomingOccurrences();
 
   @override
-  Future<bool> hasScheduleConflict(DateTime plannedAt, {String? excludeTaskId}) =>
+  Future<bool> hasScheduleConflict(DateTime plannedAt,
+          {String? excludeTaskId}) =>
       _datasource.hasScheduleConflict(plannedAt, excludeTaskId: excludeTaskId);
 
   @override
   Future<void> updateRecurrenceTime(String recurrenceId,
           {required int weekday, required int minuteOfDay}) =>
-      _datasource.updateRecurrenceTime(recurrenceId, weekday: weekday, minuteOfDay: minuteOfDay);
+      _datasource.updateRecurrenceTime(recurrenceId,
+          weekday: weekday, minuteOfDay: minuteOfDay);
 }

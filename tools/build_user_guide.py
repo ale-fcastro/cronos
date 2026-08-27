@@ -412,6 +412,16 @@ story.append(para(
     'para no alargar la pantalla), editarla (ícono de lápiz) o borrarla '
     '(ícono de tacho, con confirmación).'))
 story.append(Spacer(1, 8))
+story.append(Paragraph('Corregir interrupciones dentro de una sesión', callout_title))
+story.append(para(
+    'Si dejaste el cronómetro corriendo mientras hacías otra cosa, tocá el '
+    'ícono de tijera junto a esa sesión. En la barra de tiempo, arrastrá los '
+    'dos extremos hasta marcar el tramo que no fue trabajo efectivo, elegí '
+    'qué pasó y, si sirve, el área de vida. Cronos separa la sesión en dos y '
+    'guarda el tramo intermedio como Evento, así deja de sumar a la tarea sin '
+    'borrar lo que ocurrió. Podés repetirlo para registrar varias '
+    'interrupciones en una misma sesión.'))
+story.append(Spacer(1, 8))
 story.append(Paragraph('Subtareas', callout_title))
 story.append(para(
     'Podés agregarle a una tarea una lista de subtareas, cada una con su '

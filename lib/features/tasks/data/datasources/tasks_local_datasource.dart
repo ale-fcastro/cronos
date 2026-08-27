@@ -17,6 +17,17 @@ import '../../domain/entities/task_summary.dart';
 
 /// Datasource real de tareas sobre SQLite.
 class TasksLocalDatasource {
+  static int _lastGeneratedMicros = 0;
+
+  static String _newId(String prefix) {
+    final current = DateTime.now().microsecondsSinceEpoch;
+    final next = current > _lastGeneratedMicros
+        ? current
+        : _lastGeneratedMicros + 1;
+    _lastGeneratedMicros = next;
+    return '$prefix$next';
+  }
+
   TasksLocalDatasource(
     this._database, [
     TimerService? timerService,
@@ -113,9 +124,8 @@ class TasksLocalDatasource {
     for (final s in sessions.reversed) {
       final start = DateTime.fromMillisecondsSinceEpoch(s['started_at'] as int);
       final endMs = s['ended_at'] as int?;
-      final end = endMs == null
-          ? now
-          : DateTime.fromMillisecondsSinceEpoch(endMs);
+      final end =
+          endMs == null ? now : DateTime.fromMillisecondsSinceEpoch(endMs);
       elapsed += end.difference(start);
       firstStart ??= start;
     }
@@ -123,11 +133,13 @@ class TasksLocalDatasource {
       final start = DateTime.fromMillisecondsSinceEpoch(s['started_at'] as int);
       final endMs = s['ended_at'] as int?;
       final running = endMs == null;
-      final end =
-          running ? now : DateTime.fromMillisecondsSinceEpoch(endMs);
+      final end = running ? now : DateTime.fromMillisecondsSinceEpoch(endMs);
       final day = fmtRelativeDay(start, now: now);
       final endLabel = running ? 'ahora' : fmtTime(end);
       history.add(TaskSession(
+        id: s['id'] as int,
+        startedAt: start,
+        endedAt: endMs == null ? null : end,
         rangeLabel: '$day · ${fmtTime(start)} — $endLabel',
         durationLabel: fmtDurationMin(end.difference(start).inMinutes),
         running: running,
@@ -142,7 +154,8 @@ class TasksLocalDatasource {
     final pauseReason = row['pause_reason'] as String?;
     final pausedAtMs = row['paused_at'] as int?;
     final pausedElapsedLabel = (pauseReason != null && pausedAtMs != null)
-        ? fmtClock(now.difference(DateTime.fromMillisecondsSinceEpoch(pausedAtMs)))
+        ? fmtClock(
+            now.difference(DateTime.fromMillisecondsSinceEpoch(pausedAtMs)))
         : null;
     final subtasks = await _fetchSubtasks(db, id);
 
@@ -152,7 +165,8 @@ class TasksLocalDatasource {
     bool? appVerified;
     if (linkedPackage != null && firstStart != null && elapsed.inSeconds > 0) {
       final windowEnd = t.completedAt ?? now;
-      final usage = await _appUsage.usageOf(linkedPackage, firstStart, windowEnd);
+      final usage =
+          await _appUsage.usageOf(linkedPackage, firstStart, windowEnd);
       appVerified = usage.inSeconds >= elapsed.inSeconds * 0.5;
     }
 
@@ -186,8 +200,76 @@ class TasksLocalDatasource {
   Future<void> pauseTimer(String id, {String? reason, String? areaId}) =>
       _timer.pauseTask(id, reason: reason, areaId: areaId);
 
-  Future<void> completeTask(String id, {DateTime? manualStart, DateTime? manualEnd}) async {
-    await _timer.completeTask(id, manualStart: manualStart, manualEnd: manualEnd);
+  /// Quita un tramo improductivo de una sesión y lo registra como Evento.
+  /// La sesión original queda como el tramo anterior y se crea otra fila
+  /// para el tramo posterior, conservando `ended_at = NULL` si seguía activa.
+  Future<void> addSessionInterruption({
+    required String taskId,
+    required int sessionId,
+    required DateTime startedAt,
+    required DateTime endedAt,
+    required String reason,
+    String? areaId,
+  }) async {
+    if (!endedAt.isAfter(startedAt)) {
+      throw ArgumentError('La interrupción debe tener una duración positiva.');
+    }
+    final db = await _database.database;
+    await db.transaction((txn) async {
+      final rows = await txn.query(
+        'task_sessions',
+        where: 'id = ? AND task_id = ?',
+        whereArgs: [sessionId, taskId],
+        limit: 1,
+      );
+      if (rows.isEmpty) throw StateError('La sesión ya no existe.');
+      final row = rows.first;
+      final sessionStart =
+          DateTime.fromMillisecondsSinceEpoch(row['started_at'] as int);
+      final originalEndMs = row['ended_at'] as int?;
+      final effectiveEnd = originalEndMs == null
+          ? DateTime.now()
+          : DateTime.fromMillisecondsSinceEpoch(originalEndMs);
+      if (!startedAt.isAfter(sessionStart) || endedAt.isAfter(effectiveEnd)) {
+        throw ArgumentError('La interrupción debe quedar dentro de la sesión.');
+      }
+
+      var resolvedAreaId = areaId;
+      if (resolvedAreaId == null) {
+        final task = await txn.query(
+          'tasks',
+          columns: ['area_id'],
+          where: 'id = ?',
+          whereArgs: [taskId],
+          limit: 1,
+        );
+        resolvedAreaId = task.isEmpty ? null : task.first['area_id'] as String?;
+      }
+      await txn.update(
+        'task_sessions',
+        {'ended_at': startedAt.millisecondsSinceEpoch},
+        where: 'id = ?',
+        whereArgs: [sessionId],
+      );
+      await txn.insert('task_sessions', {
+        'task_id': taskId,
+        'started_at': endedAt.millisecondsSinceEpoch,
+        'ended_at': originalEndMs,
+      });
+      await txn.insert('events', {
+        'title': reason,
+        'category': reason,
+        'area_id': resolvedAreaId,
+        'started_at': startedAt.millisecondsSinceEpoch,
+        'ended_at': endedAt.millisecondsSinceEpoch,
+      });
+    });
+  }
+
+  Future<void> completeTask(String id,
+      {DateTime? manualStart, DateTime? manualEnd}) async {
+    await _timer.completeTask(id,
+        manualStart: manualStart, manualEnd: manualEnd);
     await _notifications.cancelTaskReminder(id);
   }
 
@@ -198,7 +280,9 @@ class TasksLocalDatasource {
 
   Future<List<Subtask>> _fetchSubtasks(Database db, String taskId) async {
     final rows = await db.query('subtasks',
-        where: 'task_id = ?', whereArgs: [taskId], orderBy: 'sort ASC, created_at ASC');
+        where: 'task_id = ?',
+        whereArgs: [taskId],
+        orderBy: 'sort ASC, created_at ASC');
     return [
       for (final r in rows)
         Subtask(
@@ -210,13 +294,14 @@ class TasksLocalDatasource {
     ];
   }
 
-  Future<void> addSubtask(String taskId, String title, {String? description}) async {
+  Future<void> addSubtask(String taskId, String title,
+      {String? description}) async {
     final db = await _database.database;
     final maxSortRows = await db.rawQuery(
         'SELECT MAX(sort) AS m FROM subtasks WHERE task_id = ?', [taskId]);
     final nextSort = ((maxSortRows.first['m'] as int?) ?? -1) + 1;
     await db.insert('subtasks', {
-      'id': 'sub${DateTime.now().microsecondsSinceEpoch}',
+      'id': _newId('sub'),
       'task_id': taskId,
       'title': title,
       'description': description,
@@ -226,7 +311,8 @@ class TasksLocalDatasource {
     });
   }
 
-  Future<void> updateSubtask(String subtaskId, {required String title, String? description}) async {
+  Future<void> updateSubtask(String subtaskId,
+      {required String title, String? description}) async {
     final db = await _database.database;
     await db.update('subtasks', {'title': title, 'description': description},
         where: 'id = ?', whereArgs: [subtaskId]);
@@ -255,7 +341,9 @@ class TasksLocalDatasource {
       project: (row['project'] as String?) ?? 'Personal',
       priority: TaskPriority.values[p - 1],
       areaId: row['area_id'] as String?,
-      plannedAt: plannedMs == null ? null : DateTime.fromMillisecondsSinceEpoch(plannedMs),
+      plannedAt: plannedMs == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(plannedMs),
       estimateMinutes: (row['estimate_min'] as int?) ?? 30,
       notes: row['notes'] as String?,
       linkedPackage: row['linked_package'] as String?,
@@ -267,7 +355,8 @@ class TasksLocalDatasource {
   /// true si ya hay otra tarea (sin terminar) planificada exactamente a
   /// [plannedAt]. [excludeTaskId] se usa al editar, para no chocar contra
   /// la propia tarea que se está guardando.
-  Future<bool> hasScheduleConflict(DateTime plannedAt, {String? excludeTaskId}) async {
+  Future<bool> hasScheduleConflict(DateTime plannedAt,
+      {String? excludeTaskId}) async {
     final db = await _database.database;
     final where = StringBuffer("planned_at = ? AND status != 'done'");
     final args = <Object?>[plannedAt.millisecondsSinceEpoch];
@@ -275,7 +364,8 @@ class TasksLocalDatasource {
       where.write(' AND id != ?');
       args.add(excludeTaskId);
     }
-    final rows = await db.query('tasks', where: where.toString(), whereArgs: args, limit: 1);
+    final rows = await db.query('tasks',
+        where: where.toString(), whereArgs: args, limit: 1);
     return rows.isNotEmpty;
   }
 
@@ -288,7 +378,8 @@ class TasksLocalDatasource {
     required int minuteOfDay,
   }) async {
     final db = await _database.database;
-    final rows = await db.query('task_recurrences', where: 'id = ?', whereArgs: [recurrenceId]);
+    final rows = await db
+        .query('task_recurrences', where: 'id = ?', whereArgs: [recurrenceId]);
     if (rows.isEmpty) return;
     final mode = rows.first['mode'] as String;
     if (mode == RecurrenceMode.dailySameTime.name) {
@@ -350,7 +441,7 @@ class TasksLocalDatasource {
   Future<void> createTask(NewTaskInput input) async {
     final db = await _database.database;
     final now = DateTime.now();
-    final id = 't${now.microsecondsSinceEpoch}';
+    final id = _newId('t');
     await db.insert('tasks', {
       'id': id,
       'title': input.title,
@@ -421,9 +512,9 @@ class TasksLocalDatasource {
               now: now,
             ).toLowerCase(),
           ].join(' · '),
-          countLabel:
-              '${r['c']} ${(r['c'] as int) == 1 ? 'vez' : 'veces'}',
-          avgLabel: 'est ${fmtDurationMin(((r['avg_est'] as num?) ?? 0).round())}',
+          countLabel: '${r['c']} ${(r['c'] as int) == 1 ? 'vez' : 'veces'}',
+          avgLabel:
+              'est ${fmtDurationMin(((r['avg_est'] as num?) ?? 0).round())}',
           project: (r['project'] as String?) ?? 'Personal',
           priority: TaskPriority
               .values[((r['priority'] as int?) ?? 2).clamp(1, 3) - 1],
@@ -450,11 +541,12 @@ class TasksLocalDatasource {
       'notes': input.notes,
       'mode': input.mode.name,
       'same_time_minute': input.sameTimeMinuteOfDay,
-      'weekday_minutes': jsonEncode(
-          input.weekdayMinuteOfDay.map((k, v) => MapEntry('$k', v))),
+      'weekday_minutes':
+          jsonEncode(input.weekdayMinuteOfDay.map((k, v) => MapEntry('$k', v))),
       'start_date': _dateKey(input.startDate),
       'subtasks_json': jsonEncode([
-        for (final s in input.subtasks) {'title': s.title, 'description': s.description},
+        for (final s in input.subtasks)
+          {'title': s.title, 'description': s.description},
       ]),
       'created_at': DateTime.now().millisecondsSinceEpoch,
     });
@@ -494,8 +586,8 @@ class TasksLocalDatasource {
         );
         if (exists.isNotEmpty) continue;
 
-        final plannedAt = DateTime(
-            date.year, date.month, date.day, minuteOfDay ~/ 60, minuteOfDay % 60);
+        final plannedAt = DateTime(date.year, date.month, date.day,
+            minuteOfDay ~/ 60, minuteOfDay % 60);
         final id = 't${DateTime.now().microsecondsSinceEpoch}_$i';
         await db.insert('tasks', {
           'id': id,
@@ -534,8 +626,8 @@ class TasksLocalDatasource {
       title: r['title'] as String,
       project: (r['project'] as String?) ?? 'Personal',
       areaId: r['area_id'] as String?,
-      priority: TaskPriority
-          .values[((r['priority'] as int?) ?? 2).clamp(1, 3) - 1],
+      priority:
+          TaskPriority.values[((r['priority'] as int?) ?? 2).clamp(1, 3) - 1],
       estimateMinutes: (r['estimate_min'] as int?) ?? 30,
       notes: r['notes'] as String?,
       mode: RecurrenceMode.values.firstWhere((m) => m.name == r['mode']),
@@ -543,8 +635,8 @@ class TasksLocalDatasource {
       // de inicio: se comportan como siempre, generan desde hoy.
       startDate: _parseDateKey(r['start_date'] as String?) ?? DateTime(2000),
       sameTimeMinuteOfDay: r['same_time_minute'] as int?,
-      weekdayMinuteOfDay: weekdayJson.map(
-          (k, v) => MapEntry(int.parse(k as String), (v as num).toInt())),
+      weekdayMinuteOfDay: weekdayJson
+          .map((k, v) => MapEntry(int.parse(k as String), (v as num).toInt())),
       subtasks: [
         for (final s in subtasksJson)
           NewSubtaskDraft(
@@ -600,8 +692,9 @@ class _TaskRow {
   factory _TaskRow.from(Map<String, Object?> row, DateTime now, int realMin) {
     final storedStatus = row['status'] as String;
     final plannedMs = row['planned_at'] as int?;
-    final plannedAt =
-        plannedMs == null ? null : DateTime.fromMillisecondsSinceEpoch(plannedMs);
+    final plannedAt = plannedMs == null
+        ? null
+        : DateTime.fromMillisecondsSinceEpoch(plannedMs);
     TaskStatus status;
     if (storedStatus == 'done') {
       status = TaskStatus.done;
@@ -647,7 +740,8 @@ class _TaskRow {
     final p = plannedAt;
     if (p != null) {
       final rel = fmtRelativeDay(p, now: now);
-      plannedLabel = rel == 'Hoy' ? fmtTime(p) : '${rel.toLowerCase()} ${fmtTime(p)}';
+      plannedLabel =
+          rel == 'Hoy' ? fmtTime(p) : '${rel.toLowerCase()} ${fmtTime(p)}';
     }
     var info = 'est ${fmtDurationMin(estimateMin)}';
     if (realMin > 0) {

@@ -167,8 +167,10 @@ class CreateTaskState extends Equatable {
       repeatWeekdayMinuteOfDay:
           repeatWeekdayMinuteOfDay ?? this.repeatWeekdayMinuteOfDay,
       repeatStartDate: repeatStartDate ?? this.repeatStartDate,
-      linkedPackage: clearLinkedApp ? null : (linkedPackage ?? this.linkedPackage),
-      linkedAppName: clearLinkedApp ? null : (linkedAppName ?? this.linkedAppName),
+      linkedPackage:
+          clearLinkedApp ? null : (linkedPackage ?? this.linkedPackage),
+      linkedAppName:
+          clearLinkedApp ? null : (linkedAppName ?? this.linkedAppName),
       submitting: submitting ?? this.submitting,
       submitted: submitted ?? this.submitted,
       timeConflict: timeConflict ?? this.timeConflict,

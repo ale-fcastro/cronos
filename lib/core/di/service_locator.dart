@@ -128,7 +128,8 @@ void configureDependencies({AppDatabase? database}) {
 
   // Dashboard
   sl.registerLazySingleton(() => DashboardLocalDatasource(sl(), sl()));
-  sl.registerLazySingleton<DashboardRepository>(() => DashboardRepositoryImpl(sl()));
+  sl.registerLazySingleton<DashboardRepository>(
+      () => DashboardRepositoryImpl(sl()));
   sl.registerLazySingleton(() => GetTodaySummary(sl()));
   sl.registerFactory(() => DashboardCubit(sl(), sl(), sl()));
   sl.registerLazySingleton(() => HomeWidgetService(sl(), sl(), sl()));
@@ -136,7 +137,8 @@ void configureDependencies({AppDatabase? database}) {
 
   // Schedule
   sl.registerLazySingleton(() => ScheduleLocalDatasource(sl(), sl()));
-  sl.registerLazySingleton<ScheduleRepository>(() => ScheduleRepositoryImpl(sl()));
+  sl.registerLazySingleton<ScheduleRepository>(
+      () => ScheduleRepositoryImpl(sl()));
   sl.registerLazySingleton(() => GetDayAgenda(sl()));
   sl.registerLazySingleton(() => GetMonthOverview(sl()));
   sl.registerFactory(() => ScheduleCubit(sl(), sl(), sl(), sl()));
@@ -148,6 +150,7 @@ void configureDependencies({AppDatabase? database}) {
   sl.registerLazySingleton(() => GetTaskDetail(sl()));
   sl.registerLazySingleton(() => StartTaskTimer(sl()));
   sl.registerLazySingleton(() => PauseTaskTimer(sl()));
+  sl.registerLazySingleton(() => AddTaskSessionInterruption(sl()));
   sl.registerLazySingleton(() => CompleteTask(sl()));
   sl.registerLazySingleton(() => MarkTaskNotDone(sl()));
   sl.registerLazySingleton(() => AddSubtask(sl()));
@@ -166,16 +169,18 @@ void configureDependencies({AppDatabase? database}) {
   sl.registerLazySingleton(() => CheckScheduleConflict(sl()));
   sl.registerLazySingleton(() => UpdateTaskRecurrenceTime(sl()));
   sl.registerFactory(() => TasksListCubit(sl(), sl(), sl()));
-  sl.registerFactoryParam<TaskDetailCubit, String, void>((taskId, _) => TaskDetailCubit(
-      sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), taskId));
-  sl.registerFactoryParam<CreateTaskCubit, String?, void>(
-      (editingTaskId, _) => CreateTaskCubit(sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(),
+  sl.registerFactoryParam<TaskDetailCubit, String, void>((taskId, _) =>
+      TaskDetailCubit(sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(),
+          sl(), sl(), sl(), taskId));
+  sl.registerFactoryParam<CreateTaskCubit, String?, void>((editingTaskId, _) =>
+      CreateTaskCubit(sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(),
           sl(), sl(), editingTaskId));
   sl.registerFactory(() => TaskRecurrencesCubit(sl(), sl(), sl()));
 
   // Activities
   sl.registerLazySingleton(() => ActivitiesLocalDatasource(sl(), sl()));
-  sl.registerLazySingleton<ActivitiesRepository>(() => ActivitiesRepositoryImpl(sl()));
+  sl.registerLazySingleton<ActivitiesRepository>(
+      () => ActivitiesRepositoryImpl(sl()));
   sl.registerLazySingleton(() => GetFrequentActivities(sl()));
   sl.registerLazySingleton(() => GetTodayActivityLog(sl()));
   sl.registerLazySingleton(() => GetRunningActivity(sl()));
@@ -189,8 +194,8 @@ void configureDependencies({AppDatabase? database}) {
   sl.registerLazySingleton(() => GetTimeRules(sl()));
   sl.registerLazySingleton(() => AddTimeRule(sl()));
   sl.registerLazySingleton(() => RemoveTimeRule(sl()));
-  sl.registerFactory(
-      () => ActivitiesCubit(sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl()));
+  sl.registerFactory(() => ActivitiesCubit(
+      sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl()));
 
   // Events
   sl.registerLazySingleton(() => EventsLocalDatasource(sl()));
@@ -210,7 +215,8 @@ void configureDependencies({AppDatabase? database}) {
 
   // Notifications
   sl.registerLazySingleton(() => NotificationsLocalDatasource(sl()));
-  sl.registerLazySingleton<NotificationsRepository>(() => NotificationsRepositoryImpl(sl()));
+  sl.registerLazySingleton<NotificationsRepository>(
+      () => NotificationsRepositoryImpl(sl()));
   sl.registerLazySingleton(() => GetNotificationsEnabled(sl()));
   sl.registerLazySingleton(() => SetNotificationsEnabled(sl()));
   sl.registerLazySingleton(() => HasNotificationsPermission(sl()));
@@ -219,7 +225,8 @@ void configureDependencies({AppDatabase? database}) {
 
   // Metrics (Analizar)
   sl.registerLazySingleton(() => MetricsLocalDatasource(sl(), sl(), sl()));
-  sl.registerLazySingleton<MetricsRepository>(() => MetricsRepositoryImpl(sl()));
+  sl.registerLazySingleton<MetricsRepository>(
+      () => MetricsRepositoryImpl(sl()));
   sl.registerLazySingleton(() => GetMetricsSnapshot(sl()));
   sl.registerLazySingleton(() => GetTaskStatistics(sl()));
   sl.registerLazySingleton(() => GetPhoneUsage(sl()));
@@ -229,7 +236,8 @@ void configureDependencies({AppDatabase? database}) {
 
   // Projects
   sl.registerLazySingleton(() => ProjectsLocalDatasource(sl()));
-  sl.registerLazySingleton<ProjectsRepository>(() => ProjectsRepositoryImpl(sl()));
+  sl.registerLazySingleton<ProjectsRepository>(
+      () => ProjectsRepositoryImpl(sl()));
   sl.registerLazySingleton(() => GetProjects(sl()));
   sl.registerLazySingleton(() => CreateProject(sl()));
   sl.registerLazySingleton(() => DeleteProject(sl()));
@@ -237,7 +245,8 @@ void configureDependencies({AppDatabase? database}) {
 
   // Security
   sl.registerLazySingleton(() => SecurityLocalDatasource(sl()));
-  sl.registerLazySingleton<SecurityRepository>(() => SecurityRepositoryImpl(sl()));
+  sl.registerLazySingleton<SecurityRepository>(
+      () => SecurityRepositoryImpl(sl()));
   sl.registerLazySingleton(() => GetLockEnabled(sl()));
   sl.registerLazySingleton(() => SetLockEnabled(sl()));
   sl.registerLazySingleton(() => CanAuthenticate(sl()));
@@ -247,7 +256,8 @@ void configureDependencies({AppDatabase? database}) {
 
   // Settings
   sl.registerLazySingleton(() => SettingsLocalDatasource(sl()));
-  sl.registerLazySingleton<SettingsRepository>(() => SettingsRepositoryImpl(sl()));
+  sl.registerLazySingleton<SettingsRepository>(
+      () => SettingsRepositoryImpl(sl()));
   sl.registerLazySingleton(() => GetSettings(sl()));
   sl.registerLazySingleton(() => UpdateSetting(sl()));
   sl.registerLazySingleton(() => CreateCustomSchedule(sl()));
@@ -255,6 +265,7 @@ void configureDependencies({AppDatabase? database}) {
   sl.registerLazySingleton(() => DeleteCustomSchedule(sl()));
   sl.registerLazySingleton(() => UpdateScheduleRange(sl()));
   sl.registerLazySingleton(() => DeleteScheduleRange(sl()));
-  sl.registerFactory(() => SettingsCubit(sl(), sl(), sl(), sl(), sl(), sl(), sl()));
+  sl.registerFactory(
+      () => SettingsCubit(sl(), sl(), sl(), sl(), sl(), sl(), sl()));
   sl.registerFactory(() => LifeAreasCubit(sl()));
 }

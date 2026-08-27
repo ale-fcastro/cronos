@@ -9,10 +9,12 @@ class TasksListState extends Equatable {
 
   bool get isLoading => tasks == null;
 
-  int get lateCount => (tasks ?? []).where((t) => t.status == TaskStatus.late).length;
+  int get lateCount =>
+      (tasks ?? []).where((t) => t.status == TaskStatus.late).length;
 
   TasksListState copyWith({String? scope, List<TaskSummary>? tasks}) {
-    return TasksListState(scope: scope ?? this.scope, tasks: tasks ?? this.tasks);
+    return TasksListState(
+        scope: scope ?? this.scope, tasks: tasks ?? this.tasks);
   }
 
   @override

@@ -638,7 +638,7 @@ class AppDatabase {
       settingsMap[r['key'] as String] = r['value'] as String;
     }
     
-    int _parseTimeToMinutes(String hhmm, int fallback) {
+    int parseTimeToMinutes(String hhmm, int fallback) {
       final parts = hhmm.split(':');
       if (parts.length != 2) return fallback;
       final h = int.tryParse(parts[0]);
@@ -647,11 +647,11 @@ class AppDatabase {
       return h * 60 + m;
     }
     
-    final workStart = _parseTimeToMinutes(settingsMap['work_start'] ?? '09:00', 9 * 60);
-    final workEnd = _parseTimeToMinutes(settingsMap['work_end'] ?? '18:00', 18 * 60);
-    final studyStart = _parseTimeToMinutes(settingsMap['study_start'] ?? '19:00', 19 * 60);
-    final studyEnd = _parseTimeToMinutes(settingsMap['study_end'] ?? '21:00', 21 * 60);
-    final sleepTime = _parseTimeToMinutes(settingsMap['sleep_time'] ?? '23:30', 23 * 60 + 30);
+    final workStart = parseTimeToMinutes(settingsMap['work_start'] ?? '09:00', 9 * 60);
+    final workEnd = parseTimeToMinutes(settingsMap['work_end'] ?? '18:00', 18 * 60);
+    final studyStart = parseTimeToMinutes(settingsMap['study_start'] ?? '19:00', 19 * 60);
+    final studyEnd = parseTimeToMinutes(settingsMap['study_end'] ?? '21:00', 21 * 60);
+    final sleepTime = parseTimeToMinutes(settingsMap['sleep_time'] ?? '23:30', 23 * 60 + 30);
     
     // Insertar horarios para los 7 días de la semana
     final batch = db.batch();
