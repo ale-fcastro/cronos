@@ -2,7 +2,7 @@
 
 export const site = {
   name: 'Cronos',
-  title: 'Cronos — El sistema operativo personal de tu tiempo',
+  title: 'Cronos | El sistema operativo personal de tu tiempo',
   description:
     'Cronos mide qué haces con tu tiempo: tareas con cronómetro, agenda, actividades y un score diario. Gratis para Android, sin cuenta y con tus datos solo en tu teléfono.',
 };
