@@ -1,0 +1,85 @@
+---
+import Logo from './Logo.astro';
+import SocialIcon from './SocialIcon.astro';
+import { footerNav } from '../data/content';
+import { author, socials, otherProducts } from '../data/social';
+import { REPO_URL, release } from '../data/downloads';
+const year = new Date().getFullYear();
+---
+<footer>
+  <div class="container">
+    <div class="grid">
+      <section class="brand">
+        <a class="logo" href="/" aria-label="Cronos — inicio"><Logo size={34} />Cronos</a>
+        <p>El sistema operativo personal de tu tiempo. Gratis para Android, sin cuenta y con tus datos solo en tu teléfono.</p>
+        <ul class="socials" aria-label="Redes de Francisco Castro">
+          {socials.map((s) => (
+            <li><a href={s.href} aria-label={s.label} title={s.label} target={s.href.startsWith('http') ? '_blank' : undefined} rel="noopener me"><SocialIcon name={s.icon} /></a></li>
+          ))}
+        </ul>
+      </section>
+      <nav class="fnav" aria-label="Pie de página">
+        {footerNav.map((g) => (
+          <section>
+            <h3>{g.title}</h3>
+            <ul>
+              {g.links.map((l) => (
+                <li>{'cookies' in l
+                  ? <button type="button" data-cookie-settings>{l.label}</button>
+                  : <a href={l.href}>{l.label}</a>}</li>
+              ))}
+            </ul>
+          </section>
+        ))}
+        <section>
+          <h3>Más productos</h3>
+          <ul>
+            {otherProducts.map((p) => <li><a href={p.href} target="_blank" rel="noopener">{p.name}</a></li>)}
+            <li><a href={REPO_URL} target="_blank" rel="noopener">Código de Cronos</a></li>
+          </ul>
+        </section>
+        <section>
+          <h3>Autor</h3>
+          <ul>
+            <li><a href={author.site} target="_blank" rel="noopener author">{author.name}</a></li>
+            <li><a href={`mailto:${author.email}`}>{author.email}</a></li>
+            <li><span class="muted">{author.role}</span></li>
+          </ul>
+        </section>
+      </nav>
+    </div>
+    <p class="wordmark" aria-hidden="true">CRONOS</p>
+    <div class="copy">
+      <small>© {year} Cronos · por <a href={author.site} rel="author">{author.name}</a></small>
+      <span>{release.version} · Hecho con Flutter · Sitio en Astro</span>
+      <a href="/terminos">Términos y condiciones</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('[data-cookie-settings]').forEach((b) =>
+    b.addEventListener('click', () => window.dispatchEvent(new CustomEvent('cronos:cookie-settings'))),
+  );
+</script>
+
+<style>
+  footer { border-top: 1px solid var(--border); padding-top: 72px; overflow: hidden; }
+  .grid { display: grid; grid-template-columns: 1.2fr 2.8fr; gap: 48px; padding-bottom: 48px; }
+  .logo { display: flex; align-items: center; gap: 10px; font-size: 22px; font-weight: 600; }
+  .brand p { color: var(--fg-3); font-size: 14px; margin-top: 16px; max-width: 320px; }
+  .socials { display: flex; gap: 8px; margin-top: 24px; }
+  .socials a { display: grid; place-items: center; width: 40px; height: 40px; border: 1px solid var(--border-strong); border-radius: 10px; color: var(--fg-2); transition: .2s; }
+  .socials a:hover { color: var(--fg); border-color: var(--border-active); background: var(--surface); }
+  .socials :global(svg) { width: 18px; height: 18px; }
+  .fnav { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; }
+  h3 { font-family: var(--mono); font-size: 12px; text-transform: uppercase; color: var(--fg-2); font-weight: 400; margin-bottom: 14px; }
+  li { margin: 8px 0; font-size: 14px; }
+  li a, li button { color: var(--fg-2); background: none; border: 0; font: inherit; cursor: pointer; padding: 0; text-align: left; word-break: break-word; }
+  li a:hover, li button:hover { color: var(--fg); }
+  .muted { color: var(--fg-3); }
+  .wordmark { font-weight: 600; font-size: clamp(64px, 19.5vw, 280px); line-height: .8; letter-spacing: -.05em; color: var(--surface-2); text-align: center; margin: 8px 0 24px; user-select: none; white-space: nowrap; }
+  .copy { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; border-top: 1px solid var(--border); padding: 24px 0; color: var(--fg-3); font-size: 13px; }
+  .copy a:hover { color: var(--fg); }
+  @media (max-width: 960px) { .grid { grid-template-columns: 1fr; } .fnav { grid-template-columns: 1fr 1fr; } }
+</style>

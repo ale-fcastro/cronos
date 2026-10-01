@@ -1,0 +1,15 @@
+---
+// Isotipo de Cronos (assets/icon_cronos_512.png) redibujado en SVG.
+interface Props { size?: number; tile?: boolean }
+const { size = 30, tile = false } = Astro.props;
+---
+<svg width={size} height={size} viewBox="0 0 64 64" fill="none" aria-hidden="true">
+  {tile && <rect width="64" height="64" rx="14" fill="#16171B" />}
+  <circle cx="32" cy="32" r="18.5" stroke="#3A3D45" stroke-width="3.6" />
+  <path d="M31.35 13.51 A18.5 18.5 0 1 1 14.85 38.93" stroke="#9DB1F5" stroke-width="3.6" stroke-linecap="round" />
+  <circle cx="31.35" cy="13.51" r="2.3" fill="#9DB1F5" />
+  <circle cx="14.85" cy="38.93" r="2.3" fill="#9DB1F5" />
+  <path d="M32 32 24.5 25.6" stroke="#9DB1F5" stroke-width="3.2" stroke-linecap="round" />
+  <path d="M32 32 43.6 25" stroke="#DDB168" stroke-width="3.2" stroke-linecap="round" />
+  <circle cx="32" cy="32" r="2.6" fill="#16171B" stroke="#9DB1F5" stroke-width="1.8" />
+</svg>

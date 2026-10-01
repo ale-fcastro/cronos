@@ -1,0 +1,99 @@
+---
+import Croni from './Croni.astro';
+---
+<section class="bt nl" id="newsletter" aria-labelledby="nl-title">
+  <div class="container grid">
+    <div class="art"><Croni size={180} state="celebrate" /></div>
+    <div>
+      <p class="eyebrow mono">Newsletter</p>
+      <h2 class="h-heading" id="nl-title">Croni te avisa cuando hay algo nuevo</h2>
+      <p class="lede">Versiones nuevas, funciones y poco más. Sin spam: solo cuando valga la pena.</p>
+      <form class="form" novalidate>
+        <label class="vh" for="nl-email">Correo electrónico</label>
+        <div class="field">
+          <input id="nl-email" name="email" type="email" autocomplete="email" placeholder="tu@correo.com" required />
+          <button class="btn accent" type="submit" disabled>Suscribirme</button>
+        </div>
+        <!-- Honeypot: las personas no lo ven, los bots lo llenan -->
+        <input class="hp" type="text" name="company" tabindex="-1" autocomplete="off" aria-hidden="true" />
+        <label class="consent">
+          <input type="checkbox" name="consent" required />
+          <span>Acepto recibir correos de Cronos y la <a href="/terminos#newsletter">política de privacidad</a>. Me puedo dar de baja cuando quiera.</span>
+        </label>
+        <p class="status" role="status" aria-live="polite"></p>
+      </form>
+    </div>
+  </div>
+</section>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>('#newsletter form')!;
+  const input = form.querySelector<HTMLInputElement>('input[type=email]')!;
+  const consent = form.querySelector<HTMLInputElement>('input[name=consent]')!;
+  const hp = form.querySelector<HTMLInputElement>('input[name=company]')!;
+  const submit = form.querySelector<HTMLButtonElement>('button[type=submit]')!;
+  const status = form.querySelector<HTMLElement>('.status')!;
+  const sync = () => { submit.disabled = !input.checkValidity() || !input.value.trim() || !consent.checked; };
+  input.addEventListener('input', sync);
+  consent.addEventListener('change', sync);
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (submit.disabled || submit.dataset.busy) return;
+    submit.dataset.busy = '1';
+    submit.disabled = true;
+    submit.textContent = 'Enviando…';
+    status.textContent = '';
+    status.dataset.kind = '';
+    try {
+      const res = await fetch('/api/newsletter', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: input.value, consent: consent.checked, company: hp.value }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (res.ok && body.ok) {
+        status.textContent = '¡Listo! Revisa tu correo: te mandamos una confirmación.';
+        status.dataset.kind = 'ok';
+        input.value = '';
+        consent.checked = false;
+      } else {
+        status.textContent = body.error ?? 'Algo salió mal. Prueba de nuevo.';
+        status.dataset.kind = 'err';
+      }
+    } catch {
+      status.textContent = 'No pudimos conectar con el servidor. Revisa tu conexión.';
+      status.dataset.kind = 'err';
+    } finally {
+      delete submit.dataset.busy;
+      submit.textContent = 'Suscribirme';
+      sync();
+    }
+  });
+</script>
+
+<style>
+  .nl { padding-block: 96px; background: radial-gradient(ellipse at 20% 50%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 60%); }
+  .grid { display: grid; grid-template-columns: 280px 1fr; gap: 56px; align-items: center; }
+  .art { display: flex; justify-content: center; }
+  .eyebrow { font-size: 12px; color: var(--accent); margin-bottom: 14px; }
+  .lede { margin-top: 16px; max-width: 520px; }
+  .form { margin-top: 32px; max-width: 560px; }
+  .field { display: flex; gap: 8px; padding: 6px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--surface); }
+  .field:focus-within { border-color: var(--border-active); }
+  input[type=email] { flex: 1; min-width: 0; background: none; border: 0; color: var(--fg); font: inherit; font-size: 16px; padding: 0 12px; outline: none; }
+  input[type=email]::placeholder { color: var(--fg-3); }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+  .consent { display: flex; gap: 10px; align-items: flex-start; margin-top: 14px; font-size: 13px; color: var(--fg-2); cursor: pointer; }
+  .consent input { margin-top: 3px; accent-color: var(--accent); width: 16px; height: 16px; flex: none; }
+  .consent a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+  .status { margin-top: 14px; font-size: 14px; min-height: 21px; }
+  .status[data-kind='ok'] { color: var(--success); }
+  .status[data-kind='err'] { color: var(--danger); }
+  @media (max-width: 860px) {
+    .grid { grid-template-columns: 1fr; gap: 24px; }
+    .art { justify-content: flex-start; }
+    .field { flex-direction: column; }
+    input[type=email] { padding: 12px; }
+  }
+</style>

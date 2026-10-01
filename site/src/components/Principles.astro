@@ -1,0 +1,25 @@
+---
+import { principles } from '../data/content';
+---
+<section class="bt">
+  <div class="container wrap">
+    <h2>Hecho distinto <span>a propósito</span></h2>
+    <ul class="grid">
+      {principles.map((p) => (
+        <li><b>{p.k}</b><span>{p.v}</span></li>
+      ))}
+    </ul>
+  </div>
+</section>
+
+<style>
+  .wrap { display: grid; grid-template-columns: 240px 1fr; gap: 40px; padding-block: 56px; }
+  h2 { font-weight: 300; font-size: 28px; letter-spacing: -.03em; line-height: 1.15; }
+  h2 span { display: block; color: var(--fg-2); }
+  .grid { display: grid; grid-template-columns: repeat(5, 1fr); border-left: 1px solid var(--border); border-top: 1px solid var(--border); }
+  li { padding: 20px; min-height: 120px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; transition: background .2s; }
+  li:hover { background: var(--surface); }
+  b { font-family: var(--mono); font-weight: 500; font-size: 13px; text-transform: uppercase; color: var(--accent); }
+  span { color: var(--fg-2); font-size: 14px; }
+  @media (max-width: 960px) { .wrap { grid-template-columns: 1fr; } .grid { grid-template-columns: 1fr 1fr; } }
+</style>

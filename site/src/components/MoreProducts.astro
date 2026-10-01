@@ -1,0 +1,38 @@
+---
+import Icon from './Icon.astro';
+import { otherProducts, author } from '../data/social';
+---
+<section class="bt">
+  <div class="container wrap">
+    <div>
+      <h3>Más herramientas gratis</h3>
+      <p class="d">Otros proyectos de {author.name}. Gratis, open source y pensados para que tus datos sean tuyos.</p>
+    </div>
+    <ul class="cards">
+      {otherProducts.map((p) => (
+        <li class="card">
+          <span class="tag mono">{p.tag}</span>
+          <a href={p.href} target="_blank" rel="noopener">{p.name}</a>
+          <p>{p.text}</p>
+          <Icon name="arrow" />
+        </li>
+      ))}
+    </ul>
+  </div>
+</section>
+
+<style>
+  .wrap { padding-block: 96px; display: grid; grid-template-columns: 1fr 2fr; gap: 48px; }
+  h3 { font-weight: 300; font-size: 44px; letter-spacing: -.03em; line-height: 1.05; }
+  .d { color: var(--fg-2); margin-top: 16px; max-width: 340px; }
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .card { position: relative; border: 1px solid var(--border); border-radius: 12px; padding: 24px; min-height: 190px; transition: .2s; background: var(--surface); }
+  .card:hover { border-color: var(--border-active); background: var(--highlight); }
+  .tag { font-size: 11px; color: var(--fg-3); display: block; margin-bottom: 12px; }
+  a { font-size: 22px; font-weight: 500; }
+  a::after { content: ''; position: absolute; inset: 0; }
+  p { color: var(--fg-2); margin-top: 8px; font-size: 15px; max-width: 300px; }
+  .card :global(svg) { position: absolute; right: 20px; bottom: 20px; width: 20px; height: 20px; color: var(--fg-4); transition: .2s; }
+  .card:hover :global(svg) { color: var(--accent); transform: translate(4px, -4px) rotate(-45deg); }
+  @media (max-width: 860px) { .wrap, .cards { grid-template-columns: 1fr; } }
+</style>

@@ -1,0 +1,53 @@
+---
+import Logo from './Logo.astro';
+import { nav } from '../data/content';
+import { REPO_URL } from '../data/downloads';
+---
+<header class="hdr-wrap">
+  <div class="container hdr">
+    <a class="logo" href="/" aria-label="Cronos — inicio"><Logo />Cronos</a>
+    <nav class="nav" aria-label="Principal">
+      {nav.map((n) => <a href={n.href}>{n.label}</a>)}
+    </nav>
+    <div class="actions">
+      <a class="btn ghost sm" href={REPO_URL} target="_blank" rel="noopener">GitHub</a>
+      <a class="btn accent sm" href="/descargar">Descargar</a>
+    </div>
+    <button class="menu-btn" aria-expanded="false" aria-controls="mnav" aria-label="Abrir menú">
+      <svg viewBox="0 0 24 24" width="24" height="24"><path d="M3 5h18M3 12h18M3 19h18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" /></svg>
+    </button>
+  </div>
+  <nav class="mnav" id="mnav" aria-label="Menú móvil">
+    {nav.map((n) => <a href={n.href}>{n.label}</a>)}
+    <div class="row">
+      <a class="btn ghost sm" href={REPO_URL} target="_blank" rel="noopener">GitHub</a>
+      <a class="btn accent sm" href="/descargar">Descargar</a>
+    </div>
+  </nav>
+</header>
+
+<script>
+  const btn = document.querySelector<HTMLButtonElement>('.menu-btn')!;
+  const m = document.getElementById('mnav')!;
+  btn.addEventListener('click', () => btn.setAttribute('aria-expanded', String(m.classList.toggle('open'))));
+  m.querySelectorAll('a').forEach((a) => a.addEventListener('click', () => { m.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); }));
+</script>
+
+<style>
+  .hdr-wrap { position: sticky; top: 0; z-index: 50; background: rgb(18 19 22 / .85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); }
+  .hdr { display: flex; align-items: center; gap: 32px; height: var(--header); }
+  .logo { display: flex; align-items: center; gap: 10px; font-size: 21px; font-weight: 600; letter-spacing: -.02em; }
+  .nav { display: flex; gap: 4px; flex: 1; }
+  .nav a { color: var(--fg-2); font-size: 15px; padding: 8px 12px; border-radius: var(--r); }
+  .nav a:hover { color: var(--fg); background: var(--surface); }
+  .actions { display: flex; gap: 10px; }
+  .menu-btn { display: none; margin-left: auto; background: none; border: 0; color: var(--fg); width: 40px; height: 40px; cursor: pointer; }
+  .mnav { display: none; }
+  @media (max-width: 960px) {
+    .nav, .actions { display: none; }
+    .menu-btn { display: block; }
+    .mnav.open { display: flex; flex-direction: column; gap: 4px; padding: 16px var(--pad) 24px; border-top: 1px solid var(--border); }
+    .mnav a:not(.btn) { font-weight: 300; font-size: 28px; padding: 6px 0; letter-spacing: -.03em; }
+    .mnav .row { display: flex; gap: 10px; margin-top: 12px; }
+  }
+</style>

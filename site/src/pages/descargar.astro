@@ -1,0 +1,114 @@
+---
+import Base from '../layouts/Base.astro';
+import Icon from '../components/Icon.astro';
+import Phone from '../components/Phone.astro';
+import Croni from '../components/Croni.astro';
+import { APK_URL, GUIDE_URL, RELEASES_URL, release, platforms, installSteps } from '../data/downloads';
+---
+<Base title="Descargar Cronos — Gratis para Android" description="Descarga el APK de Cronos directo desde aquí. Gratis, sin cuenta y sin anuncios.">
+  <section class="dl">
+    <div class="container grid">
+      <div>
+        <p class="eyebrow mono"><span class="dot"></span> Última versión · {release.version}</p>
+        <h1 class="h-display">Descarga Cronos</h1>
+        <p class="lede">Gratis para Android. Sin cuenta, sin anuncios y con tus datos solo en tu teléfono.</p>
+
+        <div class="primary">
+          <a class="btn accent big" href={APK_URL} download id="dl-btn" data-file="cronos.apk">
+            <Icon name="download" /> Descargar APK
+          </a>
+          <div class="meta mono">
+            <span>{release.version}</span><span>{release.size}</span><span>{release.minAndroid}</span>
+          </div>
+        </div>
+        <p class="status" id="dl-status" role="status" aria-live="polite"></p>
+        <p class="alt">
+          ¿Problemas con la descarga? <a href={RELEASES_URL} target="_blank" rel="noopener">Ver todas las versiones en GitHub</a>
+          · <a href={GUIDE_URL} target="_blank" rel="noopener">Guía de uso (PDF)</a>
+        </p>
+
+        <ul class="plat">
+          {platforms.map((p) => (
+            <li class:list={[{ off: !p.available }]}>
+              <div><b>{p.name}</b><span>{p.detail}</span></div>
+              <span class:list={['pill mono', { ok: p.available }]}>{p.status}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div class="visual">
+        <Phone src="/media/onboarding.webp" alt="Pantalla de bienvenida de Cronos con Croni" eager />
+        <div class="croni"><Croni size={120} state="celebrate" /></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bt steps">
+    <div class="container">
+      <h2 class="h-heading">Instalar en 4 pasos</h2>
+      <ol>
+        {installSteps.map(([t, d], i) => (
+          <li><span class="n mono">0{i + 1}</span><h3>{t}</h3><p>{d}</p></li>
+        ))}
+      </ol>
+      <p class="note">
+        <Icon name="shield" />
+        Cronos se distribuye fuera de Google Play, firmado y publicado en GitHub Releases. Android avisará que es una
+        app de origen desconocido: es el aviso estándar para cualquier APK descargado. El código es público.
+      </p>
+    </div>
+  </section>
+</Base>
+
+<script>
+  // Comprueba en el cliente si es Android para ajustar el mensaje.
+  const btn = document.getElementById('dl-btn') as HTMLAnchorElement;
+  const status = document.getElementById('dl-status')!;
+  const android = /android/i.test(navigator.userAgent);
+  if (!android) status.textContent = 'Estás en una computadora: descarga el APK y pásalo a tu teléfono, o abre esta página desde tu Android.';
+  btn.addEventListener('click', () => {
+    status.textContent = android
+      ? 'Descargando… Cuando termine, toca el archivo para instalar.'
+      : 'Descargando… Pasa el APK a tu teléfono Android para instalarlo.';
+  });
+</script>
+
+<style>
+  .dl { padding: clamp(48px, 7vw, 96px) 0; }
+  .grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 48px; align-items: center; }
+  .eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--fg-2); border: 1px solid var(--border-strong); border-radius: 999px; padding: 6px 12px; margin-bottom: 24px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); }
+  .lede { margin-top: 20px; max-width: 520px; }
+  .primary { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; margin-top: 36px; }
+  .big { height: 56px; font-size: 16px; padding: 0 26px; }
+  .big :global(svg) { width: 20px; height: 20px; }
+  .meta { display: flex; gap: 14px; font-size: 12px; color: var(--fg-3); }
+  .meta span + span::before { content: '·'; margin-right: 14px; }
+  .status { margin-top: 14px; color: var(--fg-2); font-size: 14px; min-height: 21px; }
+  .alt { margin-top: 6px; font-size: 14px; color: var(--fg-3); }
+  .alt a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+  .plat { margin-top: 40px; border-top: 1px solid var(--border); max-width: 560px; }
+  .plat li { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+  .plat li div { display: flex; flex-direction: column; }
+  .plat b { font-weight: 500; }
+  .plat span { color: var(--fg-2); font-size: 14px; }
+  .plat .off b { color: var(--fg-2); }
+  .pill { font-size: 11px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border-strong); color: var(--fg-3) !important; }
+  .pill.ok { color: var(--success) !important; border-color: color-mix(in srgb, var(--success) 40%, transparent); background: color-mix(in srgb, var(--success) 10%, transparent); }
+  .visual { position: relative; display: flex; justify-content: center; }
+  .visual :global(.phone) { max-width: 280px; }
+  .croni { position: absolute; right: 0; bottom: -10px; }
+  .steps { padding-block: 96px; }
+  ol { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 48px; }
+  ol li { border: 1px solid var(--border); border-radius: 12px; padding: 24px; background: var(--surface); }
+  .n { color: var(--accent); font-size: 13px; }
+  ol h3 { font-size: 19px; font-weight: 500; margin: 12px 0 8px; }
+  ol p { color: var(--fg-2); font-size: 15px; }
+  .note { display: flex; gap: 12px; align-items: flex-start; margin-top: 32px; color: var(--fg-2); font-size: 14px; max-width: 760px; }
+  .note :global(svg) { width: 20px; height: 20px; color: var(--accent); flex: none; margin-top: 1px; }
+  @media (max-width: 960px) {
+    .grid { grid-template-columns: 1fr; }
+    ol { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 560px) { ol { grid-template-columns: 1fr; } }
+</style>

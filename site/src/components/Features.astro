@@ -1,0 +1,91 @@
+---
+import Icon from './Icon.astro';
+import Phone from './Phone.astro';
+import { features, shots } from '../data/content';
+---
+<section class="bt" id="funciones">
+  <div class="container grid">
+    <div class="left">
+      <h2 class="h-heading">Todo tu día, de un vistazo</h2>
+      <ul class="list">
+        {features.map((s, i) => (
+          <li class:list={['item', { active: i === 0 }]} data-i={i}>
+            <h3><button type="button" aria-expanded={i === 0 ? 'true' : 'false'} aria-controls={`feat-${i}`}>{s.title}</button></h3>
+            <div class="body" id={`feat-${i}`}>
+              <div>
+                <p>{s.text}</p>
+                <ul class="feat">{s.bullets.map((t) => <li><Icon name="check" />{t}</li>)}</ul>
+              </div>
+            </div>
+            <div class="prog"><i></i></div>
+          </li>
+        ))}
+      </ul>
+    </div>
+    <div class="visual">
+      <div class="glow"></div>
+      <div class="stack">
+        {features.map((s, i) => (
+          <div class:list={['shot', { on: i === 0 }]} data-i={i}>
+            <Phone src={shots[s.shot]} alt={`Pantalla ${s.title} de Cronos`} />
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  const root = document.getElementById('funciones')!;
+  const items = [...root.querySelectorAll<HTMLElement>('.item')];
+  const shots = [...root.querySelectorAll<HTMLElement>('.shot')];
+  let idx = 0;
+  let timer: number | undefined;
+  let inView = false;
+  function show(i: number) {
+    idx = i;
+    items.forEach((el, k) => {
+      el.classList.toggle('active', k === i);
+      el.querySelector('button')!.setAttribute('aria-expanded', String(k === i));
+      const bar = el.querySelector<HTMLElement>('.prog i')!;
+      bar.style.animation = 'none'; void bar.offsetWidth; bar.style.animation = '';
+    });
+    shots.forEach((c, k) => c.classList.toggle('on', k === i));
+    clearTimeout(timer);
+    if (inView) timer = window.setTimeout(() => show((idx + 1) % items.length), 7000);
+  }
+  items.forEach((el, i) => el.querySelector('button')!.addEventListener('click', () => show(i)));
+  new IntersectionObserver(([e]) => { inView = e.isIntersecting; if (inView) show(idx); else clearTimeout(timer); }).observe(root);
+</script>
+
+<style>
+  .grid { display: grid; grid-template-columns: 1fr 1fr; min-height: 780px; }
+  .left { padding: 88px var(--pad) 88px 0; border-right: 1px solid var(--border); }
+  .list { margin-top: 40px; border-top: 1px solid var(--border); }
+  .item { border-bottom: 1px solid var(--border); }
+  h3 button { all: unset; cursor: pointer; display: flex; justify-content: space-between; width: 100%; padding: 20px 0; font-weight: 300; font-size: 24px; letter-spacing: -.02em; color: var(--fg-2); transition: color .2s; }
+  h3 button::after { content: '+'; font-family: var(--mono); font-size: 18px; transition: transform .3s; }
+  .item.active h3 button { color: var(--fg); }
+  .item.active h3 button::after { transform: rotate(45deg); }
+  .body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .4s ease; }
+  .item.active .body { grid-template-rows: 1fr; }
+  .body > div { overflow: hidden; }
+  .body p { color: var(--fg-2); max-width: 480px; }
+  .feat { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 16px 0 24px; font-size: 14px; }
+  .feat li { display: flex; gap: 6px; align-items: center; }
+  .feat :global(svg) { width: 14px; height: 14px; color: var(--accent); }
+  .prog { height: 2px; background: var(--border); margin-top: -1px; overflow: hidden; }
+  .prog i { display: block; height: 100%; width: 0; background: var(--accent); }
+  .item.active .prog i { animation: prog 7s linear forwards; }
+  @keyframes prog { to { width: 100%; } }
+  .visual { position: relative; display: flex; align-items: center; justify-content: center; padding: 64px var(--pad); overflow: hidden; }
+  .glow { position: absolute; inset: 0; background: radial-gradient(closest-side at 50% 50%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%); }
+  .stack { position: relative; display: grid; width: min(300px, 80%); }
+  .shot { grid-area: 1 / 1; opacity: 0; transform: translateY(16px) scale(.98); transition: opacity .5s, transform .6s cubic-bezier(.2, .8, .2, 1); visibility: hidden; }
+  .shot.on { opacity: 1; transform: none; visibility: visible; }
+  @media (max-width: 960px) {
+    .grid { grid-template-columns: 1fr; }
+    .left { border: 0; padding-right: 0; padding-bottom: 24px; }
+    .visual { padding-top: 0; }
+  }
+</style>

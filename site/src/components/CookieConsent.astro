@@ -1,0 +1,81 @@
+<div class="cc" data-cc data-open="false" role="dialog" aria-modal="false" aria-labelledby="cc-title" aria-describedby="cc-desc" hidden>
+  <div class="cc-view" data-view="summary">
+    <p class="cc-eyebrow mono">Cookies</p>
+    <h2 class="cc-title" id="cc-title">Las justas y necesarias.</h2>
+    <p class="cc-text" id="cc-desc">
+      Este sitio solo recuerda tu elección de cookies. No usamos analítica ni publicidad; si eso cambia algún día,
+      queda apagado salvo que lo permitas.
+    </p>
+    <div class="cc-actions">
+      <button class="btn accent sm" type="button" data-cc-accept>Aceptar todo</button>
+      <button class="btn ghost sm" type="button" data-cc-reject>Rechazar</button>
+      <button class="cc-link" type="button" data-cc-prefs>Preferencias</button>
+    </div>
+  </div>
+  <div class="cc-view" data-view="prefs" hidden>
+    <p class="cc-eyebrow mono">Cookies</p>
+    <h2 class="cc-title">Tus preferencias</h2>
+    <ul class="cc-rows">
+      <li class="cc-row">
+        <div><p class="cc-row-title">Necesarias</p><p class="cc-row-text">Recuerdan esta elección. Siempre activas.</p></div>
+        <input class="cc-switch" type="checkbox" checked disabled aria-label="Almacenamiento necesario, siempre activo" />
+      </li>
+      <li class="cc-row">
+        <div><p class="cc-row-title">Analítica</p><p class="cc-row-text">Estadísticas anónimas de visitas. Hoy no se usan.</p></div>
+        <input class="cc-switch" type="checkbox" data-cc-analytics aria-label="Permitir analítica" />
+      </li>
+    </ul>
+    <div class="cc-actions">
+      <button class="btn accent sm" type="button" data-cc-save>Guardar</button>
+      <a class="cc-link" href="/terminos#cookies">Leer más</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { readConsent, writeConsent } from '../scripts/consent';
+  const root = document.querySelector<HTMLElement>('[data-cc]');
+  if (root) {
+    const summary = root.querySelector<HTMLElement>('[data-view="summary"]')!;
+    const prefs = root.querySelector<HTMLElement>('[data-view="prefs"]')!;
+    const analytics = root.querySelector<HTMLInputElement>('[data-cc-analytics]')!;
+    const showView = (v: 'summary' | 'prefs') => { summary.hidden = v !== 'summary'; prefs.hidden = v !== 'prefs'; };
+    const open = (v: 'summary' | 'prefs', focus = false) => {
+      analytics.checked = readConsent()?.analytics ?? false;
+      showView(v);
+      root.hidden = false;
+      requestAnimationFrame(() => (root.dataset.open = 'true'));
+      if (focus) root.querySelector<HTMLElement>(v === 'prefs' ? 'input:not([disabled])' : 'button')?.focus();
+    };
+    const close = () => { root.dataset.open = 'false'; setTimeout(() => (root.hidden = true), 400); };
+    const decide = (a: boolean) => { writeConsent(a); close(); };
+    root.querySelector('[data-cc-accept]')?.addEventListener('click', () => decide(true));
+    root.querySelector('[data-cc-reject]')?.addEventListener('click', () => decide(false));
+    root.querySelector('[data-cc-save]')?.addEventListener('click', () => decide(analytics.checked));
+    root.querySelector('[data-cc-prefs]')?.addEventListener('click', () => showView('prefs'));
+    window.addEventListener('cronos:cookie-settings', () => open('prefs', true));
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !root.hidden && readConsent()) close(); });
+    if (!readConsent()) setTimeout(() => open('summary'), 900);
+  }
+</script>
+
+<style>
+  .cc { position: fixed; z-index: 80; left: 12px; right: 12px; bottom: 12px; max-width: 420px; padding: 22px 20px 20px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--border-strong); box-shadow: 0 24px 60px -20px rgb(0 0 0 / .7); opacity: 0; transform: translateY(16px); transition: opacity .4s, transform .5s cubic-bezier(.2, .8, .2, 1); }
+  .cc[data-open='true'] { opacity: 1; transform: none; }
+  @media (min-width: 750px) { .cc { left: 32px; bottom: 32px; } }
+  .cc-eyebrow { font-size: 11px; color: var(--accent); }
+  .cc-title { font-size: 18px; font-weight: 500; margin: 6px 0 8px; }
+  .cc-text { font-size: 14px; color: var(--fg-2); }
+  .cc-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 18px; }
+  .cc-link { background: none; border: 0; color: var(--fg-2); font: inherit; font-size: 13px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; margin-left: 4px; }
+  .cc-link:hover { color: var(--fg); }
+  .cc-rows { margin-top: 12px; border-top: 1px solid var(--border); }
+  .cc-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .cc-row-title { font-size: 14px; font-weight: 500; }
+  .cc-row-text { font-size: 13px; color: var(--fg-2); }
+  .cc-switch { appearance: none; width: 40px; height: 22px; border-radius: 999px; background: var(--border-strong); position: relative; cursor: pointer; flex: none; transition: background .2s; }
+  .cc-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--fg); transition: transform .2s; }
+  .cc-switch:checked { background: var(--accent); }
+  .cc-switch:checked::after { transform: translateX(18px); background: var(--on-accent); }
+  .cc-switch:disabled { opacity: .6; cursor: not-allowed; }
+</style>

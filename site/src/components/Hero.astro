@@ -1,0 +1,100 @@
+---
+import Icon from './Icon.astro';
+import Phone from './Phone.astro';
+import Croni from './Croni.astro';
+import { release } from '../data/downloads';
+---
+<section class="hero">
+  <div class="container grid">
+    <div class="copy">
+      <p class="eyebrow mono"><span class="dot"></span> {release.version} · Gratis para Android</p>
+      <h1 class="h-display"><span>Tu tiempo,</span><span>medido de verdad</span></h1>
+      <p class="lede">
+        Cronos no es otro gestor de tareas: es tu instrumento de medición. Registra lo que haces, cronometra lo que importa
+        <span>y descubre a dónde se va tu día.</span>
+      </p>
+      <div class="links">
+        <a class="btn accent" href="/descargar">Descargar gratis <Icon name="arrow" /></a>
+        <a class="btn default" href="#como-funciona">Cómo funciona</a>
+      </div>
+      <p class="meta mono">Sin cuenta · Sin anuncios · Datos solo en tu teléfono</p>
+    </div>
+    <div class="visual">
+      <Phone video={{ mp4: '/media/demo.mp4', webm: '/media/demo.webm', poster: '/media/demo-poster.webp' }} alt="Recorrido por la app Cronos: Hoy, Agenda, Tareas y Analizar" />
+      <div class="croni"><Croni size={130} state="wave" /></div>
+      <div class="bubble">¡Hola! Soy Croni 👋</div>
+    </div>
+  </div>
+  <div class="container">
+    <div class="ascii"><canvas id="ascii" aria-hidden="true"></canvas></div>
+  </div>
+</section>
+
+<script>
+  const c = document.getElementById('ascii') as HTMLCanvasElement;
+  const x = c.getContext('2d')!;
+  const chars = ' .:-=+*#%@';
+  const cw = 9, ch = 15;
+  let W = 0, H = 0;
+  function resize() {
+    const d = devicePixelRatio || 1;
+    W = c.clientWidth; H = c.clientHeight;
+    c.width = W * d; c.height = H * d;
+    x.setTransform(d, 0, 0, d, 0, 0);
+    x.font = '12px "IBM Plex Mono", monospace';
+    x.textBaseline = 'top';
+  }
+  addEventListener('resize', resize); resize();
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let visible = true;
+  function frame(ms: number) {
+    const t = ms / 1000;
+    x.clearRect(0, 0, W, H);
+    const cols = (W / cw) | 0, rows = (H / ch) | 0;
+    for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
+      const u = i / cols, v = j / rows;
+      // ondas concéntricas + barrido angular (manecilla de reloj)
+      const dx = u - .5, dy = (v - 1.1) * .6;
+      const ang = Math.atan2(dy, dx), r = Math.hypot(dx, dy);
+      let n = Math.sin(r * 30 - t * 1.6) + Math.sin(ang * 6 + t * .4) * .6 + Math.sin(u * 8 + t * .7) * .5;
+      n = (n + 2.1) / 4.2 * (.3 + v * .95);
+      const k = Math.min(chars.length - 1, Math.max(0, (n * chars.length) | 0));
+      if (!k) continue;
+      x.fillStyle = n > .74 ? '#9db1f5' : n > .56 ? '#6a6f79' : '#33363e';
+      x.fillText(chars[k], i * cw, j * ch);
+    }
+    if (!reduce && visible) requestAnimationFrame(frame);
+  }
+  new IntersectionObserver(([e]) => {
+    const was = visible; visible = e.isIntersecting;
+    if (visible && !was && !reduce) requestAnimationFrame(frame);
+  }).observe(c);
+  requestAnimationFrame(frame);
+</script>
+
+<style>
+  .hero { padding-top: clamp(48px, 7vw, 96px); }
+  .grid { display: grid; grid-template-columns: 1.25fr 1fr; gap: 48px; align-items: center; }
+  .eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--fg-2); border: 1px solid var(--border-strong); border-radius: 999px; padding: 6px 12px; margin-bottom: 28px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 25%, transparent); }
+  h1 span { display: block; }
+  h1 span:last-child { color: var(--fg-2); }
+  .lede { max-width: 580px; margin-top: 28px; }
+  .lede span { color: var(--fg); }
+  .links { display: flex; gap: 12px; margin-top: 36px; flex-wrap: wrap; }
+  .meta { margin-top: 24px; font-size: 12px; color: var(--fg-3); }
+  .visual { position: relative; display: flex; justify-content: center; }
+  .visual :global(.phone) { max-width: 290px; transform: rotate(2deg); }
+  .croni { position: absolute; left: -10px; bottom: -14px; filter: drop-shadow(0 16px 24px rgb(0 0 0 / .5)); }
+  .bubble { position: absolute; left: 0; bottom: 152px; background: var(--fg); color: var(--bg); font-size: 13px; font-weight: 500; padding: 8px 12px; border-radius: 12px 12px 12px 2px; animation: pop 4s ease-in-out infinite; }
+  @keyframes pop { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+  .ascii { margin-top: clamp(40px, 6vw, 72px); height: clamp(140px, 18vw, 240px); border-top: 1px solid var(--border); overflow: hidden; }
+  canvas { width: 100%; height: 100%; display: block; }
+  @media (max-width: 900px) {
+    .grid { grid-template-columns: 1fr; }
+    .visual { margin-top: 24px; }
+    .visual :global(.phone) { max-width: 250px; }
+    .croni { left: 4%; }
+    .bubble { left: 4%; }
+  }
+</style>

@@ -1,0 +1,35 @@
+---
+import Phone from './Phone.astro';
+import { shots } from '../data/content';
+const items = [
+  ['hoy', 'Hoy'], ['agenda', 'Agenda'], ['mes', 'Mes'], ['tareas', 'Tareas'],
+  ['detalle', 'Detalle de tarea'], ['registrar', 'Registrar'], ['analizar', 'Analizar'], ['onboarding', 'Croni te recibe'],
+] as const;
+---
+<section class="bt gallery">
+  <div class="container head">
+    <h2 class="h-heading">Así se ve</h2>
+    <p>Capturas reales de Cronos {''}en un Android.</p>
+  </div>
+  <div class="track" tabindex="0" aria-label="Galería de capturas de la app">
+    {items.map(([k, label]) => (
+      <figure>
+        <Phone src={shots[k]} alt={`Captura: ${label}`} />
+        <figcaption class="mono">{label}</figcaption>
+      </figure>
+    ))}
+  </div>
+</section>
+
+<style>
+  .gallery { padding-block: 96px; overflow: hidden; }
+  .head { display: flex; justify-content: space-between; align-items: end; gap: 24px; flex-wrap: wrap; }
+  .head p { color: var(--fg-2); }
+  .track {
+    display: flex; gap: 28px; margin-top: 48px; overflow-x: auto; scroll-snap-type: x mandatory;
+    padding: 8px max(var(--pad), calc((100vw - var(--maxw)) / 2 + var(--pad))) 24px;
+    scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent;
+  }
+  figure { flex: 0 0 auto; width: 230px; scroll-snap-align: start; }
+  figcaption { margin-top: 14px; font-size: 12px; color: var(--fg-3); text-align: center; }
+</style>

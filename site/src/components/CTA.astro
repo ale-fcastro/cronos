@@ -1,0 +1,18 @@
+---
+import Icon from './Icon.astro';
+import { release } from '../data/downloads';
+---
+<section class="cta">
+  <div class="container">
+    <h2 class="h-heading">Deja de adivinar en qué se te va el día.</h2>
+    <a class="btn accent" href="/descargar">Descargar Cronos <Icon name="arrow" /></a>
+    <p class="mono">{release.version} · {release.minAndroid} · {release.size}</p>
+  </div>
+</section>
+
+<style>
+  .cta { padding: 128px 0; text-align: center; position: relative; overflow: hidden; border-top: 1px solid var(--border); }
+  h2 { max-width: 900px; margin: 0 auto 40px; }
+  p { margin-top: 20px; font-size: 12px; color: var(--fg-3); }
+  .cta::before { content: ''; position: absolute; left: 50%; bottom: -300px; width: 900px; height: 500px; transform: translateX(-50%); background: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 22%, transparent), transparent); pointer-events: none; }
+</style>

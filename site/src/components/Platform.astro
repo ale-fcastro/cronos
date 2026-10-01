@@ -1,0 +1,131 @@
+---
+import { layers } from '../data/content';
+const cx = 312, hw = 210, hh = 121, th = 16;
+const Y = (i: number) => 150 + i * 120;
+// Decoración interna de cada capa (vista isométrica)
+const deco = [
+  (y: number) => `<path d="M${cx + 40} ${y - hh + 50} L${cx + 150} ${y} L${cx + 40} ${y + hh - 50} L${cx - 70} ${y}Z" fill="none" stroke="var(--border-strong)"/><path d="M${cx - 140} ${y} l70 -40 l30 17 l-70 40z" fill="var(--border)"/><path d="M${cx - 90} ${y + 28} l70 -40 l30 17 l-70 40z" fill="var(--border)"/>`,
+  (y: number) => [0, 1, 2, 3].map((k) => `<path d="M${cx - 150 + k * 28} ${y + 12 + k * 16} l160 -92" stroke="var(--border-strong)" stroke-width="8" stroke-linecap="round"/>`).join(''),
+  (y: number) => Array.from({ length: 5 }, (_, r) => Array.from({ length: 7 }, (_, c) => { const px = cx - 120 + c * 34 - r * 14, py = y - 30 + r * 16 - c * 0 + c * 4; const o = ((r * 7 + c) * 37) % 100 / 100; return `<path d="M${px} ${py} l12 -7 l12 7 l-12 7z" fill="var(--success)" fill-opacity="${0.12 + o * 0.6}"/>`; }).join('')).join(''),
+  (y: number) => `<path d="M${cx} ${y - hh} L${cx + hw} ${y} L${cx} ${y + hh} L${cx - hw} ${y}Z" fill="url(#hatch)" opacity=".7"/><path d="M${cx - 60} ${y + 5} l80 -46 l30 17 l-80 46z" fill="var(--border)"/>`,
+];
+---
+<section class="bt platform" id="como-funciona">
+  <div class="sticky">
+    <div class="container grid">
+      <div>
+        <h2 class="h-heading">Del registro a la <em>decisión</em></h2>
+        <p class="intro">Cuatro capas, una sola idea: ver qué haces con tu tiempo para que decidas qué vas a hacer con tu vida.</p>
+        <div class="steps" id="steps">
+          <i class="beam" id="beam"></i>
+          {layers.map((s, i) => (
+            <div class="step" data-i={i} style={`--c:${s.color}`}>
+              <button class="lbl" type="button"><span>{s.n}</span><span>{s.label}</span></button>
+              <div class="body"><h3>{s.title}</h3><p>{s.text}</p><img class="mini" src={`/media/${s.shot}.webp`} alt="" width="640" height="1428" loading="lazy" /></div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div class="stack">
+        <svg viewBox="0 0 624 600" role="img" aria-label="Capas de Cronos: registrar, medir, organizar y entender">
+          <defs>
+            <pattern id="hatch" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="scale(1 .58) rotate(45)">
+              <path d="M0 0v10" stroke="var(--border)" stroke-width="3" />
+            </pattern>
+          </defs>
+          {layers.map((s, i) => {
+            const y = Y(i);
+            return (
+              <g class="layer" data-i={i} data-on="0">
+                <path d={`M${cx - hw} ${y} L${cx} ${y + hh} L${cx} ${y + hh + th} L${cx - hw} ${y + th}Z`} fill="var(--surface)" stroke="var(--border)" />
+                <path d={`M${cx + hw} ${y} L${cx} ${y + hh} L${cx} ${y + hh + th} L${cx + hw} ${y + th}Z`} fill="var(--surface-2)" stroke="var(--border)" />
+                <path class="top" d={`M${cx} ${y - hh} L${cx + hw} ${y} L${cx} ${y + hh} L${cx - hw} ${y}Z`} fill="var(--surface)" stroke="var(--border)" stroke-width="1.2" />
+                <g set:html={deco[i](y)} />
+                <g class="ann" font-family="IBM Plex Mono, monospace" font-size="12" fill="var(--fg)">
+                  <circle cx="20" cy={y - 70} r="4" fill={s.color} />
+                  <text x="32" y={y - 74}>{s.ann[0]}</text>
+                  <path d={`M110 ${y - 70} L160 ${y - 40} L${cx - 110} ${y - 40}`} stroke="var(--fg-4)" fill="none" />
+                  <circle cx="470" cy={y - 110} r="4" fill={s.color} />
+                  <text x="482" y={y - 114}>{s.ann[1]}</text>
+                  <path d={`M470 ${y - 100} L${cx + 90} ${y - 30}`} stroke="var(--fg-4)" fill="none" />
+                </g>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  const sec = document.getElementById('como-funciona')!;
+  const layersEl = [...sec.querySelectorAll<SVGGElement>('.layer')];
+  const steps = [...sec.querySelectorAll<HTMLElement>('.step')];
+  const beam = document.getElementById('beam')!;
+  const stepsBox = document.getElementById('steps')!;
+  const n = steps.length;
+  let cur = -1;
+  function set(a: number, p: number) {
+    if (a !== cur) {
+      cur = a;
+      layersEl.forEach((g, i) => {
+        g.dataset.on = i === a ? '1' : '0';
+        g.style.transform = `translateY(${i < a ? -40 : i > a ? 40 : 0}px)`;
+        g.querySelector('.top')!.setAttribute('stroke', i === a ? getComputedStyle(steps[i]).getPropertyValue('--c') : 'var(--border)');
+      });
+      steps.forEach((e, i) => e.classList.toggle('active', i === a));
+      beam.style.background = getComputedStyle(steps[a]).getPropertyValue('--c');
+    }
+    beam.style.height = `${(stepsBox.getBoundingClientRect().height - 16) * p}px`;
+  }
+  function onScroll() {
+    if (innerWidth <= 960) { set(n - 1, 1); return; }
+    const r = sec.getBoundingClientRect();
+    const total = sec.offsetHeight - innerHeight;
+    const p = Math.min(1, Math.max(0, -r.top / total));
+    set(Math.min(n - 1, (p * n) | 0), p);
+  }
+  addEventListener('scroll', onScroll, { passive: true });
+  addEventListener('resize', onScroll);
+  onScroll();
+  steps.forEach((e, i) => e.querySelector('button')!.addEventListener('click', () => {
+    const total = sec.offsetHeight - innerHeight;
+    scrollTo({ top: sec.offsetTop + total * (i + .5) / n, behavior: 'smooth' });
+  }));
+</script>
+
+<style>
+  .platform { height: 340vh; position: relative; }
+  .sticky { position: sticky; top: var(--header); height: calc(100vh - var(--header)); display: flex; align-items: center; }
+  .grid { display: grid; grid-template-columns: 1fr 1.15fr; gap: 48px; align-items: center; width: 100%; }
+  h2 em { font-style: italic; color: var(--accent); }
+  .intro { color: var(--fg-2); margin: 20px 0 40px; max-width: 460px; }
+  .steps { display: flex; flex-direction: column; gap: 2px; position: relative; padding-left: 22px; }
+  .steps::before { content: ''; position: absolute; left: 4px; top: 8px; bottom: 8px; width: 1px; background: var(--border); }
+  .beam { position: absolute; left: 4px; top: 8px; width: 1px; height: 0; transition: height .15s linear, background .3s; }
+  .step { position: relative; padding: 10px 0; }
+  .step::before { content: ''; position: absolute; left: -22px; top: 17px; width: 9px; height: 9px; border-radius: 50%; background: var(--bg); border: 1px solid var(--fg-4); transition: .3s; }
+  .lbl { all: unset; cursor: pointer; font-family: var(--mono); font-size: 13px; color: var(--fg-4); display: flex; gap: 12px; transition: color .3s; }
+  .body { max-height: 0; overflow: hidden; opacity: 0; transition: max-height .4s ease, opacity .3s; }
+  .step.active .lbl { color: var(--fg); }
+  .step.active::before { background: var(--c); border-color: var(--c); box-shadow: 0 0 0 4px color-mix(in srgb, var(--c) 25%, transparent); }
+  .step.active .body { max-height: 220px; opacity: 1; }
+  h3 { font-weight: 300; font-size: 38px; letter-spacing: -.03em; margin: 8px 0 6px; }
+  .body p { color: var(--fg-2); max-width: 400px; margin-bottom: 8px; }
+  .mini { display: none; }
+  @media (max-width: 960px) { .mini { display: block; width: 150px; height: auto; border-radius: 18px; border: 1px solid var(--border-strong); margin: 14px 0 20px; } }
+  .stack svg { width: 100%; height: auto; max-height: calc(100vh - 140px); }
+  .layer { transition: opacity .5s, transform .6s cubic-bezier(.2, .8, .2, 1); }
+  .ann { transition: opacity .4s; }
+  .layer[data-on='0'] { opacity: .35; }
+  .layer[data-on='0'] .ann { opacity: 0; }
+  @media (max-width: 960px) {
+    .platform { height: auto; }
+    .sticky { position: static; height: auto; padding: 64px 0; }
+    .grid { grid-template-columns: 1fr; }
+    .body { max-height: none; opacity: 1; }
+    .stack { display: none; }
+    .lbl { color: var(--fg-2); }
+  }
+</style>

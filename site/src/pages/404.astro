@@ -1,0 +1,16 @@
+---
+import Base from '../layouts/Base.astro';
+import Croni from '../components/Croni.astro';
+---
+<Base title="Página no encontrada — Cronos">
+  <section class="nf container">
+    <Croni size={160} state="think" />
+    <h1 class="h-heading">Croni no encuentra esta página</h1>
+    <p>Quizá el enlace cambió. Volvamos a algo que sí existe.</p>
+    <a class="btn accent" href="/">Ir al inicio</a>
+  </section>
+</Base>
+<style>
+  .nf { min-height: 70vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 20px; padding-block: 64px; }
+  p { color: var(--fg-2); }
+</style>

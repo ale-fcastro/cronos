@@ -1,0 +1,87 @@
+---
+import Icon from './Icon.astro';
+import Croni from './Croni.astro';
+import { privacyPoints } from '../data/content';
+import { REPO_URL } from '../data/downloads';
+---
+<section class="bt" id="privacidad">
+  <div class="container grid">
+    <div class="left">
+      <h2 class="h-heading">Tus datos se quedan contigo</h2>
+      <dl>
+        {privacyPoints.map(([t, d]) => (
+          <div class="it"><Icon name="check" /><dt>{t}</dt><dd>{d}</dd></div>
+        ))}
+      </dl>
+      <div class="links">
+        <a class="btn accent" href="/descargar">Descargar gratis <Icon name="arrow" /></a>
+        <a class="btn default" href={REPO_URL} target="_blank" rel="noopener">Ver el código</a>
+      </div>
+    </div>
+    <div class="right" role="img" aria-label="Ilustración: una tarea se guarda en la base local del teléfono, sin servidor">
+      <div class="dcard">
+        <div class="hd"><span>//</span>Registrar tarea</div>
+        <div class="bd">
+          <div class="lbl">Título:</div>
+          <div class="val"><span id="typed"></span><Icon name="check" /></div>
+        </div>
+      </div>
+      <div class="dcard">
+        <div class="hd"><span>//</span>Guardado local</div>
+        <div class="bd"><pre><span class="tc">INSERT INTO</span> tasks (title, priority, estimate_min, area_id)
+<span class="tf">VALUES</span> (<span class="tk">'Correr 5 km'</span>, <span class="tv">2</span>, <span class="tv">35</span>, <span class="tk">'salud'</span>);
+<span class="tm">-- cronos.db · en tu teléfono</span></pre></div>
+      </div>
+      <div class="dcard row">
+        <div>
+          <div class="hd"><span>//</span>Servidor</div>
+          <div class="bd"><pre><span class="tm">// ninguno</span><span class="cursor"></span></pre></div>
+        </div>
+        <Croni size={92} state="sleep" label="Croni durmiendo: no hay servidor" />
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  const words = ['Correr 5 km', 'Revisar PRs pendientes', 'Llamar a mamá'];
+  const el = document.getElementById('typed')!;
+  let w = 0, i = 0, dir = 1;
+  setInterval(() => {
+    const s = words[w];
+    i += dir;
+    if (i > s.length + 14) dir = -1;
+    if (i < 0) { dir = 1; i = 0; w = (w + 1) % words.length; }
+    el.textContent = s.slice(0, Math.max(0, Math.min(i, s.length)));
+  }, 90);
+</script>
+
+<style>
+  .grid { display: grid; grid-template-columns: 1fr 1fr; }
+  .left { padding: 96px var(--pad) 96px 0; border-right: 1px solid var(--border); }
+  dl { margin: 40px 0; }
+  .it { display: grid; grid-template-columns: 24px 1fr; gap: 2px 14px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .it :global(svg) { grid-row: span 2; width: 20px; height: 20px; color: var(--accent); margin-top: 2px; }
+  dt { font-weight: 500; }
+  dd { color: var(--fg-2); font-size: 15px; }
+  .links { display: flex; gap: 12px; flex-wrap: wrap; }
+  .right { padding: 96px 0 96px var(--pad); display: flex; flex-direction: column; gap: 16px; justify-content: center; }
+  .dcard { border: 1px solid var(--border-strong); border-radius: 10px; background: var(--surface); font-family: var(--mono); font-size: 12.5px; overflow: hidden; }
+  .dcard.row { display: flex; justify-content: space-between; align-items: center; padding-right: 20px; }
+  .dcard.row > div { flex: 1; }
+  .hd { padding: 10px 16px; border-bottom: 1px solid var(--border); color: var(--fg-2); display: flex; gap: 8px; }
+  .hd span { color: var(--fg-4); }
+  .bd { padding: 16px; }
+  .lbl { color: var(--fg-3); font-size: 11px; text-transform: uppercase; }
+  .val { display: flex; justify-content: space-between; align-items: center; font-family: var(--sans); font-size: 18px; margin-top: 6px; min-height: 27px; }
+  .val :global(svg) { color: var(--success); width: 22px; height: 22px; }
+  pre { color: var(--fg-2); white-space: pre-wrap; line-height: 1.65; }
+  .tc { color: var(--warning); } .tf { color: var(--accent); } .tk { color: var(--success); } .tv { color: var(--danger); } .tm { color: var(--fg-3); }
+  .cursor { display: inline-block; width: 7px; height: 14px; background: var(--fg); vertical-align: -2px; margin-left: 4px; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  @media (max-width: 960px) {
+    .grid { grid-template-columns: 1fr; }
+    .left { border: 0; padding-right: 0; padding-bottom: 32px; }
+    .right { padding: 0 0 80px; }
+  }
+</style>
