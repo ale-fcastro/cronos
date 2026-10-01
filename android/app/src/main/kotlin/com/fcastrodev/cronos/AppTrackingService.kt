@@ -1,4 +1,4 @@
-package com.example.cronos
+package com.fcastrodev.cronos
 
 import android.app.Notification
 import android.app.NotificationChannel

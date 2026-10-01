@@ -1,4 +1,4 @@
-package com.example.cronos
+package com.fcastrodev.cronos
 
 import android.app.Notification
 import android.app.NotificationManager
@@ -144,10 +144,10 @@ class SessionForegroundService : Service() {
         )
 
     companion object {
-        const val ACTION_START = "com.example.cronos.action.START_SESSION"
-        const val ACTION_STOP = "com.example.cronos.action.STOP_SESSION"
-        const val ACTION_PAUSE = "com.example.cronos.action.PAUSE_SESSION"
-        const val ACTION_FINISH_ACTIVITY = "com.example.cronos.action.FINISH_ACTIVITY_SESSION"
+        const val ACTION_START = "com.fcastrodev.cronos.action.START_SESSION"
+        const val ACTION_STOP = "com.fcastrodev.cronos.action.STOP_SESSION"
+        const val ACTION_PAUSE = "com.fcastrodev.cronos.action.PAUSE_SESSION"
+        const val ACTION_FINISH_ACTIVITY = "com.fcastrodev.cronos.action.FINISH_ACTIVITY_SESSION"
         const val EXTRA_NOTIFICATION_ID = "notificationId"
         const val EXTRA_KIND = "kind"
         const val EXTRA_TASK_ID = "taskId"

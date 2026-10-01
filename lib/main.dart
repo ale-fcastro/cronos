@@ -98,14 +98,14 @@ Future<void> _refreshHomeWidgetsInBackground() async {
   await HomeWidget.saveWidgetData(
       'today_next_task_time', summary.nextTask?.time ?? '');
   await HomeWidget.updateWidget(
-      qualifiedAndroidName: 'com.example.cronos.widgets.HomeWidgetProvider');
+      qualifiedAndroidName: 'com.fcastrodev.cronos.widgets.HomeWidgetProvider');
 
   await HomeWidget.saveWidgetData('weekly_scores',
       summary.weeklyScores.map((p) => p.value.toStringAsFixed(2)).join(','));
   await HomeWidget.saveWidgetData(
       'weekly_labels', summary.weeklyScores.map((p) => p.label).join(','));
   await HomeWidget.updateWidget(
-      qualifiedAndroidName: 'com.example.cronos.widgets.WeeklyWidgetProvider');
+      qualifiedAndroidName: 'com.fcastrodev.cronos.widgets.WeeklyWidgetProvider');
 
   const maxHabits = 5;
   final habits = (await HabitsLocalDatasource(database).fetchHabits())
@@ -124,7 +124,7 @@ Future<void> _refreshHomeWidgetsInBackground() async {
     }
   }
   await HomeWidget.updateWidget(
-      qualifiedAndroidName: 'com.example.cronos.widgets.HabitsWidgetProvider');
+      qualifiedAndroidName: 'com.fcastrodev.cronos.widgets.HabitsWidgetProvider');
 }
 
 /// Punto de entrada que home_widget invoca en un isolate aparte para
@@ -177,7 +177,7 @@ Future<void> homeWidgetInteractionCallback(Uri? uri) async {
         }
         await HomeWidget.updateWidget(
           qualifiedAndroidName:
-              'com.example.cronos.widgets.HabitsWidgetProvider',
+              'com.fcastrodev.cronos.widgets.HabitsWidgetProvider',
         );
       }
     }

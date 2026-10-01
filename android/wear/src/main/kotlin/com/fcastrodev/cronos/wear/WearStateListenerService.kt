@@ -1,4 +1,4 @@
-package com.example.cronos.wear
+package com.fcastrodev.cronos.wear
 
 import com.google.android.gms.wearable.DataEvent
 import com.google.android.gms.wearable.DataEventBuffer

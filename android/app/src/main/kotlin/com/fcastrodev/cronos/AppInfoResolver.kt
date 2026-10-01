@@ -1,4 +1,4 @@
-package com.example.cronos
+package com.fcastrodev.cronos
 
 import android.content.Context
 import android.content.pm.PackageManager

@@ -1,4 +1,4 @@
-package com.example.cronos.widgets
+package com.fcastrodev.cronos.widgets
 
 import android.appwidget.AppWidgetManager
 import android.content.Context
@@ -8,7 +8,7 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
 import android.widget.RemoteViews
-import com.example.cronos.R
+import com.fcastrodev.cronos.R
 import es.antonborri.home_widget.HomeWidgetProvider as BaseHomeWidgetProvider
 
 /// Widget "Semanal": una barra por día (L-D) con el score de

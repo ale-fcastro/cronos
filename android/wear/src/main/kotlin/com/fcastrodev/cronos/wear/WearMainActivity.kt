@@ -1,4 +1,4 @@
-package com.example.cronos.wear
+package com.fcastrodev.cronos.wear
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity

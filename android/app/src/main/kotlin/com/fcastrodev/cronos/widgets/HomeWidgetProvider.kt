@@ -1,4 +1,4 @@
-package com.example.cronos.widgets
+package com.fcastrodev.cronos.widgets
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
@@ -6,8 +6,8 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.net.Uri
 import android.widget.RemoteViews
-import com.example.cronos.MainActivity
-import com.example.cronos.R
+import com.fcastrodev.cronos.MainActivity
+import com.fcastrodev.cronos.R
 import es.antonborri.home_widget.HomeWidgetLaunchIntent
 import es.antonborri.home_widget.HomeWidgetProvider as BaseHomeWidgetProvider
 

@@ -1,0 +1,75 @@
+---
+import Base from '../layouts/Base.astro';
+import { author } from '../data/social';
+import { REPO_URL } from '../data/downloads';
+
+const updated = '1 de octubre de 2026';
+---
+
+<Base title="Política de Privacidad · Cronos" description="Cómo Cronos protege tus datos y tu privacidad: 100% local, sin servidores ni rastreadores.">
+  <main class="page">
+    <div class="container narrow">
+      <header class="header">
+        <a class="back" href="/">← Volver al inicio</a>
+        <h1 class="h-title">Política de Privacidad</h1>
+        <p class="updated">Última actualización: {updated}</p>
+      </header>
+
+      <article class="content">
+        <section>
+          <h2>1. Principio fundamental: Privacidad absoluta (100% Local)</h2>
+          <p>Cronos es una herramienta de productividad y control del tiempo diseñada bajo la premisa de no recopilar datos personales:</p>
+          <ul>
+            <li><strong>Sin servidores:</strong> La aplicación funciona de manera completamente local. No operamos servidores para recibir ni almacenar datos.</li>
+            <li><strong>Sin cuentas ni registros:</strong> No es necesario registrarte, ingresar correos ni contraseñas para usar Cronos.</li>
+            <li><strong>Almacenamiento en tu dispositivo:</strong> Toda tu información (tareas, actividades, horarios, notas y estadísticas) se guarda exclusivamente en una base de datos local SQLite en tu teléfono.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>2. Permisos del sistema y su finalidad</h2>
+          <p>Para ofrecer ciertas funciones avanzadas, Cronos puede solicitar permisos opcionales en Android:</p>
+          <ul>
+            <li><strong>Acceso al uso (PACKAGE_USAGE_STATS):</strong> Permite medir el tiempo en pantalla de aplicaciones vinculadas y la detección automática de actividades. Toda la información se procesa localmente en el dispositivo y nunca se transmite a internet.</li>
+            <li><strong>Notificaciones y servicios en primer plano:</strong> Para mantener el cronómetro visible en la barra de estado y enviar recordatorios de tareas planificadas.</li>
+            <li><strong>Biometría (USE_BIOMETRIC):</strong> Para bloquear el acceso a la app con huella digital o rostro mediante las APIs de seguridad de Android.</li>
+            <li><strong>Acceso a Internet:</strong> Únicamente para consultar la API pública de GitHub Releases y comprobar si existen actualizaciones de la app.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>3. Servicios de terceros y publicidad</h2>
+          <p>Cronos no contiene anuncios de ninguna red publicitaria, ni incluye bibliotecas de telemetría o seguimiento como Google Analytics o Firebase Analytics.</p>
+        </section>
+
+        <section>
+          <h2>4. Respaldo y eliminación de datos</h2>
+          <p>Tienes control total para exportar tus datos (CSV, JSON, PDF) o borrarlos por completo desinstalando la aplicación o borrando el almacenamiento local desde la configuración de Android.</p>
+        </section>
+
+        <section>
+          <h2>5. Contacto</h2>
+          <p>Si tienes preguntas sobre esta política, puedes escribir al desarrollador:</p>
+          <p><strong>Correo:</strong> <a href="mailto:fcastrodev1@gmail.com">fcastrodev1@gmail.com</a></p>
+          <p><strong>Código fuente:</strong> <a href={REPO_URL} target="_blank" rel="noopener">{REPO_URL}</a></p>
+        </section>
+      </article>
+    </div>
+  </main>
+</Base>
+
+<style>
+  .page { padding: 48px 0 96px; }
+  .narrow { max-width: 760px; margin: 0 auto; padding: 0 var(--pad); }
+  .header { margin-bottom: 40px; }
+  .back { font-size: 14px; color: var(--fg-3); text-decoration: none; display: inline-block; margin-bottom: 16px; }
+  .back:hover { color: var(--fg); }
+  .h-title { font-size: clamp(28px, 4vw, 38px); font-weight: 700; margin: 0 0 8px; }
+  .updated { font-size: 13px; color: var(--fg-3); font-family: var(--mono); }
+  .content { display: flex; flex-direction: column; gap: 32px; line-height: 1.7; color: var(--fg-2); }
+  .content h2 { font-size: 20px; font-weight: 600; color: var(--fg); margin: 0 0 12px; }
+  .content p { margin: 0 0 12px; font-size: 15px; }
+  .content ul { padding-left: 20px; margin: 0 0 12px; }
+  .content li { margin-bottom: 8px; font-size: 15px; }
+  .content a { color: var(--accent); }
+</style>

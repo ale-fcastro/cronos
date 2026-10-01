@@ -31,13 +31,13 @@ class HomeWidgetService {
   StreamSubscription<TimerEventKind>? _sub;
 
   static const _homeProvider =
-      'com.example.cronos.widgets.HomeWidgetProvider';
+      'com.fcastrodev.cronos.widgets.HomeWidgetProvider';
   static const _sessionProvider =
-      'com.example.cronos.widgets.SessionWidgetProvider';
+      'com.fcastrodev.cronos.widgets.SessionWidgetProvider';
   static const _weeklyProvider =
-      'com.example.cronos.widgets.WeeklyWidgetProvider';
+      'com.fcastrodev.cronos.widgets.WeeklyWidgetProvider';
   static const _habitsProvider =
-      'com.example.cronos.widgets.HabitsWidgetProvider';
+      'com.fcastrodev.cronos.widgets.HabitsWidgetProvider';
 
   Future<void> start() async {
     await _pushToday();
