@@ -40,7 +40,12 @@ class MainActivity : FlutterFragmentActivity() {
                         result.success(null)
                     }
                     "getInstalledApps" -> {
-                        result.success(getInstalledApps())
+                        Thread {
+                            val apps = getInstalledApps()
+                            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                                result.success(apps)
+                            }
+                        }.start()
                     }
                     else -> result.notImplemented()
                 }

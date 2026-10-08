@@ -112,7 +112,7 @@ class _CreateTaskFormState extends State<CreateTaskForm> {
             const SizedBox(height: 6),
             AppSegmentedButton(
               expanded: true,
-              segments: const ['P1', 'P2', 'P3'],
+              segments: const ['Alta', 'Media', 'Baja'],
               selectedIndex: state.priority.index,
               selectedColor: _priorityColor(state.priority),
               selectedBackground:

@@ -19,6 +19,7 @@ class ActivitiesRegisterView extends StatelessWidget {
         final cubit = context.read<ActivitiesCubit>();
         return ListView(
           shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
           children: [
             if (state.running != null) ...[
               HighlightSurface(

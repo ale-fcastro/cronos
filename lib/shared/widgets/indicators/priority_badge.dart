@@ -13,9 +13,9 @@ extension TaskPriorityX on TaskPriority {
         TaskPriority.p3 => AppColors.success,
       };
   String get label => switch (this) {
-        TaskPriority.p1 => 'P1',
-        TaskPriority.p2 => 'P2',
-        TaskPriority.p3 => 'P3',
+        TaskPriority.p1 => 'Alta',
+        TaskPriority.p2 => 'Media',
+        TaskPriority.p3 => 'Baja',
       };
 }
 
